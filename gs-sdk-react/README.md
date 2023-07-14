@@ -26,7 +26,7 @@ function App() {
     
     const fetchData = async () => {
       try {
-        const loginResponse = await gsSDK.login('username');
+        const loginResponse = await gsSDK.login('userId');
         console.log(loginResponse);
 
         const interactionResponse = await gsSDK.addInteraction({ event: 'cart', item: "1233" });

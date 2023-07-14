@@ -56,7 +56,7 @@ Or using async/await:
 
 ```javascript
 try {
-  const response = await gsSDK.login('username', 'password');
+  const response = await gsSDK.login('userId');
   console.log(response);
 } catch (error) {
   console.error(error);
