@@ -1,8 +1,8 @@
 {
-  "name": "my-js-sdk",
+  "name": "gs-sdk",
   "version": "1.0.0",
   "description": "A JS SDK for a system similar to dynamic yield",
-  "main": "dist/my-js-sdk.js",
+  "main": "dist/gs-sdk.js",
   "scripts": {
     "build": "webpack --mode production",
     "start": "webpack --watch",

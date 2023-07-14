@@ -1,6 +1,6 @@
 import { login, addInteraction, logout, getContent } from './api';
 
-const MyJSSDK = (clientId) => {
+const GSSDK = (clientId) => {
   if (!clientId) {
     throw new Error('Client ID is required to initialize the SDK');
   }
@@ -13,5 +13,5 @@ const MyJSSDK = (clientId) => {
   };
 };
 
-export default MyJSSDK;
+export default GSSDK;
 
