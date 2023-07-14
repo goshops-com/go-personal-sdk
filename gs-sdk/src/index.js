@@ -6,7 +6,7 @@ const GSSDK = (clientId) => {
   }
 
   return {
-    login: (username, password) => login(clientId, username, password),
+    login: (username) => login(clientId, username),
     addInteraction: (interactionData) => addInteraction(clientId, interactionData),
     logout: () => logout(clientId),
     getContent: (contentId) => getContent(clientId, contentId),

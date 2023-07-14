@@ -1,8 +1,8 @@
 import { httpGet, httpPost } from '../utils/http';
 
-export const login = (clientId, username, password) => {
+export const login = (clientId, username) => {
   // Implementation of login will depend on your specific API
-  return httpPost(`/login`, { clientId, username, password });
+  return httpPost(`/login`, { clientId, username });
 };
 
 export const addInteraction = (clientId, interactionData) => {
