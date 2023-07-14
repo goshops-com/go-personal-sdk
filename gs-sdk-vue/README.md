@@ -5,7 +5,7 @@
 # Installation
 You can install the @goshops/gs-sdk-vue and the @goshops/gs-sdk packages via npm:
 
-```
+```bash
 npm install --save @goshops/gs-sdk @goshops/gs-sdk-vue
 ```
 
@@ -13,7 +13,7 @@ npm install --save @goshops/gs-sdk @goshops/gs-sdk-vue
 
 To use @goshops/gs-sdk-vue in your Vue.js app, you need to install it as a Vue.js plugin:
 
-```
+```javascript
 import Vue from 'vue';
 import GSSDKVue from '@goshops/gs-sdk-vue';
 
@@ -22,7 +22,7 @@ Vue.use(GSSDKVue, { clientId: 'your-client-id' });
 
 Then, in your Vue.js components, you can access the GS SDK via this.$gsSDK:
 
-```
+```javascript
 export default {
   created() {
     this.$gsSDK.login('userId')
@@ -38,6 +38,7 @@ export default {
 
 If you want to use async/await syntax:
 
+```javascript
 export default {
   async created() {
     try {
@@ -48,6 +49,7 @@ export default {
     }
   }
 }
+```
 
 Note: Replace 'your-client-id' with your actual client ID.
 
