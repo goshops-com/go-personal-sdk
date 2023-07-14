@@ -4,7 +4,7 @@ module.exports = {
   entry: './src/index.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'go-sdk.js',
+    filename: 'gs-sdk.js',
     library: 'GSSDK',
     libraryTarget: 'umd',
     globalObject: 'this',
