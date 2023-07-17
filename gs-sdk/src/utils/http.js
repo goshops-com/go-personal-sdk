@@ -1,6 +1,10 @@
-const BASE_URL = 'https://your-api.com';
+const BASE_URL = 'http://localhost:3000';
+
+import { getToken } from './storage';
+
 
 export const httpGet = async (endpoint, params = {}) => {
+  const obj = getToken();
   const url = new URL(`${BASE_URL}${endpoint}`);
   Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
 
@@ -8,6 +12,7 @@ export const httpGet = async (endpoint, params = {}) => {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${obj.token}`
     },
   });
 
@@ -19,10 +24,13 @@ export const httpGet = async (endpoint, params = {}) => {
 };
 
 export const httpPost = async (endpoint, body = {}) => {
+  const obj = getToken();
+  
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${obj.token}`
     },
     body: JSON.stringify(body),
   });

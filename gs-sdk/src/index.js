@@ -1,9 +1,14 @@
-import { login, addInteraction, logout, getContent } from './api';
+import { login, addInteraction, logout, getContent, init } from './api';
 
 const GSSDK = (clientId) => {
+  console.log(`GSSDK: ${clientId}`);
+  
   if (!clientId) {
     throw new Error('Client ID is required to initialize the SDK');
   }
+
+  console.log('Calling Init:')
+  init(clientId);
 
   return {
     login: (username) => login(clientId, username),
@@ -14,4 +19,3 @@ const GSSDK = (clientId) => {
 };
 
 export default GSSDK;
-
