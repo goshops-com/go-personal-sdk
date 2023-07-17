@@ -3,7 +3,7 @@ const key = 'gs-v-1';
 export const getToken = () => {
     const item = localStorage.getItem(key);
     if (!item) {
-      throw new Error(`No item found with key: ${key}`);
+      return {};
     }
     return JSON.parse(item);
   };
