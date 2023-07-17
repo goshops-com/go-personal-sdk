@@ -1,6 +1,6 @@
 {
   "name": "@goshops/gs-sdk",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "A JS SDK for Go Shops Personal | Personalization engine",
   "main": "dist/gs-sdk.js",
   "scripts": {
