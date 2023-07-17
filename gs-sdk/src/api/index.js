@@ -31,9 +31,9 @@ export const getContent = async (clientId, contentId) => {
   // we need to check if we are on preview or not. 
 
   const prevVarId = previewVariant();
-  console.log('Preview Variant Id', prevVarId);
+  console.log('[DEBUG] Preview Variant Id', prevVarId);
   let content;
-  if (prevVarId === undefined){
+  if (prevVarId === null){
     const payload = {
       context: {
         network: {
@@ -56,7 +56,7 @@ export const getContent = async (clientId, contentId) => {
     };
     content = await httpPost(`/personal/content/${contentId}?byPassCache=true`, payload);
   }else{
-    content = await httpGet(`/personal/content/${contentId}/variant/${previewVariant}`);
+    content = await httpGet(`/personal/content/${contentId}/variant/${prevVarId}`);
   }
   
   console.log('Content found', content);
