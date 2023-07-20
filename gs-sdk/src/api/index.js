@@ -27,13 +27,15 @@ export const logout = (clientId) => {
 };
 
 export const getItems = async (params) => {
-
-  let q = '';
+  
+  const limit = params.limit || 20;
+  const offset = params.offset || 0;
+  let q = `?limit=${limit}&offset=${offset}`;
   if (params.where){
-    q += `?where=${JSON.stringify(params.where)}`
+    q += `&where=${JSON.stringify(params.where)}`
   }
   if (params.sortBy){
-    q += `?where=${JSON.stringify(params.where)}`
+    q += `?sortBy=${JSON.stringify(params.sortBy)}`
   }
   return httpGet(`/item${q}`);
 };
