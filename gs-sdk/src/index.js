@@ -10,6 +10,29 @@ const GSSDK = (clientId) => {
   console.log('Calling Init:')
   init(clientId);
 
+  // Event handlers object
+  const gsEventHandlers = {};
+
+  // Function to register an event handler
+  const on = function (event, handler) {
+    if (!gsEventHandlers[event]) {
+      gsEventHandlers[event] = [];
+    }
+
+    gsEventHandlers[event].push(handler);
+  };
+
+  // Function to trigger an event
+  const emit = function (event, data) {
+    const handlers = gsEventHandlers[event];
+
+    if (!handlers || !handlers.length) {
+      return;
+    }
+
+    handlers.forEach(handler => handler(data));
+  };
+
   return {
     login: (username) => login(clientId, username),
     addInteraction: (interactionData) => addInteraction(clientId, interactionData),
@@ -17,6 +40,8 @@ const GSSDK = (clientId) => {
     getContent: (contentId) => getContent(clientId, contentId),
     getItems: (params) => getItems(params),
     getFieldValues: (params) => getFieldValues(params),
+    on: on,
+    emit: emit,
   };
 };
 
