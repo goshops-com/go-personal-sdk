@@ -40,6 +40,11 @@ export const getItems = async (params) => {
   return httpGet(`/item${q}`);
 };
 
+export const getFieldValues = async (params) => {
+  const field = params.field || 'category';
+  return httpGet(`/item/custom-attributes/${field}`);
+};
+
 export const getContent = async (clientId, contentId) => {
 
   // we need to check if we are on preview or not. 

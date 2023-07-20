@@ -1,4 +1,4 @@
-import { login, addInteraction, logout, getContent, getItems, init } from './api';
+import { login, addInteraction, logout, getContent, getItems, getFieldValues,  init } from './api';
 
 const GSSDK = (clientId) => {
   console.log(`GSSDK: ${clientId}`);
@@ -15,7 +15,8 @@ const GSSDK = (clientId) => {
     addInteraction: (interactionData) => addInteraction(clientId, interactionData),
     logout: () => logout(clientId),
     getContent: (contentId) => getContent(clientId, contentId),
-    getItems: (params) => getItems(params)
+    getItems: (params) => getItems(params),
+    getFieldValues: (params) => getFieldValues(params),
   };
 };
 
