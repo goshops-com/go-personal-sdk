@@ -1,4 +1,4 @@
-import { httpGet, httpPost } from '../utils/http';
+import { httpGet, httpPost, httpPut } from '../utils/http';
 import { setSession } from '../utils/storage';
 import { injectCSS, addHTMLToDiv } from '../utils/dom';
 import { previewVariant } from '../utils/urlParam';
@@ -43,6 +43,10 @@ export const getItems = async (params) => {
 export const getFieldValues = async (params) => {
   const field = params.field || 'category';
   return httpGet(`/item/custom-attributes/${field}`);
+};
+
+export const setPreferences = (params) => {
+  return httpPut(`/channel/preferences`, params);
 };
 
 export const getContent = async (clientId, contentId) => {
