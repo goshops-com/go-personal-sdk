@@ -43,3 +43,21 @@ export const httpPost = async (endpoint, body = {}) => {
   return response.json();
 };
 
+export const httpPut = async (endpoint, body = {}) => {
+  const obj = getToken();
+  
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${obj.token}`
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(`POST request failed: ${response.status}`);
+  }
+
+  return response.json();
+};
