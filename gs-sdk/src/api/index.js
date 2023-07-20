@@ -26,6 +26,18 @@ export const logout = (clientId) => {
   return httpPost(`/logout`, { clientId });
 };
 
+export const getItems = async (params) => {
+
+  let q = '';
+  if (params.where){
+    q += `?where=${JSON.stringify(params.where)}`
+  }
+  if (params.sortBy){
+    q += `?where=${JSON.stringify(params.where)}`
+  }
+  return httpGet(`/item${q}`);
+};
+
 export const getContent = async (clientId, contentId) => {
 
   // we need to check if we are on preview or not. 
