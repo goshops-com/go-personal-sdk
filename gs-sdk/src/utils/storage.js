@@ -12,4 +12,9 @@ export const setSession = (data = {}) => {
     localStorage.setItem(key, JSON.stringify(data));
     return data;
 };
+
+export const clearSession = () => {
+  localStorage.removeItem(key);
+};
+
   

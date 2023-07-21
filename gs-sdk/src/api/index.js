@@ -1,10 +1,14 @@
 import { httpGet, httpPost, httpPut } from '../utils/http';
-import { setSession } from '../utils/storage';
+import { setSession, clearSession } from '../utils/storage';
 import { injectCSS, addHTMLToDiv } from '../utils/dom';
-import { previewVariant, jsonToQueryString } from '../utils/urlParam';
+import { previewVariant, jsonToQueryString, getParam } from '../utils/urlParam';
 
 export const init = async (clientId) => {
-  // Implementation of login will depend on your specific API
+  
+  const reset = await getParam('gsReset');
+  if (reset){
+    await clearSession();
+  }
   const obj = await httpPost(`/channel/init`, { clientId, firstURL: window.location.href });
   console.log(obj)
   setSession(obj);
