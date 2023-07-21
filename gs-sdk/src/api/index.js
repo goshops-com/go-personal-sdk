@@ -41,7 +41,7 @@ export const getItems = async (params) => {
 
 export const getRanking = async (ranking, params) => {
   const q = jsonToQueryString(params || {});
-  return httpGet(`/item/${ranking}/${q}`);
+  return httpGet(`/item/ranking/${ranking}/${q}`);
 };
 
 export const getFieldValues = async (params) => {
