@@ -1,7 +1,7 @@
 import { httpGet, httpPost, httpPut } from '../utils/http';
 import { setSession } from '../utils/storage';
 import { injectCSS, addHTMLToDiv } from '../utils/dom';
-import { previewVariant } from '../utils/urlParam';
+import { previewVariant, jsonToQueryString } from '../utils/urlParam';
 
 export const init = async (clientId) => {
   // Implementation of login will depend on your specific API
@@ -27,7 +27,6 @@ export const logout = (clientId) => {
 };
 
 export const getItems = async (params) => {
-  
   const limit = params.limit || 20;
   const offset = params.offset || 0;
   let q = `?limit=${limit}&offset=${offset}`;
@@ -38,6 +37,11 @@ export const getItems = async (params) => {
     q += `?sortBy=${JSON.stringify(params.sortBy)}`
   }
   return httpGet(`/item${q}`);
+};
+
+export const getRanking = async (ranking, params) => {
+  const q = jsonToQueryString(params || {});
+  return httpGet(`/item/${ranking}/${q}`);
 };
 
 export const getFieldValues = async (params) => {
@@ -52,7 +56,6 @@ export const setPreferences = (params) => {
 export const getContent = async (clientId, contentId) => {
 
   // we need to check if we are on preview or not. 
-
   const prevVarId = previewVariant();
   console.log('[DEBUG] Preview Variant Id', prevVarId);
   let content;
