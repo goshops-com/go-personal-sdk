@@ -104,8 +104,10 @@ export const getContent = async (clientId, contentId) => {
       await addHTMLToBody(html);
 
       const delay = filterAndParseInt(variables, 'Delay no interaction');
+      console.log('Delay', delay)
       if (delay){
         setTimeout(async function(){
+          console.log('Adding JS')
           addJavaScriptToBody(js);
         },delay * 1000)
       }else{
