@@ -3,6 +3,10 @@ import { setSession, clearSession } from '../utils/storage';
 import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody } from '../utils/dom';
 import { previewVariant, jsonToQueryString, getParam } from '../utils/urlParam';
 
+window.gsStore = {
+  interactionCount: 0
+};
+
 export const init = async (clientId) => {
   
   const reset = await getParam('gsReset');
@@ -23,6 +27,8 @@ export const login = (clientId, username) => {
 };
 
 export const addInteraction = (clientId, interactionData) => {
+  window.gsStore.interactionCount++;
+
   return httpPost(`/interaction`, interactionData);
 };
 
@@ -108,8 +114,13 @@ export const getContent = async (clientId, contentId) => {
       if (delay){
         setTimeout(async function(){
           console.log('Adding JS')
-          addJavaScriptToBody(js);
-        },delay * 1000)
+          if (!window.gsStore.interactionCount){
+            addJavaScriptToBody(js);
+          }else{
+            console.log('Interacted, cancelling JS');
+          }
+          
+        },delay.value * 1000)
       }else{
         await addJavaScriptToBody(js);
       }
