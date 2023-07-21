@@ -8,10 +8,12 @@ export const init = async (clientId) => {
   const reset = await getParam('gsReset');
   if (reset){
     await clearSession();
+    console.log('Removed session')
   }
   const obj = await httpPost(`/channel/init`, { clientId, firstURL: window.location.href });
   console.log(obj)
-  setSession(obj);
+  await setSession(obj);
+  console.log('Set session')
   return obj;
 };
 
