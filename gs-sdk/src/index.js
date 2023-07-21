@@ -1,6 +1,6 @@
 import { login, addInteraction, logout, getContent, getItems, getFieldValues, getRanking, setPreferences, init } from './api';
 
-const GSSDK = (clientId) => {
+const GSSDK = async (clientId) => {
   console.log(`GSSDK: ${clientId}`);
   
   if (!clientId) {
@@ -8,7 +8,7 @@ const GSSDK = (clientId) => {
   }
 
   console.log('Calling Init:')
-  init(clientId);
+  await init(clientId);
 
   // Event handlers object
   const gsEventHandlers = {};
