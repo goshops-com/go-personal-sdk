@@ -107,7 +107,7 @@ export const getContent = async (clientId, contentId) => {
       if (delay){
         setTimeout(async function(){
           addJavaScriptToBody(js);
-        },delay)
+        },delay * 1000)
       }else{
         await addJavaScriptToBody(js);
       }
