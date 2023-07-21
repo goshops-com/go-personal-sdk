@@ -96,12 +96,21 @@ export const getContent = async (clientId, contentId) => {
     const css = content.contentValue.css;
     const html = content.contentValue.html;
     const js = content.contentValue.js;
+    const variables = content.contentValue.variables || [];
 
     await injectCSS(css);
 
     if (js && js.length > 0){
       await addHTMLToBody(html);
-      await addJavaScriptToBody(js);
+
+      const delay = filterAndParseInt(variables, 'Delay no interaction');
+      if (delay){
+        setTimeout(async function(){
+          addJavaScriptToBody(js);
+        },delay)
+      }else{
+        await addJavaScriptToBody(js);
+      }
     }else{
       const selector = content.selector;
       await addHTMLToDiv(html, selector);
@@ -110,3 +119,15 @@ export const getContent = async (clientId, contentId) => {
   }
 };
 
+function filterAndParseInt(variables, name) {
+  const filteredVariables = variables.filter((variable) => variable.name === name);
+
+  const parsedVariables = filteredVariables.map((variable) => {
+    if (variable.type.id === "number") {
+      variable.value = parseInt(variable.value);
+    }
+    return variable;
+  });
+
+  return parsedVariables;
+}
