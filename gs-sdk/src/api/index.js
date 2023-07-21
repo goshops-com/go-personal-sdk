@@ -23,8 +23,7 @@ export const login = (clientId, username) => {
 };
 
 export const addInteraction = (clientId, interactionData) => {
-  // Implementation of addInteraction will depend on your specific API
-  return httpPost(`/interaction`, { clientId, ...interactionData });
+  return httpPost(`/interaction`, { interactionData });
 };
 
 export const logout = (clientId) => {
