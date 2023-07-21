@@ -117,7 +117,7 @@ export const getContent = async (clientId, contentId) => {
 
       const delay = filterAndParseInt(variables, 'Delay no interaction');
       console.log('Delay', delay)
-      if (delay){
+      if (delay.length > 0){
         setTimeout(async function(){
           console.log('Adding JS')
           if (!window.gsStore.interactionCount){
@@ -126,7 +126,7 @@ export const getContent = async (clientId, contentId) => {
             console.log('Interacted, cancelling JS');
           }
           
-        },delay.value * 1000)
+        },delay[0].value * 1000)
       }else{
         await addJavaScriptToBody(js);
       }
