@@ -1,6 +1,6 @@
 import { httpGet, httpPost, httpPut } from '../utils/http';
 import { setSession, clearSession } from '../utils/storage';
-import { injectCSS, addHTMLToDiv } from '../utils/dom';
+import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody } from '../utils/dom';
 import { previewVariant, jsonToQueryString, getParam } from '../utils/urlParam';
 
 export const init = async (clientId) => {
@@ -96,10 +96,18 @@ export const getContent = async (clientId, contentId) => {
   if (content && content.contentValue){
     const css = content.contentValue.css;
     const html = content.contentValue.html;
-    const selector = content.selector;
+    const js = content.contentValue.js;
 
-    injectCSS(css);
-    addHTMLToDiv(html, selector);
+    await injectCSS(css);
+
+    if (js && js.length > 0){
+      await addHTMLToBody(html);
+      await addJavaScriptToBody(js);
+    }else{
+      const selector = content.selector;
+      await addHTMLToDiv(html, selector);
+    }
+    
   }
 };
 
