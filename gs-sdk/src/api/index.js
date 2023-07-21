@@ -58,7 +58,7 @@ export const getRanking = async (ranking, params) => {
 export const reRank = async (ranking, params) => {
   const affinityField = params.affinityField;
   const items = params.items;
-  return httpPost(`/item/rerank/${ranking}/?affinityField=${affinityField}`, items);
+  return httpPost(`/item/rerank/${ranking}/?affinityField=${affinityField}`, { items });
 };
 
 export const getFieldValues = async (params) => {
