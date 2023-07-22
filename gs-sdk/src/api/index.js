@@ -40,15 +40,21 @@ export const logout = (clientId) => {
 export const getItems = async (params) => {
   const limit = params.limit || 20;
   const offset = params.offset || 0;
-  let q = `?limit=${limit}&offset=${offset}`;
-  if (params.where){
-    q += `&where=${JSON.stringify(params.where)}`
+  let q = `?limit=${encodeURIComponent(limit)}&offset=${encodeURIComponent(offset)}`;
+
+  if (params.where) {
+    const whereString = JSON.stringify(params.where);
+    q += `&where=${encodeURIComponent(whereString)}`;
   }
-  if (params.sortBy){
-    q += `&sortBy=${JSON.stringify(params.sortBy)}`
+
+  if (params.sortBy) {
+    const sortByString = JSON.stringify(params.sortBy);
+    q += `&sortBy=${encodeURIComponent(sortByString)}`;
   }
+
   return httpGet(`/item${q}`);
 };
+
 
 export const getRanking = async (ranking, params) => {
   const q = jsonToQueryString(params || {});
