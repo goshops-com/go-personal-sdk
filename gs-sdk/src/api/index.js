@@ -45,7 +45,7 @@ export const getItems = async (params) => {
     q += `&where=${JSON.stringify(params.where)}`
   }
   if (params.sortBy){
-    q += `?sortBy=${JSON.stringify(params.sortBy)}`
+    q += `&sortBy=${JSON.stringify(params.sortBy)}`
   }
   return httpGet(`/item${q}`);
 };
