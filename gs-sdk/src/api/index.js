@@ -2,6 +2,7 @@ import { httpGet, httpPost, httpPut } from '../utils/http';
 import { setSession, clearSession } from '../utils/storage';
 import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody } from '../utils/dom';
 import { previewVariant, jsonToQueryString, getParam } from '../utils/urlParam';
+import { setupContentSelector } from '../utils/configure';
 
 window.gsStore = {
   interactionCount: 0
@@ -18,6 +19,15 @@ export const init = async (clientId) => {
   console.log(obj)
   await setSession(obj);
   console.log('Set session')
+
+  const gsElementSelector = await getParam('gsElementSelector');
+  const gsContentKey = await getParam('gsContentKey');
+  console.log('gsElementSelector', gsElementSelector);
+  console.log('gsContentKey', gsContentKey);
+
+  if (gsElementSelector != null && gsContentKey != null){
+    await setupContentSelector(gsContentKey);
+  }
   return obj;
 };
 
@@ -78,6 +88,11 @@ export const setPreferences = (params) => {
 
 export const getContent = async (clientId, contentId) => {
 
+  const gsElementSelector = await getParam('gsElementSelector');
+
+  if (gsElementSelector != null){
+    return;
+  }
   // we need to check if we are on preview or not. 
   const prevVarId = previewVariant();
   console.log('[DEBUG] Preview Variant Id', prevVarId);
