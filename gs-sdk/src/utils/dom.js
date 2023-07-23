@@ -1,5 +1,5 @@
 
-export const injectCSS = async (css) => {
+export const injectCSS = (css) => {
     const styleElement = document.createElement('style');
     styleElement.textContent = css;
     document.head.appendChild(styleElement);
@@ -9,7 +9,7 @@ export const selectElement = (selector) => {
     return document.querySelector(selector);
 }
 
-export const addHTMLToDiv = async (html, selector) => {
+export const addHTMLToDiv = (html, selector) => {
     const divElement = selectElement(selector);
     if (divElement) {
         divElement.innerHTML = html;
@@ -18,7 +18,7 @@ export const addHTMLToDiv = async (html, selector) => {
     }
 }
 
-export const addHTMLToBody = async (html) => {
+export const addHTMLToBody = (html) => {
     const bodyElement = document.body;
     if (bodyElement) {
         bodyElement.insertAdjacentHTML('beforeend', html);

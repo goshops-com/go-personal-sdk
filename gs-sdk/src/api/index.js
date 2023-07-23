@@ -65,6 +65,9 @@ export const getItems = async (params) => {
   return httpGet(`/item${q}`);
 };
 
+export const getItemById = async (id) => {
+  return httpGet(`/item/${id}`);
+};
 
 export const getRanking = async (ranking, params) => {
   const q = jsonToQueryString(params || {});
@@ -134,7 +137,7 @@ export const getContent = async (clientId, contentId) => {
     await injectCSS(css);
 
     if (js && js.length > 0){
-      await addHTMLToBody(html);
+      addHTMLToBody(html);
 
       const delay = filterAndParseInt(variables, 'Delay no interaction');
       console.log('Delay', delay)
@@ -149,11 +152,11 @@ export const getContent = async (clientId, contentId) => {
           
         },delay[0].value * 1000)
       }else{
-        await addJavaScriptToBody(js);
+        addJavaScriptToBody(js);
       }
     }else{
       const selector = content.selector;
-      await addHTMLToDiv(html, selector);
+      addHTMLToDiv(html, selector);
     }
     
   }
