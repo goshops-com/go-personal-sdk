@@ -156,7 +156,7 @@ export const getContent = async (clientId, contentId) => {
       }
     }else{
       const selector = content.selector;
-      addHTMLToDiv(html, selector);
+      await addHTMLToDiv(html, selector);
     }
     
   }
