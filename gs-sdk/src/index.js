@@ -1,4 +1,4 @@
-import { login, addInteraction, logout, getContent, getItems, getFieldValues,
+import { login, addInteraction, logout, getItems, getFieldValues,
    getRanking, reRank, setPreferences, getItemById, init } from './api';
 
 import { getContent, getContentByContext } from './api/content';
