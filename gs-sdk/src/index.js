@@ -1,6 +1,8 @@
 import { login, addInteraction, logout, getContent, getItems, getFieldValues,
    getRanking, reRank, setPreferences, getItemById, init } from './api';
 
+import { getContent, getContentByContext } from './api/content';
+
 const GSSDK = async (clientId) => {
   console.log(`GSSDK: ${clientId}`);
   
@@ -45,6 +47,7 @@ const GSSDK = async (clientId) => {
     reRank: (ranking, params) => reRank(ranking, params),
     getFieldValues: (params) => getFieldValues(params),
     getContent: (contentId) => getContent(clientId, contentId),
+    getContentByContext: (context) => getContentByContext(context),
     on: on,
     emit: emit,
   };
