@@ -82,7 +82,8 @@ export const getContent = async (clientId, contentId) => {
       }
     }else{
       const selector = content.selector;
-      await addHTMLToDiv(html, selector);
+      const selectorPosition = content.selectorPosition;
+      await addHTMLToDiv(html, selector, selectorPosition);
     }
     
   }

@@ -40,10 +40,21 @@ export const selectElementWithRetry = async (selector, maxRetries = 3, backoffFa
     return selectedElement;
   };
 
-export const addHTMLToDiv = async (html, selector) => {
+  export const addHTMLToDiv = async (html, selector, selectorPosition) => {
+    //selectorPosition can be 'after', 'before'
+
     const divElement = await selectElementWithRetry(selector);
     if (divElement) {
-        divElement.innerHTML = html;
+        switch (selectorPosition) {
+            case 'after':
+                divElement.insertAdjacentHTML('afterend', html);
+                break;
+            case 'before':
+                divElement.insertAdjacentHTML('beforebegin', html);
+                break;
+            default:
+                divElement.innerHTML = html;
+        }
     } else {
         console.error(`Element with selector "${selector}" not found.`);
     }
