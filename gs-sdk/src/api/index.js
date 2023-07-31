@@ -65,6 +65,17 @@ export const getItems = async (params) => {
   return httpGet(`/item${q}`);
 };
 
+export const getCount = async (params) => {
+  let q = ``;
+
+  if (params.where) {
+    const whereString = JSON.stringify(params.where);
+    q += `?where=${encodeURIComponent(whereString)}`;
+  }
+
+  return httpGet(`/item/count${q}`);
+};
+
 export const getItemById = async (id) => {
   return httpGet(`/item/${id}`);
 };
