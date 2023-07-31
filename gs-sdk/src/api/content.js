@@ -11,6 +11,8 @@ window.gsStore = {
 
 
 export const getContentByContext = async (context, options) => {
+
+  console.log('getContentByContext', context, options)
   if (!options){
     options = {}
   }

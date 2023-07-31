@@ -47,7 +47,7 @@ const GSSDK = async (clientId) => {
     reRank: (ranking, params) => reRank(ranking, params),
     getFieldValues: (params) => getFieldValues(params),
     getContent: (contentId) => getContent(clientId, contentId),
-    getContentByContext: (context) => getContentByContext(context),
+    getContentByContext: (context, options) => getContentByContext(context, options),
     on: on,
     emit: emit,
   };
