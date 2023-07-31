@@ -79,6 +79,10 @@ export const getContent = async (clientId, contentId, options) => {
     const js = content.contentValue.js;
     const variables = content.contentValue.variables || [];
 
+    if (!css && !html && !js){
+      return; //nothing to inyect
+    }
+    
     await injectCSS(css);
 
     if (js && js.length > 0){
