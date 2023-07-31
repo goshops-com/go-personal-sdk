@@ -42,7 +42,7 @@ const GSSDK = async (clientId) => {
     setPreferences: (params) => setPreferences(params),
     addInteraction: (interactionData) => addInteraction(clientId, interactionData),
     getItems: (params) => getItems(params),
-    getCount: (params) => getItems(params),
+    getCount: (params) => getCount(params),
     getItemById: (id) => getItemById(id),
     getRanking: (ranking, params) => getRanking(ranking, params),
     reRank: (ranking, params) => reRank(ranking, params),
