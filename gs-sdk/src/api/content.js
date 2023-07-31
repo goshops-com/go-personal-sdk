@@ -3,20 +3,28 @@ import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody } from '../
 import { previewVariant, getParam } from '../utils/urlParam';
 
 window.gsStore = {
+  context: {
+
+  },
   interactionCount: 0
 };
 
 
-export const getContentByContext = async (context) => {
+export const getContentByContext = async (context, options = {}) => {
+  options.type = context;
+
   const contentKeys = await httpGet(`/personal/content?pageType=${context}`);
   // Iterate over the contentKeys array and call getContent for each key
   for (const key of contentKeys) {
-    await getContent(undefined, key.key);
+    await getContent(undefined, key.key, options);
   }
 };
 
-export const getContent = async (clientId, contentId) => {
+export const getContent = async (clientId, contentId, options = {}) => {
 
+  if (!options.type){
+    options.type = "Home"
+  }
   const gsElementSelector = await getParam('gsElementSelector');
 
   if (gsElementSelector != null){
@@ -42,11 +50,12 @@ export const getContent = async (clientId, contentId) => {
           timezoneOffset: new Date().getTimezoneOffset(),
         },
         currentPage: {
-          type: "Home", // This should be updated based on the page type
+          ...options,
           location: window.location.href,
         },
       },
     };
+
     content = await httpPost(`/personal/content/${contentId}?byPassCache=true`, payload);
   }else{
     content = await httpGet(`/personal/content/${contentId}/variant/${prevVarId}`);
