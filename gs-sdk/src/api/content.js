@@ -20,8 +20,14 @@ export const getContentByContext = async (context, options = {}) => {
   }
 };
 
-export const getContent = async (clientId, contentId, options = {}) => {
+export const getContent = async (clientId, contentId, options) => {
 
+
+  console.log('Content', contentId, options);
+
+  if (!options){
+    options = {}
+  }
   if (!options.type){
     options.type = "Home"
   }
