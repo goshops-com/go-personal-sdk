@@ -10,11 +10,13 @@ window.gsStore = {
 };
 
 
-export const getContentByContext = async (context, options = {}) => {
+export const getContentByContext = async (context, options) => {
+  if (!options){
+    options = {}
+  }
   options.type = context;
 
   const contentKeys = await httpGet(`/personal/content?pageType=${context}`);
-  // Iterate over the contentKeys array and call getContent for each key
   for (const key of contentKeys) {
     await getContent(undefined, key.key, options);
   }
