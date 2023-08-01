@@ -33,7 +33,7 @@ export const init = async (clientId) => {
 
 export const login = (username) => {
   // Implementation of login will depend on your specific API
-  return httpPost(`/login`, { customerId: username });
+  return httpPost(`/channel/login`, { customerId: username });
 };
 
 export const addInteraction = (clientId, interactionData) => {
