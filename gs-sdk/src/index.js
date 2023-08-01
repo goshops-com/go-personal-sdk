@@ -37,7 +37,7 @@ const GSSDK = async (clientId) => {
   };
 
   return {
-    login: (username) => login(clientId, username),
+    login: (username) => login(username),
     logout: () => logout(clientId),
     setPreferences: (params) => setPreferences(params),
     addInteraction: (interactionData) => addInteraction(clientId, interactionData),

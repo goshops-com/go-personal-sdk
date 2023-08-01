@@ -31,7 +31,7 @@ export const init = async (clientId) => {
   return obj;
 };
 
-export const login = (clientId, username) => {
+export const login = (username) => {
   // Implementation of login will depend on your specific API
   return httpPost(`/login`, { customerId: username });
 };
