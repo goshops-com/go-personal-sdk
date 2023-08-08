@@ -65,6 +65,16 @@ export const getItems = async (params) => {
   return httpGet(`/item${q}`);
 };
 
+export const search = async (input, params) => {
+  let q = `?query=${input}`;
+
+  if (params.insta) {
+    q += `&insta=1`;
+  }
+
+  return httpGet(`/item/search${q}`);
+};
+
 export const getCount = async (params) => {
   let q = ``;
 
