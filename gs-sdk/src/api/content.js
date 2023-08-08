@@ -85,7 +85,7 @@ export const getContent = async (clientId, contentId, options) => {
     
     await injectCSS(css);
 
-    if (js && js.length > 0){
+    if (contentId == 'popup'){ // change this - custom code or only js code
       addHTMLToBody(html);
 
       const delay = filterAndParseInt(variables, 'Delay no interaction');
@@ -104,6 +104,10 @@ export const getContent = async (clientId, contentId, options) => {
         addJavaScriptToBody(js);
       }
     }else{
+      // web content
+      if (js){
+        addJavaScriptToBody(js);
+      }
       const selector = content.selector;
       const selectorPosition = content.selectorPosition;
       await addHTMLToDiv(html, selector, selectorPosition);
