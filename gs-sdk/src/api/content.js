@@ -105,12 +105,12 @@ export const getContent = async (clientId, contentId, options) => {
       }
     }else{
       // web content
-      if (js){
-        addJavaScriptToBody(js);
-      }
       const selector = content.selector;
       const selectorPosition = content.selectorPosition;
       await addHTMLToDiv(html, selector, selectorPosition);
+      if (js){
+        addJavaScriptToBody(js);
+      }
     }
     
   }
