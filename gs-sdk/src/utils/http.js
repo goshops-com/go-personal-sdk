@@ -43,6 +43,24 @@ export const httpPost = async (endpoint, body = {}) => {
   return response.json();
 };
 
+export const httpPostFormData = async (endpoint, formData) => {
+  const obj = getToken();
+  
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${obj.token}`
+    },
+    body: formData
+  });
+
+  if (!response.ok) {
+    throw new Error(`POST request failed: ${response.status}`);
+  }
+
+  return response.json();
+};
+
 export const httpPut = async (endpoint, body = {}) => {
   const obj = getToken();
   

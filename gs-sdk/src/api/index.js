@@ -1,4 +1,4 @@
-import { httpGet, httpPost, httpPut } from '../utils/http';
+import { httpGet, httpPost, httpPut, httpPostFormData } from '../utils/http';
 import { setSession, clearSession } from '../utils/storage';
 import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody } from '../utils/dom';
 import { previewVariant, jsonToQueryString, getParam } from '../utils/urlParam';
@@ -73,6 +73,10 @@ export const search = async (input, params) => {
   }
 
   return httpGet(`/item/search${q}`);
+};
+
+export const imageSearch = async (formData, params) => {
+  return httpPostFormData(`/item/image-search`, formData);
 };
 
 export const getCount = async (params) => {
