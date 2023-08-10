@@ -76,7 +76,12 @@ export const search = async (input, params) => {
 };
 
 export const imageSearch = async (formData, params) => {
-  return httpPostFormData(`/item/image-search`, formData);
+
+  let q = ``;
+  if (params.text && params.text.length > 0){
+    q = `?ignoreRanking=true&text=${params.text}`
+  }
+  return httpPostFormData(`/item/image-search${q}`, formData);
 };
 
 export const getCount = async (params) => {
