@@ -72,6 +72,10 @@ export const search = async (input, params) => {
     q += `&insta=1`;
   }
 
+  if (window.gsSearchOptions && window.gsSearchOptions.hasRetrievalQA){
+    q += `&hasRetrievalQA=${window.gsSearchOptions.hasRetrievalQA}`
+  }
+
   return httpGet(`/item/search${q}`);
 };
 
