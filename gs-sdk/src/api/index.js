@@ -77,10 +77,15 @@ export const search = async (input, params) => {
 
 export const imageSearch = async (formData, params) => {
 
-  let q = ``;
+  let q = `?sdk=1`;
   if (params.text && params.text.length > 0){
-    q = `?ignoreRanking=true&text=${params.text}`
+    q = `&text=${params.text}`
   }
+  if (window.gsSearchOptions && window.gsSearchOptions.hasMultimodal){
+    q += `&hasMultimodal=${window.gsSearchOptions.hasMultimodal}`
+    q += `&ignoreRanking=${window.gsSearchOptions.hasMultimodal}`
+  }
+
   return httpPostFormData(`/item/image-search${q}`, formData);
 };
 
