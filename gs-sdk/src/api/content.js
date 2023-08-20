@@ -25,8 +25,7 @@ export const getContentByContext = async (context, options) => {
 };
 
 export const getContent = async (clientId, contentId, options) => {
-
-
+  
   console.log('Content', contentId, options);
 
   if (!options){
@@ -35,7 +34,7 @@ export const getContent = async (clientId, contentId, options) => {
   if (!options.type){
     options.type = "Home"
   }
-  const gsElementSelector = await getParam('gsElementSelector');
+  const gsElementSelector = getParam('gsElementSelector');
 
   if (gsElementSelector != null){
     return;
@@ -82,37 +81,43 @@ export const getContent = async (clientId, contentId, options) => {
     if (!css && !html && !js){
       return; //nothing to inyect
     }
-    
-    await injectCSS(css);
 
-    if (contentId == 'popup'){ // change this - custom code or only js code
-      addHTMLToBody(html);
-
-      const delay = filterAndParseInt(variables, 'Delay no interaction');
-      console.log('Delay', delay)
-      if (delay.length > 0){
-        setTimeout(async function(){
-          console.log('Adding JS')
-          if (!window.gsStore.interactionCount){
-            addJavaScriptToBody(js);
-          }else{
-            console.log('Interacted, cancelling JS');
-          }
-          
-        },delay[0].value * 1000)
+    const proceed = async () => {
+      injectCSS(css);
+      if (contentId == 'popup'){
+        addHTMLToBody(html);
+        const delay = filterAndParseInt(variables, 'Delay no interaction');
+        if (delay.length > 0){
+          setTimeout(async function(){
+            console.log('Adding JS')
+            if (!window.gsStore.interactionCount){
+              addJavaScriptToBody(js);
+            }else{
+              console.log('Interacted, cancelling JS');
+            }
+            
+          },delay[0].value * 1000)
+        }else{
+          addJavaScriptToBody(js);
+        }
       }else{
-        addJavaScriptToBody(js);
+        // web content
+        const selector = content.selector;
+        const selectorPosition = content.selectorPosition;
+        await addHTMLToDiv(html, selector, selectorPosition);
+        if (js){
+          addJavaScriptToBody(js);
+        }
       }
-    }else{
-      // web content
-      const selector = content.selector;
-      const selectorPosition = content.selectorPosition;
-      await addHTMLToDiv(html, selector, selectorPosition);
-      if (js){
-        addJavaScriptToBody(js);
-      }
-    }
+    };
     
+    // Check if the DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', proceed); // Wait for DOM ready
+    } else {
+      await proceed(); // Proceed immediately
+    }
+
   }
 };
 
