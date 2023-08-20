@@ -7,8 +7,25 @@ export const getToken = () => {
     }
     return JSON.parse(item);
   };
-  
+
+export const isTokenValid = () => {
+  const item = localStorage.getItem(key);
+  if (!item) {
+    return false;
+  }
+  try{
+    const ts = JSON.parse(item);
+    const timestamp = new Date(ts);
+    const oneDayAgo = new Date();
+    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+    return timestamp > oneDayAgo;
+  }catch(e){
+    console.log(e)
+    return false;
+  }
+};  
 export const setSession = (data = {}) => {
+    data.ts = new Date();
     localStorage.setItem(key, JSON.stringify(data));
     return data;
 };

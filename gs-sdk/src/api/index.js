@@ -1,34 +1,41 @@
 import { httpGet, httpPost, httpPut, httpPostFormData } from '../utils/http';
-import { setSession, clearSession } from '../utils/storage';
-import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody } from '../utils/dom';
-import { previewVariant, jsonToQueryString, getParam } from '../utils/urlParam';
+import { setSession, clearSession, isTokenValid, getToken } from '../utils/storage';
+import { jsonToQueryString, getParam } from '../utils/urlParam';
 import { setupContentSelector } from '../utils/configure';
 
 window.gsStore = {
   interactionCount: 0
 };
 
-export const init = async (clientId) => {
+export const init = async (clientId, options) => {
   
-  const reset = await getParam('gsReset');
+  const reset = getParam('gsReset');
   if (reset){
-    await clearSession();
-    console.log('Removed session')
+    clearSession();
+  }
+  if (isTokenValid()){
+    const obj = getToken();
+    executeInitialLoad(clientId, options);
+    return obj;
   }
   const obj = await httpPost(`/channel/init`, { clientId, firstURL: window.location.href });
   console.log(obj)
-  await setSession(obj);
-  console.log('Set session')
+  setSession(obj);
 
-  const gsElementSelector = await getParam('gsElementSelector');
-  const gsContentKey = await getParam('gsContentKey');
+  const gsElementSelector = getParam('gsElementSelector');
+  const gsContentKey = getParam('gsContentKey');
   console.log('gsElementSelector', gsElementSelector);
   console.log('gsContentKey', gsContentKey);
 
   if (gsElementSelector != null && gsContentKey != null){
     await setupContentSelector(gsContentKey);
   }
+  executeInitialLoad(clientId, options);
   return obj;
+};
+
+async function executeInitialLoad(clientId, options){
+
 };
 
 export const login = (username) => {
