@@ -3,15 +3,26 @@ import { login, addInteraction, logout, getItems, search, imageSearch, getCount,
 
 import { getContent, getContentByContext } from './api/content';
 
-const GSSDK = async (clientId) => {
-  console.log(`GSSDK: ${clientId}`);
+window.gsConfig = {};
+window.gsLog = function(s){
+  if (window.gsConfig.log){
+    console.log(s);
+  }
+}
+const GSSDK = async (clientId, options = {}) => {
+
+  if (options.log){
+    window.gsConfig.log = true;
+  }
+  
+  window.gsLog(`GSSDK: ${clientId}`);
   
   if (!clientId) {
     throw new Error('Client ID is required to initialize the SDK');
   }
 
-  console.log('Calling Init:')
-  await init(clientId);
+  window.gsLog('Calling Init:')
+  await init(clientId, options);
 
   // Event handlers object
   const gsEventHandlers = {};
