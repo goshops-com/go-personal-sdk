@@ -22,7 +22,7 @@ export const getContentByContext = async (context, options) => {
   if (includeDraft){
     url += '&includeDraft=true';
   }
-  
+
   const payload = buildContextPayload(options);
   const contents = await httpPost(url, payload);
   for (const content of contents) {
@@ -101,7 +101,7 @@ async function addContentToWebsite(content){
 
     const proceed = async () => {
       injectCSS(css);
-      if (contentId == 'popup'){
+      if (content.key == 'popup'){
         addHTMLToBody(html);
         const delay = filterAndParseInt(variables, 'Delay no interaction');
         if (delay.length > 0){
