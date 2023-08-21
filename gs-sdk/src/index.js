@@ -16,11 +16,11 @@ const GSSDK = async (clientId, options = {}) => {
   }
   
   window.gsLog(`GSSDK: ${clientId}`);
-  
   if (!clientId) {
     throw new Error('Client ID is required to initialize the SDK');
   }
 
+  window.gsConfig.clientId = clientId;
   window.gsLog('Calling Init:')
   await init(clientId, options);
 

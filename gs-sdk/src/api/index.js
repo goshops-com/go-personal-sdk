@@ -61,7 +61,7 @@ function getPageType(provider) {
     if (path.startsWith('/catalogo/')) {
       const parts = path.split('_');
       const productId = parts[parts.length - 1].split('-')[0];
-      return { pageType: 'product_detail', id: productId };
+      return { pageType: 'product_detail', productId: productId };
     }
 
     if (path === '/checkout/') {
