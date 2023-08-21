@@ -2,6 +2,7 @@ import { httpGet, httpPost, httpPut, httpPostFormData } from '../utils/http';
 import { setSession, clearSession, isTokenValid, getToken } from '../utils/storage';
 import { jsonToQueryString, getParam } from '../utils/urlParam';
 import { setupContentSelector } from '../utils/configure';
+import { getContentByContext } from './content';
 
 window.gsStore = {
   interactionCount: 0
@@ -12,7 +13,7 @@ export const init = async (clientId, options) => {
   console.log('options', options);
 
   window.gsConfig.includeDraft = options.includeDraft;
-  
+
   const reset = getParam('gsReset');
   if (reset){
     clearSession();
@@ -39,8 +40,36 @@ export const init = async (clientId, options) => {
 };
 
 async function executeInitialLoad(clientId, options){
-
+  if (options && options.provider){
+    const context = getPageType(options.provider);
+    if (context){
+      const result = await getContentByContext(context);
+      console.log('content result', result);
+    }
+  }
 };
+
+function getPageType(provider) {
+  if (provider && provider.toUpperCase() === 'FENICIO') {
+    const path = window.location.pathname;
+
+    if (path === '/') {
+      return { pageType: 'home' };
+    }
+
+    if (path.startsWith('/catalogo/')) {
+      const parts = path.split('_');
+      const productId = parts[parts.length - 1].split('-')[0];
+      return { pageType: 'product_detail', id: productId };
+    }
+
+    if (path === '/checkout/') {
+      return { pageType: 'cart' };
+    }
+  }
+
+  return undefined;
+}
 
 export const login = (username) => {
   // Implementation of login will depend on your specific API
