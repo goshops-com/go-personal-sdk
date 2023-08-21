@@ -10,6 +10,8 @@ window.gsStore = {
 export const init = async (clientId, options) => {
   
   console.log('options', options);
+
+  window.gsConfig.includeDraft = options.includeDraft;
   
   const reset = getParam('gsReset');
   if (reset){

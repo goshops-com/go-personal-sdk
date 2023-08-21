@@ -9,7 +9,6 @@ window.gsStore = {
   interactionCount: 0
 };
 
-
 export const getContentByContext = async (context, options) => {
 
   console.log('getContentByContext', context, options)
@@ -18,7 +17,12 @@ export const getContentByContext = async (context, options) => {
   }
   options.type = context;
 
-  const contentKeys = await httpGet(`/personal/content?pageType=${context}`);
+  const includeDraft = window.gsConfig.includeDraft;
+  let url = `/personal/content?pageType=${context}`;
+  if (includeDraft){
+    url += '&includeDraft=true';
+  }
+  const contentKeys = await httpGet(url);
   for (const key of contentKeys) {
     await getContent(undefined, key.key, options);
   }
@@ -34,6 +38,8 @@ export const getContent = async (clientId, contentId, options) => {
   if (!options.type){
     options.type = "Home"
   }
+  const includeDraft = window.gsConfig.includeDraft;
+
   const gsElementSelector = getParam('gsElementSelector');
 
   if (gsElementSelector != null){
@@ -65,7 +71,11 @@ export const getContent = async (clientId, contentId, options) => {
       },
     };
 
-    content = await httpPost(`/personal/content/${contentId}?byPassCache=true`, payload);
+    let url = `/personal/content/${contentId}?byPassCache=true`;
+    if (includeDraft){
+      url += '&includeDraft=true';
+    }
+    content = await httpPost(url, payload);
   }else{
     content = await httpGet(`/personal/content/${contentId}/variant/${prevVarId}`);
   }
