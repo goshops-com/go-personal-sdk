@@ -24,9 +24,14 @@ export const getContentByContext = async (context, options) => {
   }
 
   const payload = buildContextPayload(options);
-  const contents = await httpPost(url, payload);
+  const result = await httpPost(url, payload);
+  const contents = result.loadNowContent;
   for (const content of contents) {
     await addContentToWebsite(content);
+  }
+  const lazyLoadContent = result.lazyLoadContent;
+  for (const content of lazyLoadContent) {
+    await getContent(clientId, content.key, options);
   }
 };
 
