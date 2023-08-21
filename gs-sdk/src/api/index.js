@@ -9,6 +9,8 @@ window.gsStore = {
 
 export const init = async (clientId, options) => {
   
+  console.log('options', options);
+  
   const reset = getParam('gsReset');
   if (reset){
     clearSession();
