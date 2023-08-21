@@ -43,7 +43,8 @@ async function executeInitialLoad(clientId, options){
   if (options && options.provider){
     const context = getPageType(options.provider);
     if (context){
-      const result = await getContentByContext(context);
+      const { pageType, ...contentWithoutPageType } = context;
+      const result = await getContentByContext(pageType, contentWithoutPageType);
       console.log('content result', result);
     }
   }
