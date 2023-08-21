@@ -14,8 +14,8 @@ export const isTokenValid = () => {
     return false;
   }
   try{
-    const ts = JSON.parse(item);
-    const timestamp = new Date(ts);
+    const itemObj = JSON.parse(item);
+    const timestamp = new Date(itemObj.ts);
     const oneDayAgo = new Date();
     oneDayAgo.setHours(oneDayAgo.getHours() - 24);
     return timestamp > oneDayAgo;
