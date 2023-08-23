@@ -1,15 +1,15 @@
-const key = 'gs-v-1';
+const key = 'gs-v-1-';
 
-export const getToken = () => {
-    const item = localStorage.getItem(key);
+export const getToken = (clientId) => {
+    const item = localStorage.getItem(key + clientId);
     if (!item) {
       return {};
     }
     return JSON.parse(item);
   };
 
-export const isTokenValid = () => {
-  const item = localStorage.getItem(key);
+export const isTokenValid = (clientId) => {
+  const item = localStorage.getItem(key + clientId);
   if (!item) {
     return false;
   }
@@ -24,14 +24,14 @@ export const isTokenValid = () => {
     return false;
   }
 };  
-export const setSession = (data = {}) => {
+export const setSession = (clientId, data = {}) => {
     data.ts = new Date();
-    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(key + clientId, JSON.stringify(data));
     return data;
 };
 
-export const clearSession = () => {
-  localStorage.removeItem(key);
+export const clearSession = (clientId) => {
+  localStorage.removeItem(key + clientId);
 };
 
   

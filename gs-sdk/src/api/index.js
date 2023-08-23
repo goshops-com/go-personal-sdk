@@ -16,16 +16,16 @@ export const init = async (clientId, options) => {
 
   const reset = getParam('gsReset');
   if (reset){
-    clearSession();
+    clearSession(clientId);
   }
-  if (isTokenValid()){
-    const obj = getToken();
+  if (isTokenValid(clientId)){
+    const obj = getToken(clientId);
     executeInitialLoad(clientId, options);
     return obj;
   }
   const obj = await httpPost(`/channel/init`, { clientId, firstURL: window.location.href });
   console.log(obj)
-  setSession(obj);
+  setSession(clientId, obj);
 
   const gsElementSelector = getParam('gsElementSelector');
   const gsContentKey = getParam('gsContentKey');
