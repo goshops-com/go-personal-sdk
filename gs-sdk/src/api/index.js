@@ -1,5 +1,5 @@
 import { httpGet, httpPost, httpPut, httpPostFormData } from '../utils/http';
-import { setSession, clearSession, isTokenValid, getToken } from '../utils/storage';
+import { setSession, clearSession, isTokenValid, getToken, checkSameClientId, setClientId } from '../utils/storage';
 import { jsonToQueryString, getParam } from '../utils/urlParam';
 import { setupContentSelector } from '../utils/configure';
 import { getContentByContext } from './content';
@@ -10,22 +10,24 @@ window.gsStore = {
 
 export const init = async (clientId, options) => {
   
-  console.log('options', options);
-
+  window.gsLog('Init Options', options);
   window.gsConfig.includeDraft = options.includeDraft;
 
+  const sameClientId = checkSameClientId(clientId);
   const reset = getParam('gsReset');
-  if (reset){
-    clearSession(clientId);
+  if (reset || !sameClientId){
+    clearSession();
+    setClientId(clientId);
   }
-  if (isTokenValid(clientId)){
-    const obj = getToken(clientId);
+
+  if (isTokenValid()){
+    const obj = getToken();
     executeInitialLoad(clientId, options);
     return obj;
   }
   const obj = await httpPost(`/channel/init`, { clientId, firstURL: window.location.href });
   console.log(obj)
-  setSession(clientId, obj);
+  setSession(obj);
 
   const gsElementSelector = getParam('gsElementSelector');
   const gsContentKey = getParam('gsContentKey');
