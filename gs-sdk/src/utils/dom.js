@@ -1,5 +1,9 @@
 
 export const injectCSS = (css) => {
+
+    if (!css || css.length == 0){
+        return;
+    }
     const styleElement = document.createElement('style');
     styleElement.textContent = css;
     document.head.appendChild(styleElement);

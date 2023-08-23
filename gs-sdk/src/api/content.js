@@ -103,22 +103,12 @@ async function addContentToWebsite(content){
 
     const proceed = async () => {
       injectCSS(css);
-      if (content.key == 'popup'){
+
+      const types = ['custom_code', 'pop_up', 'notifications'];
+
+      if (types.includes(content.type)){
         addHTMLToBody(html);
-        const delay = filterAndParseInt(variables, 'Delay no interaction');
-        if (delay.length > 0){
-          setTimeout(async function(){
-            console.log('Adding JS')
-            if (!window.gsStore.interactionCount){
-              addJavaScriptToBody(js);
-            }else{
-              console.log('Interacted, cancelling JS');
-            }
-            
-          },delay[0].value * 1000)
-        }else{
-          addJavaScriptToBody(js);
-        }
+        addJavaScriptToBody(js);
       }else{
         // web content
         const selector = content.selector;
