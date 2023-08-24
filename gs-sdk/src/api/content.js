@@ -110,7 +110,7 @@ async function addContentToWebsite(content, ev){
 
       if (types.includes(content.type)){
 
-        const canShow = canShowContent(content.frequency, content._id);
+        const canShow = canShowContent(content.frequency, content.experienceId);
         console.log('canShow', canShow);
 
         if (canShow){
@@ -148,8 +148,10 @@ function canShowContent(frequency, contentId) {
   }
 
   const now = new Date().getTime();
-  const storageKey = `content_seen_${contentId}`;
-  const storedData = localStorage.getItem(storageKey);
+  const storageKey = `gs_content_seen`;
+  let contentData = localStorage.getItem(storageKey);
+  contentData = contentData ? JSON.parse(contentData) : {};
+  let entry = contentData[contentId];
   let nextTime;
 
   if (storedData) {
@@ -191,7 +193,8 @@ function canShowContent(frequency, contentId) {
   }
 
   if (nextTime) {
-    localStorage.setItem(storageKey, JSON.stringify({ lastSeen: now, period: frequency }));
+    contentData[contentId] = { lastSeen: now, period: frequency };
+    localStorage.setItem(storageKey, JSON.stringify(contentData));
     return true;
   }
 
