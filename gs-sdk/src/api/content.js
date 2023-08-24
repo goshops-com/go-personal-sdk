@@ -108,17 +108,17 @@ async function addContentToWebsite(content, ev){
 
       const types = ['custom_code', 'pop_up', 'notifications'];
 
-      const canShow = canShowContent(content.frequency, content._id);
-      if (!canShow){
-        return;
-      }
-      
       if (types.includes(content.type)){
 
-        suscribe(content, ev, function(html, js){
-          addHTMLToBody(html);
-          addJavaScriptToBody(js);
-        })
+        const canShow = canShowContent(content.frequency, content._id);
+        console.log('canShow', canShow);
+
+        if (canShow){
+          suscribe(content, ev, function(html, js){
+            addHTMLToBody(html);
+            addJavaScriptToBody(js);
+          })  
+        }
         
       }else{
         // web content
@@ -142,6 +142,11 @@ async function addContentToWebsite(content, ev){
 }
 
 function canShowContent(frequency, contentId) {
+
+  if (!frequency){
+    return true;
+  }
+
   const now = new Date().getTime();
   const storageKey = `content_seen_${contentId}`;
   const storedData = localStorage.getItem(storageKey);
