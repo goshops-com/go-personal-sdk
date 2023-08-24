@@ -1,6 +1,7 @@
-import { httpGet, httpPost, httpPut } from '../utils/http';
+import { httpGet, httpPost } from '../utils/http';
 import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody } from '../utils/dom';
 import { previewVariant, getParam } from '../utils/urlParam';
+import { suscribe } from '../utils/trigger';
 
 window.gsStore = {
   context: {
@@ -95,8 +96,7 @@ async function addContentToWebsite(content){
     const css = content.contentValue.css;
     const html = content.contentValue.html;
     const js = content.contentValue.js;
-    const variables = content.contentValue.variables || [];
-
+    
     if (!css && !html && !js){
       return; //nothing to inyect
     }
@@ -107,8 +107,12 @@ async function addContentToWebsite(content){
       const types = ['custom_code', 'pop_up', 'notifications'];
 
       if (types.includes(content.type)){
-        addHTMLToBody(html);
-        addJavaScriptToBody(js);
+
+        suscribe(content, function(html, js){
+          addHTMLToBody(html);
+          addJavaScriptToBody(js);
+        })
+        
       }else{
         // web content
         const selector = content.selector;
