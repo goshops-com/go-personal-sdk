@@ -155,7 +155,7 @@ function canShowContent(frequency, contentId) {
   let nextTime;
 
   if (entry) {
-    const { lastSeen, period } = JSON.parse(storedData);
+    const { lastSeen, period } = JSON.parse(entry);
 
     switch (frequency) {
       case 'once_page':
