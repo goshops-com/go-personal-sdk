@@ -2,7 +2,9 @@ export const suscribe = (content, ev, cb) => {
     const trigger = content.trigger;
     const html = content.contentValue.html;
     const js = content.contentValue.js;
-
+    console.log('suscribe', ev);
+    console.log('suscribe', ev.on);
+    
     if (trigger.id === 'wait') {
       const seconds = parseInt(trigger.value) || 0;
   
