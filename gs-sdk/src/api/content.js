@@ -33,7 +33,7 @@ export const getContentByContext = async (context, options, ev) => {
 
 };
 
-export const getContent = async (clientId, contentId, options) => {
+export const getContent = async (clientId, contentId, options, ev) => {
   console.log('Content', contentId, options);
   if (!options){
     options = {}
@@ -66,7 +66,7 @@ export const getContent = async (clientId, contentId, options) => {
   
   console.log('Content found', content);
 
-  addContentToWebsite(content);
+  addContentToWebsite(content, ev);
 };
 
 function buildContextPayload(options){
@@ -91,7 +91,7 @@ function buildContextPayload(options){
     },
   };
 }
-async function addContentToWebsite(content){
+async function addContentToWebsite(content, ev){
   if (content && content.contentValue){
     const css = content.contentValue.css;
     const html = content.contentValue.html;
@@ -132,17 +132,4 @@ async function addContentToWebsite(content){
     }
 
   }
-}
-
-function filterAndParseInt(variables, name) {
-  const filteredVariables = variables.filter((variable) => variable.name === name);
-
-  const parsedVariables = filteredVariables.map((variable) => {
-    if (variable.type.id === "number") {
-      variable.value = parseInt(variable.value);
-    }
-    return variable;
-  });
-
-  return parsedVariables;
 }
