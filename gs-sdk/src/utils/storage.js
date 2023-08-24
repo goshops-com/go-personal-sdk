@@ -44,6 +44,7 @@ export const setSession = (data = {}) => {
 
 export const clearSession = () => {
   localStorage.removeItem(key);
+  localStorage.removeItem('gs_content_seen');
 };
 
   
