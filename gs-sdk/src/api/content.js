@@ -92,6 +92,8 @@ function buildContextPayload(options){
   };
 }
 async function addContentToWebsite(content, ev){
+  console.log('addContentToWebsite', ev);
+  
   if (content && content.contentValue){
     const css = content.contentValue.css;
     const html = content.contentValue.html;
