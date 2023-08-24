@@ -1,4 +1,4 @@
-export const suscribe = (content, cb) => {
+export const suscribe = (content, ev, cb) => {
     const trigger = content.trigger;
     const html = content.contentValue.html;
     const js = content.contentValue.js;
@@ -36,6 +36,11 @@ export const suscribe = (content, cb) => {
         }
     }else if (trigger.id === 'page_load'){
         cb(html, js);
+    }else if (trigger.id === 'interaction'){
+      ev.on('interaction', function(interactionData){
+        console.log('interaction data event received', interactionData);
+        cb(html, js);
+      })
     }
 
     

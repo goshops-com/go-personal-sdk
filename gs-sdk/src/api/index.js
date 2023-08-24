@@ -79,9 +79,9 @@ export const login = (username) => {
   return httpPost(`/channel/login`, { customerId: username });
 };
 
-export const addInteraction = (clientId, interactionData) => {
+export const addInteraction = (clientId, interactionData, ev) => {
   window.gsStore.interactionCount++;
-
+  ev.emit('interaction', interactionData);
   return httpPost(`/interaction`, interactionData);
 };
 

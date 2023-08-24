@@ -10,7 +10,7 @@ window.gsStore = {
   interactionCount: 0
 };
 
-export const getContentByContext = async (context, options) => {
+export const getContentByContext = async (context, options, ev) => {
 
   console.log('getContentByContext', context, options)
   if (!options){
@@ -27,7 +27,7 @@ export const getContentByContext = async (context, options) => {
   const payload = buildContextPayload(options);
   const result = await httpPost(url, payload);
   const contents = result.loadNowContent;
-  await Promise.all(contents.map(content => addContentToWebsite(content)));
+  await Promise.all(contents.map(content => addContentToWebsite(content, ev)));
   const lazyLoadContent = result.lazyLoadContent;
   await Promise.all(lazyLoadContent.map(content => getContent(undefined, content.key, options)));
 
@@ -108,7 +108,7 @@ async function addContentToWebsite(content){
 
       if (types.includes(content.type)){
 
-        suscribe(content, function(html, js){
+        suscribe(content, ev, function(html, js){
           addHTMLToBody(html);
           addJavaScriptToBody(js);
         })
