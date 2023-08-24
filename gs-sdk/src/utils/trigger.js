@@ -4,7 +4,7 @@ export const suscribe = (content, ev, cb) => {
     const js = content.contentValue.js;
     console.log('suscribe', ev);
     console.log('suscribe', ev.on);
-    
+
     if (trigger.id === 'wait') {
       const seconds = parseInt(trigger.value) || 0;
   
@@ -41,9 +41,9 @@ export const suscribe = (content, ev, cb) => {
     }else if (trigger.id === 'interaction'){
       ev.on('interaction', function(interactionData){
         console.log('interaction data event received', interactionData);
-        cb(html, js);
+        if (interactionData.event == trigger.value){
+          cb(html, js);
+        }
       })
     }
-
-    
 }
