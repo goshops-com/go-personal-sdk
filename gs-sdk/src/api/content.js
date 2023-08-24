@@ -29,7 +29,7 @@ export const getContentByContext = async (context, options, ev) => {
   const contents = result.loadNowContent;
   await Promise.all(contents.map(content => addContentToWebsite(content, ev)));
   const lazyLoadContent = result.lazyLoadContent;
-  await Promise.all(lazyLoadContent.map(content => getContent(undefined, content.key, options)));
+  await Promise.all(lazyLoadContent.map(content => getContent(undefined, content.key, options, ev)));
 
 };
 
@@ -93,7 +93,7 @@ function buildContextPayload(options){
 }
 async function addContentToWebsite(content, ev){
   console.log('addContentToWebsite', ev);
-  
+
   if (content && content.contentValue){
     const css = content.contentValue.css;
     const html = content.contentValue.html;
