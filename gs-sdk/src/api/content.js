@@ -108,6 +108,11 @@ async function addContentToWebsite(content, ev){
 
       const types = ['custom_code', 'pop_up', 'notifications'];
 
+      const canShow = canShowContent(content.frequency, content._id);
+      if (!canShow){
+        return;
+      }
+      
       if (types.includes(content.type)){
 
         suscribe(content, ev, function(html, js){
@@ -134,4 +139,56 @@ async function addContentToWebsite(content, ev){
     }
 
   }
+}
+
+function canShowContent(frequency, contentId) {
+  const now = new Date().getTime();
+  const storageKey = `content_seen_${contentId}`;
+  const storedData = localStorage.getItem(storageKey);
+  let nextTime;
+
+  if (storedData) {
+    const { lastSeen, period } = JSON.parse(storedData);
+
+    switch (frequency) {
+      case 'once_page':
+        return true;
+      case 'once_sesion':
+        if (period !== 'once_sesion' || now - lastSeen > 24 * 3600 * 1000) {
+          nextTime = true;
+        }
+        break;
+      case 'once_day':
+        if (period !== 'once_day' || now - lastSeen > 24 * 3600 * 1000) {
+          nextTime = true;
+        }
+        break;
+      case 'once_week':
+        if (period !== 'once_week' || now - lastSeen > 7 * 24 * 3600 * 1000) {
+          nextTime = true;
+        }
+        break;
+      case 'once_month':
+        if (period !== 'once_month' || now - lastSeen > 30 * 24 * 3600 * 1000) {
+          nextTime = true;
+        }
+        break;
+      case 'once':
+        if (period !== 'once') {
+          nextTime = true;
+        }
+        break;
+      default:
+        return false;
+    }
+  } else {
+    nextTime = true;
+  }
+
+  if (nextTime) {
+    localStorage.setItem(storageKey, JSON.stringify({ lastSeen: now, period: frequency }));
+    return true;
+  }
+
+  return false;
 }
