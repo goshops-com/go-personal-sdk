@@ -6,7 +6,7 @@ export const suscribe = (content, cb) => {
     if (trigger.id === 'wait') {
       const seconds = parseInt(trigger.value) || 0;
   
-      setTimeout(() => {
+      return setTimeout(() => {
         cb(html, js); // Call the callback function after the specified number of seconds
       }, seconds * 1000);
     }
