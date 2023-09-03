@@ -28,7 +28,12 @@ export const init = async (clientId, options) => {
     executeInitialLoad(clientId, session, options);
     return obj;
   }
-  const obj = await httpPost(`/channel/init`, { clientId, firstURL: window.location.href });
+
+  let q = '?';
+  if (options.byPassCache){
+    q += 'byPassCache=true';
+  }
+  const obj = await httpPost(`/channel/init${q}`, { clientId, firstURL: window.location.href });
   console.log(obj)
   setSession(obj);
 
