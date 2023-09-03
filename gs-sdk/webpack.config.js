@@ -6,8 +6,8 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     filename: 'gs-sdk.js',
     library: 'GSSDK',
-    libraryTarget: 'umd',
-    globalObject: 'this',
+    libraryTarget: 'window',
+    // globalObject: 'this',
     umdNamedDefine: true
   },
   module: {
