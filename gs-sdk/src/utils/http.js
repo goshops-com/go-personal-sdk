@@ -1,7 +1,25 @@
 // const BASE_URL = 'http://localhost:3000';
-const BASE_URL = 'https://go-discover-dev.goshops.ai';
+let BASE_URL = 'https://go-discover-dev.goshops.ai';
 
 import { getToken } from './storage';
+
+export const configure = (clientId) => {
+  // Check if clientId contains a hyphen
+  if (clientId.includes('-')) {
+    // Split the clientId at the hyphen
+    const [region, secondPart] = clientId.split('-');
+
+    // Log the parts or use them as needed
+    console.log('Region:', region);
+    console.log('ClientId:', secondPart);
+
+    //TODO we may need to change base_url depending on the region
+    return secondPart;
+  } else {
+    console.error('Default region');
+    return clientId;
+  }
+}
 
 
 export const httpGet = async (endpoint, params = {}) => {

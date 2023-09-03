@@ -1,4 +1,4 @@
-import { httpGet, httpPost, httpPut, httpPostFormData } from '../utils/http';
+import { httpGet, httpPost, httpPut, httpPostFormData, configure } from '../utils/http';
 import { setSession, clearSession, isTokenValid, getToken, checkSameClientId, setClientId } from '../utils/storage';
 import { jsonToQueryString, getParam } from '../utils/urlParam';
 import { setupContentSelector } from '../utils/configure';
@@ -13,6 +13,8 @@ export const init = async (clientId, options) => {
   window.gsLog('Init Options', options);
   window.gsConfig.includeDraft = options.includeDraft;
 
+  clientId = configure(clientId);
+  
   const sameClientId = checkSameClientId(clientId);
   const reset = getParam('gsReset');
   if (reset || !sameClientId){
