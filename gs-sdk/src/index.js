@@ -66,3 +66,5 @@ const GSSDK = async (clientId, options = {}) => {
 };
 
 export default GSSDK;
+
+window.GSSDK = GSSDK;
