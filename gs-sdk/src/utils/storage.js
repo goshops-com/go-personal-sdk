@@ -35,7 +35,17 @@ export const isTokenValid = () => {
     console.log(e)
     return false;
   }
-};  
+};
+
+export const getSession = () => {
+  const item = localStorage.getItem(key);
+  if (item){
+    return JSON.parse(item)
+  }else{
+    return {}
+  }
+}
+
 export const setSession = (data = {}) => {
     data.ts = new Date();
     localStorage.setItem(key, JSON.stringify(data));

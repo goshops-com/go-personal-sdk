@@ -1,5 +1,5 @@
 import { httpGet, httpPost, httpPut, httpPostFormData, configure } from '../utils/http';
-import { setSession, clearSession, isTokenValid, getToken, checkSameClientId, setClientId } from '../utils/storage';
+import { setSession, clearSession, isTokenValid, getToken, checkSameClientId, setClientId, getSession } from '../utils/storage';
 import { jsonToQueryString, getParam } from '../utils/urlParam';
 import { setupContentSelector } from '../utils/configure';
 import { getContentByContext } from './content';
@@ -24,7 +24,8 @@ export const init = async (clientId, options) => {
 
   if (isTokenValid()){
     const obj = getToken();
-    executeInitialLoad(clientId, options);
+    const session = getSession();
+    executeInitialLoad(clientId, session, options);
     return obj;
   }
   const obj = await httpPost(`/channel/init`, { clientId, firstURL: window.location.href });
@@ -39,18 +40,32 @@ export const init = async (clientId, options) => {
   if (gsElementSelector != null && gsContentKey != null){
     await setupContentSelector(gsContentKey);
   }
-  executeInitialLoad(clientId, options);
+  executeInitialLoad(clientId, obj, options);
   return obj;
 };
 
-async function executeInitialLoad(clientId, options){
-  if (options && options.provider){
+async function executeInitialLoad(clientId, session, options){
+  if (options && options.provider && options.provider != 'Custom'){
     const context = getPageType(options.provider);
     if (context){
       const { pageType, ...contentWithoutPageType } = context;
       const result = await getContentByContext(pageType, contentWithoutPageType);
       console.log('content result', result);
+      return;
     }
+  }
+
+  if (session.channelConfig){
+    // Extract the function body from the string
+    const functionBody = session.channelConfig.slice(session.channelConfig.indexOf("{") + 1, session.channelConfig.lastIndexOf("}"));
+    // Create a new function using the extracted body
+    const determinePageType = new Function(functionBody);
+    // Call the function and get the result
+    const context = determinePageType();
+    const { pageType, ...contentWithoutPageType } = context;
+    const result = await getContentByContext(pageType, contentWithoutPageType);
+    console.log('content result', result);
+    return;
   }
 };
 
