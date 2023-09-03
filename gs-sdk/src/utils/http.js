@@ -16,7 +16,7 @@ export const configure = (clientId) => {
     //TODO we may need to change base_url depending on the region
     return secondPart;
   } else {
-    console.error('Default region');
+    console.log('Default region');
     return clientId;
   }
 }
