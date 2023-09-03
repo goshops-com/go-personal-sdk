@@ -55,18 +55,20 @@ async function executeInitialLoad(clientId, session, options){
     }
   }
 
-  console.log('session.channelConfig', session.channelConfig);
+  console.log('session.channelConfig3', session.channelConfig);
 
   if (session.channelConfig){
+    const channelConfig = session.channelConfig.replace(/\n/g, ' ').replace(/\t/g, ' ');
+
     // Extract the function body from the string
-    const functionBody = session.channelConfig.slice(session.channelConfig.indexOf("{") + 1, session.channelConfig.lastIndexOf("}"));
+    const functionBody = channelConfig.slice(channelConfig.indexOf("{") + 1, channelConfig.lastIndexOf("}"));
     // Create a new function using the extracted body
     const determinePageType = new Function(functionBody);
     // Call the function and get the result
     const context = determinePageType();
 
     console.log('context', context);
-    
+
     const { pageType, ...contentWithoutPageType } = context;
     const result = await getContentByContext(pageType, contentWithoutPageType);
     console.log('content result', result);
