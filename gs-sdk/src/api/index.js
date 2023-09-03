@@ -55,10 +55,10 @@ async function executeInitialLoad(clientId, session, options){
     }
   }
 
-  console.log('session.channelConfig3', session.channelConfig);
+  console.log('session.channelConfig4', session.channelConfig);
 
   if (session.channelConfig){
-    const channelConfig = session.channelConfig.replace(/\n/g, ' ').replace(/\t/g, ' ');
+    const channelConfig = session.channelConfig.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
 
     // Extract the function body from the string
     const functionBody = channelConfig.slice(channelConfig.indexOf("{") + 1, channelConfig.lastIndexOf("}"));
