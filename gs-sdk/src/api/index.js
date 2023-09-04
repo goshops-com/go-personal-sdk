@@ -37,7 +37,11 @@ export const init = async (clientId, options) => {
     q += 'byPassCache=true';
   }
 
-  const externalSessionId = await getSharedToken(clientId, clientOrigin);
+  let externalSessionId;
+  if (options.multipleDomains){
+    externalSessionId = await getSharedToken(clientId, clientOrigin);
+  }
+  
   const obj = await httpPost(`/channel/init${q}`, { clientId, externalSessionId, firstURL: window.location.href });
   console.log(obj)
   setSession(obj);
