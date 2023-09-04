@@ -25,7 +25,7 @@
 
     // Function to generate a unique session token (UUID + timestamp)
     function generateTokenWithTimestamp() {
-        return uuidv4() + '_' + Date.now();
+        return uuid.v4() + '_' + Date.now();
     }
 
     // Retrieve clientOrigin and clientId from URL parameters
