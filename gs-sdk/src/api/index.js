@@ -3,10 +3,12 @@ import { setSession, clearSession, isTokenValid, getToken, checkSameClientId, se
 import { jsonToQueryString, getParam } from '../utils/urlParam';
 import { setupContentSelector } from '../utils/configure';
 import { getContentByContext } from './content';
+import { getSharedToken } from '../utils/session';
 
 window.gsStore = {
   interactionCount: 0
 };
+
 
 export const init = async (clientId, options) => {
   
@@ -14,7 +16,8 @@ export const init = async (clientId, options) => {
   window.gsConfig.includeDraft = options.includeDraft;
 
   clientId = configure(clientId);
-  
+  const clientOrigin = window.location.origin;
+
   const sameClientId = checkSameClientId(clientId);
   const reset = getParam('gsReset');
   if (reset || !sameClientId){
@@ -33,7 +36,9 @@ export const init = async (clientId, options) => {
   if (options.byPassCache){
     q += 'byPassCache=true';
   }
-  const obj = await httpPost(`/channel/init${q}`, { clientId, firstURL: window.location.href });
+
+  const externalSessionId = getSharedToken(clientId, clientOrigin);
+  const obj = await httpPost(`/channel/init${q}`, { clientId, externalSessionId, firstURL: window.location.href });
   console.log(obj)
   setSession(obj);
 
