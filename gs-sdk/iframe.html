@@ -10,7 +10,7 @@
 
 <script>
 
-    const key = 'gs_token_';
+    console.log('Loaddd');
 
     // Function to retrieve URL parameters
     function getParameterByName(name, url) {
@@ -33,20 +33,35 @@
     const clientId = getParameterByName('clientId');
 
     if (clientOrigin && clientId) {
-        let sessionToken = localStorage.getItem(key + clientId);
-        if (!sessionToken) {
-            sessionToken = generateTokenWithTimestamp();
-            localStorage.setItem(key + clientId, sessionToken);
-        }
+        console.log(`ClientOrigin: ${clientOrigin}, ClientId: ${clientId}`);
 
-        // Send the session token to the client
-        window.parent.postMessage(sessionToken, clientOrigin);
+        const currentTimestamp = Date.now();
+        const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
+
+        let sessionData = JSON.parse(localStorage.getItem('sessionData_' + clientId));
+
+        if (sessionData && (currentTimestamp - sessionData.timestamp < oneDayInMilliseconds)) {
+            // If the token is valid, send it back to the client
+            window.parent.postMessage(sessionData.token, clientOrigin);
+        } else {
+            // Generate a new token if the old one is invalid or doesn't exist
+            const newToken = generateTokenWithTimestamp();
+            sessionData = {
+                token: newToken,
+                timestamp: currentTimestamp
+            };
+            localStorage.setItem('sessionData_' + clientId, JSON.stringify(sessionData));
+
+            window.parent.postMessage(newToken, clientOrigin);
+        }
     } else {
         console.error("Client origin or clientId not specified!");
     }
 
     // Listen for messages from the parent window
     window.addEventListener('message', (event) => {
+
+        console.log('message')
         // Validate the origin
         if (event.origin !== clientOrigin) {
             return;
@@ -56,8 +71,8 @@
 
         // Handle the clearToken action
         if (data.action === 'clearToken' && data.clientId) {
-            localStorage.removeItem(key + data.clientId);
-            console.log('Session token for client ' + data.clientId + ' cleared.');
+            localStorage.removeItem('sessionData_' + data.clientId);
+            console.log('Session data for client ' + data.clientId + ' cleared.');
 
             // Optionally notify the client that the token has been cleared
             window.parent.postMessage({ action: 'tokenCleared', clientId: data.clientId }, clientOrigin);

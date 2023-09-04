@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Website</title>
+</head>
+<body>
+
+<script>
+    // Define client-specific information
+    const clientId = "YOUR_CLIENT_ID";
+    const clientOrigin = window.location.origin;
+    const iframeOrigin = "https://gs-sdk.pages.dev/iframe.html"; // adjust this to your iframe server domain
+
+    console.log('aasdsd')
+    // Function to dynamically create the iframe and request the token
+    function requestToken() {
+        const iframeUrl = `${iframeOrigin}/iframe.html?clientOrigin=${encodeURIComponent(clientOrigin)}&clientId=${clientId}`;
+        
+        // Create iframe dynamically
+        const iframe = document.createElement('iframe');
+        iframe.src = iframeUrl;
+        iframe.style.display = "none"; // Hide the iframe
+        document.body.appendChild(iframe);
+
+        // Listener for messages from the iframe
+        window.addEventListener('message', function(event) {
+            // Ensure messages are coming from the expected origin
+            if (event.origin !== iframeOrigin) {
+                return;
+            }
+
+            const token = event.data;
+
+            // Here, you can use the token as required
+            console.log("Received token:", token);
+        });
+    }
+
+    // Optionally, clear token
+    function clearToken() {
+        const iframe = document.querySelector('iframe');
+        if (iframe) {
+            iframe.contentWindow.postMessage({
+                action: 'clearToken',
+                clientId: clientId
+            }, iframeOrigin);
+        }
+    }
+
+    // Example usage
+    requestToken();
+
+    // Uncomment below if you wish to clear the token after some event or user action
+    // clearToken();
+</script>
+
+</body>
+</html>
