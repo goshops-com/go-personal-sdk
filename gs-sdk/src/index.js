@@ -24,7 +24,7 @@ const GSSDK = async (clientId, options = {}) => {
 
   window.gsConfig.clientId = clientId;
   window.gsLog('Calling Init:', options)
-  await init(clientId, options);
+  clientId = await init(clientId, options);
 
   // Function to register an event handler
   const on = function (event, handler) {

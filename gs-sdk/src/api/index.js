@@ -55,7 +55,7 @@ export const init = async (clientId, options) => {
     await setupContentSelector(gsContentKey);
   }
   executeInitialLoad(clientId, obj, options);
-  return obj;
+  return clientId;
 };
 
 
