@@ -1,5 +1,5 @@
 import { login, addInteraction, logout, getItems, search, imageSearch, getCount, getFieldValues,
-   getRanking, reRank, setPreferences, getItemById, init } from './api';
+   getRanking, reRank, setPreferences, getItemById, init, clearSharedSession } from './api';
 
 import { getContent, getContentByContext } from './api/content';
 
@@ -23,7 +23,7 @@ const GSSDK = async (clientId, options = {}) => {
   }
 
   window.gsConfig.clientId = clientId;
-  window.gsLog('Calling Init:')
+  window.gsLog('Calling Init:', options)
   await init(clientId, options);
 
   // Function to register an event handler
@@ -60,6 +60,7 @@ const GSSDK = async (clientId, options = {}) => {
     getFieldValues: (params) => getFieldValues(params),
     getContent: (contentId, options = {}) => getContent(clientId, contentId, options, eventCallbacks),
     getContentByContext: (context, options) => getContentByContext(context, options, eventCallbacks),
+    clearSharedSession: (clientId) => clearSharedSession(clientId),
     on: on,
     emit: emit,
   };

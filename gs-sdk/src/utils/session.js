@@ -38,3 +38,12 @@ export const getSharedToken = (clientId, clientOrigin) => {
    
 }
 
+export const clearToken = (clientId) => {
+    const iframe = document.getElementById('gs_sessionTokenIframe');
+    if (iframe) {
+        iframe.contentWindow.postMessage({
+            action: 'clearToken',
+            clientId: clientId
+        }, iframeOrigin);
+    }
+}

@@ -3,7 +3,7 @@ import { setSession, clearSession, isTokenValid, getToken, checkSameClientId, se
 import { jsonToQueryString, getParam } from '../utils/urlParam';
 import { setupContentSelector } from '../utils/configure';
 import { getContentByContext } from './content';
-import { getSharedToken } from '../utils/session';
+import { getSharedToken, clearToken } from '../utils/session';
 
 window.gsStore = {
   interactionCount: 0
@@ -12,7 +12,7 @@ window.gsStore = {
 
 export const init = async (clientId, options) => {
   
-  window.gsLog('Init Options', options);
+  window.gsLog('Init Options', JSON.stringify(options));
   window.gsConfig.includeDraft = options.includeDraft;
 
   clientId = configure(clientId);
@@ -57,6 +57,7 @@ export const init = async (clientId, options) => {
   executeInitialLoad(clientId, obj, options);
   return obj;
 };
+
 
 async function executeInitialLoad(clientId, session, options){
   if (options && options.provider && options.provider != 'Custom'){
@@ -110,6 +111,10 @@ function getPageType(provider) {
   }
 
   return undefined;
+}
+
+export const clearSharedSession = (clientId) => {
+  clearToken(clientId);
 }
 
 export const login = (username) => {
