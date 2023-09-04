@@ -60,7 +60,7 @@ const GSSDK = async (clientId, options = {}) => {
     getFieldValues: (params) => getFieldValues(params),
     getContent: (contentId, options = {}) => getContent(clientId, contentId, options, eventCallbacks),
     getContentByContext: (context, options) => getContentByContext(context, options, eventCallbacks),
-    clearSharedSession: (clientId) => clearSharedSession(clientId),
+    clearSharedSession: () => clearSharedSession(clientId),
     on: on,
     emit: emit,
   };
