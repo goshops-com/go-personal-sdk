@@ -22,6 +22,7 @@
         const iframe = document.createElement('iframe');
         iframe.src = iframeUrl;
         iframe.style.display = "none"; // Hide the iframe
+        iframe.id = 'gs_sessionTokenIframe';
         document.body.appendChild(iframe);
 
         // Listener for messages from the iframe
@@ -40,7 +41,7 @@
 
     // Optionally, clear token
     function clearToken() {
-        const iframe = document.querySelector('iframe');
+        const iframe = document.getElementById('gs_sessionTokenIframe');
         if (iframe) {
             iframe.contentWindow.postMessage({
                 action: 'clearToken',

@@ -39,7 +39,8 @@
         const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
 
         let sessionData = JSON.parse(localStorage.getItem('sessionData_' + clientId));
-
+        console.log('sessionData', sessionData);
+        
         if (sessionData && (currentTimestamp - sessionData.timestamp < oneDayInMilliseconds)) {
             // If the token is valid, send it back to the client
             window.parent.postMessage(sessionData.token, clientOrigin);
