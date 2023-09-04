@@ -15,7 +15,7 @@ export const getSharedToken = (clientId, clientOrigin) => {
         document.body.appendChild(iframe);
 
         // Listener for messages from the iframe
-        window.addEventListener('message', function(event) {
+        function messageHandler(event) {
             // Ensure messages are coming from the expected origin
             if (event.origin !== iframeOrigin) {
                 return;
@@ -30,8 +30,10 @@ export const getSharedToken = (clientId, clientOrigin) => {
             }
 
             // Remove the event listener to avoid any potential memory leaks
-            window.removeEventListener('message', arguments.callee);
-        });
+            window.removeEventListener('message', messageHandler);
+        }
+
+        window.addEventListener('message', messageHandler);
     });
    
 }
