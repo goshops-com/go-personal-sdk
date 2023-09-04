@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session iFrame</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js"></script>
+</head>
+<body>
+
+<script>
+    // Function to retrieve URL parameters
+    function getParameterByName(name, url) {
+        if (!url) url = window.location.href;
+        name = name.replace(/[\[\]]/g, '\\$&');
+        const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+        const results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, ' '));
+    }
+
+    // Function to generate a unique session token (UUID + timestamp)
+    function generateTokenWithTimestamp() {
+        return uuidv4() + '_' + Date.now();
+    }
+
+    // Retrieve clientOrigin and clientId from URL parameters
+    const clientOrigin = getParameterByName('clientOrigin');
+    const clientId = getParameterByName('clientId');
+
+    if (clientOrigin && clientId) {
+        let sessionToken = localStorage.getItem('anonymousSessionToken_' + clientId);
+        if (!sessionToken) {
+            sessionToken = generateTokenWithTimestamp();
+            localStorage.setItem('anonymousSessionToken_' + clientId, sessionToken);
+        }
+
+        // Send the session token to the client
+        window.parent.postMessage(sessionToken, clientOrigin);
+    } else {
+        console.error("Client origin or clientId not specified!");
+    }
+
+    // Listen for messages from the parent window
+    window.addEventListener('message', (event) => {
+        // Validate the origin
+        if (event.origin !== clientOrigin) {
+            return;
+        }
+
+        const data = event.data;
+
+        // Handle the clearToken action
+        if (data.action === 'clearToken' && data.clientId) {
+            localStorage.removeItem('anonymousSessionToken_' + data.clientId);
+            console.log('Session token for client ' + data.clientId + ' cleared.');
+
+            // Optionally notify the client that the token has been cleared
+            window.parent.postMessage({ action: 'tokenCleared', clientId: data.clientId }, clientOrigin);
+        }
+    });
+</script>
+
+</body>
+</html>
