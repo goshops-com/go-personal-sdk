@@ -66,6 +66,10 @@ async function executeInitialLoad(clientId, session, options){
       const { pageType, ...contentWithoutPageType } = context;
       const result = await getContentByContext(pageType, contentWithoutPageType);
       console.log('content result', result);
+
+      if (context.pageType == 'product_detail'){
+        await window.gsSDK.addInteraction(...{"event": "view"},...contentWithoutPageType);
+      }
       return;
     }
   }
