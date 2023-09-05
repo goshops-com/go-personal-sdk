@@ -101,8 +101,14 @@ function getPageType(provider) {
 
     if (path.startsWith('/catalogo/')) {
       const parts = path.split('_');
-      const productId = parts[parts.length - 1].split('-')[0];
-      return { pageType: 'product_detail', productId: productId };
+      
+      let sku;
+      const matches = window.location.href.match(/catalogo\/([^\/]+)/);
+      if (matches && matches[1]) {
+          const extractedPart = matches[1];
+          sku =  `1:${extractedPart}:U:1`;
+      }
+      return { pageType: 'product_detail', sku: sku };
     }
 
     if (path === '/checkout/') {
