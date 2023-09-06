@@ -104,7 +104,7 @@ async function executeInitialLoad(clientId, session, options){
 function getPageType(provider) {
   if (provider && provider.toUpperCase() === 'FENICIO') {
 
-    window.gsLog('Init Vendor');
+    window.gsLog('Init Vendor 2');
     initVendorFenicio({});
 
     const path = window.location.pathname;
