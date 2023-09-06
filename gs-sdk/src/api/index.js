@@ -4,6 +4,7 @@ import { jsonToQueryString, getParam } from '../utils/urlParam';
 import { setupContentSelector } from '../utils/configure';
 import { getContentByContext } from './content';
 import { getSharedToken, clearToken } from '../utils/session';
+import fenicioVendor from '../vendors/fenicio';
 
 window.gsStore = {
   interactionCount: 0
@@ -72,6 +73,7 @@ async function executeInitialLoad(clientId, session, options){
           ...contentWithoutPageType,
           event: "view"
         };
+        eventData['type'] = undefined;
         await window.gsSDK.addInteraction(eventData);
       }
       return;
@@ -101,6 +103,10 @@ async function executeInitialLoad(clientId, session, options){
 
 function getPageType(provider) {
   if (provider && provider.toUpperCase() === 'FENICIO') {
+
+    window.gsLog('Init Vendor');
+    fenicioVendor.initVendor({});
+
     const path = window.location.pathname;
 
     if (path === '/') {
