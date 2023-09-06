@@ -4,7 +4,7 @@ import { jsonToQueryString, getParam } from '../utils/urlParam';
 import { setupContentSelector } from '../utils/configure';
 import { getContentByContext } from './content';
 import { getSharedToken, clearToken } from '../utils/session';
-import fenicioVendor from '../vendors/fenicio';
+import { initVendorFenicio } from '../vendors/fenicio';
 
 window.gsStore = {
   interactionCount: 0
@@ -105,7 +105,7 @@ function getPageType(provider) {
   if (provider && provider.toUpperCase() === 'FENICIO') {
 
     window.gsLog('Init Vendor');
-    fenicioVendor.initVendor({});
+    initVendorFenicio({});
 
     const path = window.location.pathname;
 

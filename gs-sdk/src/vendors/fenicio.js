@@ -1,4 +1,4 @@
-export const initVendor = (options = {}) => {
+export const initVendorFenicio = (options = {}) => {
 
     (function() {
         try {
