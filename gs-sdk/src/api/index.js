@@ -114,15 +114,13 @@ function getPageType(provider) {
     }
 
     if (path.startsWith('/catalogo/')) {
-      const parts = path.split('_');
-      
-      let sku;
-      const matches = window.location.href.match(/catalogo\/([^\/]+)/);
-      if (matches && matches[1]) {
-          const extractedPart = matches[1];
-          sku =  `1:${extractedPart}:U:1`;
+      try{
+        const parts = path.split('_');
+        let sku = `1:${parts[1]}:${parts[2]}:U:1`;
+        return { pageType: 'product_detail', sku: sku };
+      }catch(e){
+        console.error(e)
       }
-      return { pageType: 'product_detail', sku: sku };
     }
 
     if (path === '/checkout/') {
