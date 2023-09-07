@@ -75,6 +75,10 @@ export const initVendorFenicio = (options = {}) => {
                                     let codigoVariante = urlParams2.get('codigoVariante');
                                     console.log(codigoProducto, codigoVariante);
                                     let sku = `1:${codigoProducto}:${codigoVariante}:U:1`;
+                                    window.gsSDK.addInteraction({
+                                        event: "view",
+                                        sku
+                                    })
                                     window.gsSDK.getContentByContext('product_detail', {sku});
                                 }catch(e){
                                     console.log(e)
