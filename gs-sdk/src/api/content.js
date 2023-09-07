@@ -27,7 +27,7 @@ export const getContentByContext = async (context, options, ev) => {
   const payload = buildContextPayload(options);
   const result = await httpPost(url, payload);
   const contents = result.loadNowContent;
-  await Promise.all(contents.map(content => addContentToWebsite(content, ev)));
+  await Promise.all(contents.map(content => addContentToWebsite(content, options)));
   const lazyLoadContent = result.lazyLoadContent;
   await Promise.all(lazyLoadContent.map(content => getContent(undefined, content.key, options, ev)));
 
@@ -68,7 +68,7 @@ export const getContent = async (clientId, contentId, options, ev) => {
   if (!content.key){
     content.key = contentId;
   }
-  addContentToWebsite(content, ev);
+  addContentToWebsite(content, options);
 };
 
 function buildContextPayload(options){
@@ -93,8 +93,8 @@ function buildContextPayload(options){
     },
   };
 }
-async function addContentToWebsite(content, ev){
-  console.log('addContentToWebsite', ev);
+async function addContentToWebsite(content, options){
+  console.log('addContentToWebsite');
 
   if (content && content.contentValue){
     const css = content.contentValue.css;
@@ -115,7 +115,7 @@ async function addContentToWebsite(content, ev){
         const canShow = canShowContent(content.frequency, content.experienceId);
         console.log('canShow by frecuency', canShow);
 
-        if (canShow){
+        if (canShow || options.forceShow){
           suscribe(content, function(html, js){
             addHTMLToBody(html);
             addJavaScriptToBody(js);
