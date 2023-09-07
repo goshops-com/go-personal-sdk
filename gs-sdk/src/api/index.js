@@ -6,6 +6,7 @@ import { getContentByContext } from './content';
 import { getSharedToken, clearToken } from '../utils/session';
 import { initVendorFenicio } from '../vendors/fenicio';
 import { subscribeQueue } from '../utils/queue';
+import { addToQueue } from '../utils/queue';
 
 window.gsStore = {
   interactionCount: 0
@@ -145,7 +146,15 @@ export const login = (username) => {
 
 export const addInteraction = (clientId, interactionData, ev) => {
   window.gsStore.interactionCount++;
-  ev.emit('interaction', interactionData);
+  // ev.emit('interaction', interactionData);
+  const now = new Date().getTime();
+  const expirationDate = now + 24 * 60 * 60 * 1000; // Add 24 hours
+  const type = 'interaction-' + interactionData.event;
+  addToQueue({
+    expirationDate,
+    type
+  });
+
   return httpPost(`/interaction`, interactionData);
 };
 

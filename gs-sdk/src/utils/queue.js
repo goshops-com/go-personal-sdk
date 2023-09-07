@@ -5,6 +5,7 @@ export const addToQueue = (data) => {
   const queue = JSON.parse(localStorage.getItem('queue') || '[]');
   queue.push(data);
   localStorage.setItem(queueKey, JSON.stringify(queue));
+  console.log('task added to queue');
 }
 
 export const subscribeToTask = (taskType, callback) => {
@@ -24,7 +25,7 @@ export const subscribeToTask = (taskType, callback) => {
 export const subscribeQueue = () => {
 
   console.log('subscribeQueue');
-  
+
   window.addEventListener('storage', function(event) {
     if (event.key === queueKey) {
         const queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
@@ -36,7 +37,7 @@ export const subscribeQueue = () => {
             const task = queue[0];
             const expirationDate = task.expirationDate;
 
-            if (task.type == 'content' && task.value && expirationDate < new Date().getTime()) {
+            if (expirationDate < new Date().getTime()) {
               
               // Find subscribers to this task.
               const taskSubscribers = subscribers[task.type] || [];
