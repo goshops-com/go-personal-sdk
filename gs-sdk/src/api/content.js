@@ -65,7 +65,9 @@ export const getContent = async (clientId, contentId, options, ev) => {
   }
   
   console.log('Content found', content);
-
+  if (!content.key){
+    content.key = contentId;
+  }
   addContentToWebsite(content, ev);
 };
 
