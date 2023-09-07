@@ -45,7 +45,11 @@ export const subscribeQueue = () => {
         if (expirationDate < new Date().getTime()) {
           
           // Find subscribers to this task.
+          console.log('expirationDate', expirationDate);
+          console.log('task.type', task.type);
+          
           const taskSubscribers = subscribers[task.type] || [];
+          console.log('taskSubscribers', taskSubscribers);
 
           // Execute all the subscribers.
           taskSubscribers.forEach(subscriber => {
