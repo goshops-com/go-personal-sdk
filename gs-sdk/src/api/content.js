@@ -113,9 +113,10 @@ async function addContentToWebsite(content, options){
       if (types.includes(content.type)){
 
         const canShow = canShowContent(content.frequency, content.experienceId);
-        console.log('canShow by frecuency', canShow);
+        console.log('canShow by frecuency', canShow, options.forceShow);
 
         if (options.forceShow){
+          console.log('showing')
           addHTMLToBody(html);
           addJavaScriptToBody(js);
         }else{
@@ -126,8 +127,6 @@ async function addContentToWebsite(content, options){
             })  
           }
         }
-        
-        
       }else{
         // web content
         const selector = content.selector;
