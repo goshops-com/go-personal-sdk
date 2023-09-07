@@ -47,7 +47,7 @@ export const suscribe = (content, cb) => {
       //   }
       // })
       console.log('trigger interaction')
-      subscribeToTask('interaction-' + trigger.value, function(){
+      subscribeToTask('interaction-' + trigger.value.id, function(){
         console.log('hey')
       })
 

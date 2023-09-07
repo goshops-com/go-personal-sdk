@@ -111,7 +111,7 @@ async function addContentToWebsite(content, ev){
       if (types.includes(content.type)){
 
         const canShow = canShowContent(content.frequency, content.experienceId);
-        console.log('canShow', canShow);
+        console.log('canShow by frecuency', canShow);
 
         if (canShow){
           suscribe(content, function(html, js){
