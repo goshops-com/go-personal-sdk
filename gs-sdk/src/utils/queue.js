@@ -57,9 +57,10 @@ export const subscribeQueue = () => {
 
           // Execute all the subscribers.
           taskSubscribers.forEach(subscriber => {
+            console.log('subscriber.params', subscriber.params)
             new Function('params', 'return ' + subscriber.callback)(subscriber.params)(task);
           });
-          
+
           // Clear subscribers for this task type to ensure they are executed only once.
           delete subscribers[task.type];
           localStorage.setItem(subscriberKey, JSON.stringify(subscribers));

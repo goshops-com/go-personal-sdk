@@ -49,6 +49,7 @@ export const suscribe = (content, cb) => {
       console.log('trigger interaction')
       const params = { contentKey: contentKey + '' };
       subscribeToTask('interaction-' + trigger.value.id, function(params){
+        console.log('f', params);
         window.gsSDK.getContent(params.contentKey);
       }, params);
 
