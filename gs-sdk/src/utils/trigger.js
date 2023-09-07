@@ -4,7 +4,7 @@ export const suscribe = (content, cb) => {
     const trigger = content.trigger;
     const html = content.contentValue.html;
     const js = content.contentValue.js;
-    
+    const contentKey = content.key;
 
     if (trigger.id === 'wait') {
       const seconds = parseInt(trigger.value) || 0;
@@ -48,7 +48,7 @@ export const suscribe = (content, cb) => {
       // })
       console.log('trigger interaction')
       subscribeToTask('interaction-' + trigger.value.id, function(){
-        console.log('hey')
+        window.gsSDK.getContent(contentKey + '');
       })
 
     }
