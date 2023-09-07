@@ -41,8 +41,8 @@ export const subscribeQueue = () => {
 
         const task = queue[0];
         const expirationDate = task.expirationDate;
-
-        if (expirationDate < new Date().getTime()) {
+        const now = new Date().getTime()
+        if (now < expirationDate) {
           
           // Find subscribers to this task.
           console.log('expirationDate', expirationDate);
