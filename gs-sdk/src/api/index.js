@@ -5,6 +5,7 @@ import { setupContentSelector } from '../utils/configure';
 import { getContentByContext } from './content';
 import { getSharedToken, clearToken } from '../utils/session';
 import { initVendorFenicio } from '../vendors/fenicio';
+import { subscribeQueue } from '../utils/queue';
 
 window.gsStore = {
   interactionCount: 0
@@ -30,6 +31,7 @@ export const init = async (clientId, options) => {
     const obj = getToken();
     const session = getSession();
     executeInitialLoad(clientId, session, options);
+    subscribeQueue();
     return obj;
   }
 
@@ -56,6 +58,7 @@ export const init = async (clientId, options) => {
     await setupContentSelector(gsContentKey);
   }
   executeInitialLoad(clientId, obj, options);
+  subscribeQueue();
   return clientId;
 };
 
