@@ -1,9 +1,10 @@
-export const suscribe = (content, ev, cb) => {
+import { subscribeToTask } from './queue'
+
+export const suscribe = (content, cb) => {
     const trigger = content.trigger;
     const html = content.contentValue.html;
     const js = content.contentValue.js;
-    console.log('suscribe', ev);
-    // console.log('suscribe', ev.on);
+    
 
     if (trigger.id === 'wait') {
       const seconds = parseInt(trigger.value) || 0;
@@ -39,11 +40,15 @@ export const suscribe = (content, ev, cb) => {
     }else if (trigger.id === 'page_load'){
         cb(html, js);
     }else if (trigger.id === 'interaction'){
-      ev.on('interaction', function(interactionData){
-        console.log('interaction data event received', interactionData);
-        if (interactionData.event == trigger.value){
-          cb(html, js);
-        }
+      // ev.on('interaction', function(interactionData){
+      //   console.log('interaction data event received', interactionData);
+      //   if (interactionData.event == trigger.value){
+      //     cb(html, js);
+      //   }
+      // })
+      subscribeToTask('interaction-' + interactionData.event, function(){
+        console.log('hey')
       })
+
     }
 }

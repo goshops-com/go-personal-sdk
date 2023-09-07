@@ -114,7 +114,7 @@ async function addContentToWebsite(content, ev){
         console.log('canShow', canShow);
 
         if (canShow){
-          suscribe(content, ev, function(html, js){
+          suscribe(content, function(html, js){
             addHTMLToBody(html);
             addJavaScriptToBody(js);
           })  
