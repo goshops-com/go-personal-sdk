@@ -47,9 +47,10 @@ export const suscribe = (content, cb) => {
       //   }
       // })
       console.log('trigger interaction')
-      subscribeToTask('interaction-' + trigger.value.id, function(){
-        window.gsSDK.getContent(contentKey + '');
-      })
+      const params = { contentKey: contentKey + '' };
+      subscribeToTask('interaction-' + trigger.value.id, function(params){
+        window.gsSDK.getContent(params.contentKey);
+      }, params);
 
     }
 }

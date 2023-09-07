@@ -10,7 +10,7 @@ export const addToQueue = (data) => {
   console.log('task added to queue');
 }
 
-export const subscribeToTask = (taskType, callback) => {
+export const subscribeToTask = (taskType, callback, params) => {
   console.log('subscribeToTask')
   const subscribers = JSON.parse(localStorage.getItem(subscriberKey) || '{}');
   
@@ -21,7 +21,11 @@ export const subscribeToTask = (taskType, callback) => {
   // Add callback to subscribers of the task type.
   // Note: For simplicity, we're directly storing the function as a string.
   // In a real-world application, this might require more sophisticated handling.
-  subscribers[taskType].push(callback.toString());
+  subscribers[taskType].push({
+    callback: callback.toString(),
+    params: params
+  });
+
   localStorage.setItem(subscriberKey, JSON.stringify(subscribers));
   console.log(JSON.stringify(subscribers));
 }
@@ -53,11 +57,9 @@ export const subscribeQueue = () => {
 
           // Execute all the subscribers.
           taskSubscribers.forEach(subscriber => {
-            // Convert the string back to a function and execute it.
-            console.log('sus', subscriber);
-            new Function('return ' + subscriber)()(task);
+            new Function('params', 'return ' + subscriber.callback)(subscriber.params)(task);
           });
-
+          
           // Clear subscribers for this task type to ensure they are executed only once.
           delete subscribers[task.type];
           localStorage.setItem(subscriberKey, JSON.stringify(subscribers));
