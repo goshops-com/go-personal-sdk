@@ -58,7 +58,8 @@ export const subscribeQueue = () => {
           // Execute all the subscribers.
           taskSubscribers.forEach(subscriber => {
             console.log('subscriber.params', subscriber.params)
-            new Function('params', subscriber.callback)(subscriber.params);
+            const deserializedFunc = eval('(' + subscriber.callback + ')');
+            deserializedFunc(subscriber.params);
           });
 
           // Clear subscribers for this task type to ensure they are executed only once.
