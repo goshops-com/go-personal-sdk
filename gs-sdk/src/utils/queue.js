@@ -35,7 +35,8 @@ export const subscribeQueue = () => {
 
     if (queue.length > 0) {
         console.log('Processing:', queue[0]);
-
+        console.log('subscribers', subscribers);
+        
         const task = queue[0];
         const expirationDate = task.expirationDate;
 
