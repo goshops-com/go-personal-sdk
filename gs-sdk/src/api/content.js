@@ -115,12 +115,18 @@ async function addContentToWebsite(content, options){
         const canShow = canShowContent(content.frequency, content.experienceId);
         console.log('canShow by frecuency', canShow);
 
-        if (canShow || options.forceShow){
-          suscribe(content, function(html, js){
-            addHTMLToBody(html);
-            addJavaScriptToBody(js);
-          })  
+        if (options.forceShow){
+          addHTMLToBody(html);
+          addJavaScriptToBody(js);
+        }else{
+          if (canShow){
+            suscribe(content, function(html, js){
+              addHTMLToBody(html);
+              addJavaScriptToBody(js);
+            })  
+          }
         }
+        
         
       }else{
         // web content
