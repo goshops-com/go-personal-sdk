@@ -29,6 +29,9 @@ export const subscribeQueue = () => {
   console.log('subscribeQueue');
 
   window.addEventListener('storage', function(event) {
+
+    console.log('subscribeQueue', event.key);
+    
     if (event.key === queueKey) {
         const queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
         const subscribers = JSON.parse(localStorage.getItem(subscriberKey) || '{}');
