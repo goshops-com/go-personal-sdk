@@ -1,3 +1,5 @@
+import { suscribe } from "./trigger";
+
 const queueKey = 'gs_queue';
 const subscriberKey = 'gs_suscribers';
 
@@ -36,7 +38,7 @@ export const subscribeQueue = () => {
     if (queue.length > 0) {
         console.log('Processing:', queue[0]);
         console.log('subscribers', subscribers);
-        
+
         const task = queue[0];
         const expirationDate = task.expirationDate;
 
@@ -48,6 +50,7 @@ export const subscribeQueue = () => {
           // Execute all the subscribers.
           taskSubscribers.forEach(subscriber => {
             // Convert the string back to a function and execute it.
+            console.log('sus', subscriber);
             new Function('return ' + subscriber)()(task);
           });
 
