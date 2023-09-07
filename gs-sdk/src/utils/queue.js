@@ -28,40 +28,38 @@ export const subscribeQueue = () => {
 
   console.log('subscribeQueue');
 
-  window.addEventListener('storage', function(event) {
-
-    console.log('subscribeQueue', event.key);
+  setInterval(() => {
     
-    if (event.key === queueKey) {
-        const queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
-        const subscribers = JSON.parse(localStorage.getItem(subscriberKey) || '{}');
+    const queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
+    const subscribers = JSON.parse(localStorage.getItem(subscriberKey) || '{}');
 
-        if (queue.length > 0) {
-            console.log('Processing:', queue[0]);
+    if (queue.length > 0) {
+        console.log('Processing:', queue[0]);
 
-            const task = queue[0];
-            const expirationDate = task.expirationDate;
+        const task = queue[0];
+        const expirationDate = task.expirationDate;
 
-            if (expirationDate < new Date().getTime()) {
-              
-              // Find subscribers to this task.
-              const taskSubscribers = subscribers[task.type] || [];
+        if (expirationDate < new Date().getTime()) {
+          
+          // Find subscribers to this task.
+          const taskSubscribers = subscribers[task.type] || [];
 
-              // Execute all the subscribers.
-              taskSubscribers.forEach(subscriber => {
-                // Convert the string back to a function and execute it.
-                new Function('return ' + subscriber)()(task);
-              });
+          // Execute all the subscribers.
+          taskSubscribers.forEach(subscriber => {
+            // Convert the string back to a function and execute it.
+            new Function('return ' + subscriber)()(task);
+          });
 
-              // Clear subscribers for this task type to ensure they are executed only once.
-              delete subscribers[task.type];
-              localStorage.setItem(subscriberKey, JSON.stringify(subscribers));
-            }
-
-            // Remove the task from the queue.
-            queue.shift();
-            localStorage.setItem(queueKey, JSON.stringify(queue));
+          // Clear subscribers for this task type to ensure they are executed only once.
+          delete subscribers[task.type];
+          localStorage.setItem(subscriberKey, JSON.stringify(subscribers));
         }
+
+        // Remove the task from the queue.
+        queue.shift();
+        localStorage.setItem(queueKey, JSON.stringify(queue));
     }
-});
+
+  }, 500); // Checks localStorage every 500ms
+
 }
