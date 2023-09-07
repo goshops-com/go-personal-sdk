@@ -9,6 +9,7 @@ export const addToQueue = (data) => {
 }
 
 export const subscribeToTask = (taskType, callback) => {
+  console.log('subscribeToTask')
   const subscribers = JSON.parse(localStorage.getItem(subscriberKey) || '{}');
   
   if (!subscribers[taskType]) {
@@ -20,6 +21,7 @@ export const subscribeToTask = (taskType, callback) => {
   // In a real-world application, this might require more sophisticated handling.
   subscribers[taskType].push(callback.toString());
   localStorage.setItem(subscriberKey, JSON.stringify(subscribers));
+  console.log(JSON.stringify(subscribers));
 }
 
 export const subscribeQueue = () => {
