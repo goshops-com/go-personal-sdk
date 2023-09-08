@@ -76,11 +76,11 @@ export const install = (options) => {
         let dataToSend = {
             maxScrollDepth: maxScrollDepth,
             viewportSize: { width: viewportWidth, height: viewportHeight, timestamp: timestamp },
-            eventsData
+            events: eventsData
         };
 
         if (eventsData.length > 0){
-            httpPost('/browse/collect', {events: eventsData})
+            httpPost('/browse/collect', dataToSend)
         }
         maxScrollDepth = 0;
         eventsData = [];
