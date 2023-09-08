@@ -10,7 +10,7 @@ window.gsStore = {
   interactionCount: 0
 };
 
-export const getContentByContext = async (context, options, ev) => {
+export const getContentByContext = async (context, options) => {
 
   console.log('getContentByContext', context, options)
   if (!options){
@@ -29,11 +29,11 @@ export const getContentByContext = async (context, options, ev) => {
   const contents = result.loadNowContent;
   await Promise.all(contents.map(content => addContentToWebsite(content, options)));
   const lazyLoadContent = result.lazyLoadContent;
-  await Promise.all(lazyLoadContent.map(content => getContent(undefined, content.key, options, ev)));
+  await Promise.all(lazyLoadContent.map(content => getContent(undefined, content.key, options)));
 
 };
 
-export const getContent = async (clientId, contentId, options, ev) => {
+export const getContent = async (contentId, options) => {
   console.log('Content', contentId, options);
   if (!options){
     options = {}

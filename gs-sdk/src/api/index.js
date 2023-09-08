@@ -144,7 +144,7 @@ export const login = (username) => {
   return httpPost(`/channel/login`, { customerId: username });
 };
 
-export const addInteraction = (clientId, interactionData, ev) => {
+export const addInteraction = (interactionData) => {
   window.gsStore.interactionCount++;
   // ev.emit('interaction', interactionData);
   const now = new Date().getTime();

@@ -1,12 +1,26 @@
 import { login, addInteraction, logout, getItems, search, imageSearch, getCount, getFieldValues,
    getRanking, reRank, setPreferences, getItemById, init, clearSharedSession } from './api';
-
 import { getContent, getContentByContext } from './api/content';
+
+//plugins
+
+import { install as installBrowse } from './api/browse';
 
 window.gsLog = function(s){
   if (window.gsConfig.log){
     console.log(s);
   }
+}
+
+function hasPlugin(option, id) {
+  if (!option.plugins){
+    return { exists: false };
+  }
+  const plugin = option.plugins.find(plugin => plugin.id === id);
+  if (plugin) {
+      return { exists: true, options: plugin.options };
+  }
+  return { exists: false, options: null };
 }
 
 const GSSDK = async (clientId, options = {}) => {
@@ -26,30 +40,16 @@ const GSSDK = async (clientId, options = {}) => {
   window.gsLog('Calling Init:', options)
   clientId = await init(clientId, options);
 
-  // Function to register an event handler
-  const on = function (event, handler) {
-    if (!window.gsEventHandlers[event]) {
-      window.gsEventHandlers[event] = [];
-    }
-
-    window.gsEventHandlers[event].push(handler);
-  };
-  // Function to trigger an event
-  const emit = function (event, data) {
-    const handlers = window.gsEventHandlers[event];
-    if (!handlers || !handlers.length) {
-      return;
-    }
-    handlers.forEach(handler => handler(data));
-  };
-
-  const eventCallbacks = {emit, on};
+  const browsePlugin = hasPlugin(options, 'browse');
+  if (browsePlugin.exists){
+    installBrowse(browsePlugin.options)
+  }
 
   return {
     login: (username) => login(username),
     logout: () => logout(clientId),
     setPreferences: (params) => setPreferences(params),
-    addInteraction: (interactionData) => addInteraction(clientId, interactionData, eventCallbacks),
+    addInteraction: (interactionData) => addInteraction(interactionData),
     getItems: (params) => getItems(params),
     search: (input, params) => search(input, params),
     imageSearch: (formData, params) => imageSearch(formData, params),
@@ -58,11 +58,9 @@ const GSSDK = async (clientId, options = {}) => {
     getRanking: (ranking, params) => getRanking(ranking, params),
     reRank: (ranking, params) => reRank(ranking, params),
     getFieldValues: (params) => getFieldValues(params),
-    getContent: (contentId, options = {}) => getContent(clientId, contentId, options, eventCallbacks),
-    getContentByContext: (context, options) => getContentByContext(context, options, eventCallbacks),
-    clearSharedSession: () => clearSharedSession(clientId),
-    on: on,
-    emit: emit,
+    getContent: (contentId, options = {}) => getContent(contentId, options),
+    getContentByContext: (context, options) => getContentByContext(context, options),
+    clearSharedSession: () => clearSharedSession(clientId)
   };
 };
 
