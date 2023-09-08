@@ -42,6 +42,7 @@ const GSSDK = async (clientId, options = {}) => {
 
   const browsePlugin = hasPlugin(options, 'browse');
   if (browsePlugin.exists){
+    window.gsLog('installing plugin')
     installBrowse(browsePlugin.options)
   }
 
