@@ -1,3 +1,5 @@
+import { httpPost } from "../utils/http";
+
 export const install = (options) => {
     let eventsData = [];
 
@@ -77,8 +79,9 @@ export const install = (options) => {
             eventsData
         };
 
-        console.log(dataToSend)
-        
+        if (eventsData.length > 0){
+            httpPost('/browse/collect', {events: eventsData})
+        }
         maxScrollDepth = 0;
         eventsData = [];
     }
