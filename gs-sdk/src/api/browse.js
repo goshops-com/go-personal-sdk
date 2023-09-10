@@ -21,25 +21,41 @@ export const install = (options) => {
 
         // this function will send events to the backend and reset the events array
         async function save() {
-
-            if (events.length == 0){
+            if (events.length == 0) {
+                scheduleNextSave();
                 return;
             }
             const body = JSON.stringify({ events });
             events = [];
-            const response = await fetch(`https://browse.go-shops.workers.dev`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${obj.token}`
-                },
-                body: body,
-                redirect: 'follow'
-              });  
+            try {
+                const response = await fetch(`https://browse.go-shops.workers.dev`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${obj.token}`
+                    },
+                    body: body,
+                    redirect: 'follow'
+                });
+                // handle response if needed
+            } catch (error) {
+                console.error("Error sending data:", error);
+            } finally {
+                // Schedule the next save operation
+                scheduleNextSave();
+            }
         }
         
-        // save events every 10 seconds
-        setInterval(save, 10 * 1000);
+        function scheduleNextSave() {
+            setTimeout(save, 10 * 1000);
+        }
+        
+        // Kick off the first save
+        scheduleNextSave();
+
+        window.addEventListener('beforeunload', function (event) {
+            save();
+        });
     };
 
     // Append the script to the document to start downloading and executing it
