@@ -14,22 +14,23 @@ export const install = (options) => {
             emit(event) {
                 // push event into the events array
                 events.push(event);
-                console.log(events);
             },
         });
 
-        const token = getToken();
+        const obj = getToken();
 
         // this function will send events to the backend and reset the events array
         async function save() {
             const body = JSON.stringify({ events });
+            events = [];
             const response = await fetch(`https://browse.go-shops.workers.dev`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
+                  'Authorization': `Bearer ${obj.token}`
                 },
                 body: body,
+                redirect: 'follow'
               });  
         }
         
