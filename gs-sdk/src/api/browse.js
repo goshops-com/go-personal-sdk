@@ -21,6 +21,10 @@ export const install = (options) => {
 
         // this function will send events to the backend and reset the events array
         async function save() {
+
+            if (events.length == 0){
+                return;
+            }
             const body = JSON.stringify({ events });
             events = [];
             const response = await fetch(`https://browse.go-shops.workers.dev`, {
