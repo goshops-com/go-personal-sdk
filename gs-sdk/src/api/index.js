@@ -158,6 +158,27 @@ export const addInteraction = (interactionData) => {
   return httpPost(`/interaction`, interactionData);
 };
 
+export const addBulkInteractions = (interactions) => {
+  if (interactions.length == 0){
+    return;
+  }
+
+  const id = generateUniqueId();
+  const interactionData = interactions[0];
+  const now = new Date().getTime();
+  const expirationDate = now + 24 * 60 * 60 * 1000; // Add 24 hours
+  const type = 'interaction-' + interactionData.event;
+  addToQueue({
+    expirationDate,
+    type
+  });
+
+  return httpPost(`/interaction/bulk`, {
+    transactionId: id,
+    events: interactions
+  });
+};
+
 export const logout = (clientId) => {
   // Implementation of logout will depend on your specific API
   return httpPost(`/logout`, { clientId });
@@ -246,4 +267,11 @@ export const setPreferences = (params) => {
 
 export const getState = (params = {}) => {
   return httpGet(`/channel/state`);
+}
+
+function generateUniqueId() {
+  let array = new Uint8Array(16);
+  window.crypto.getRandomValues(array);
+  const time = new Date().getTime();
+  return time + Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
 }
