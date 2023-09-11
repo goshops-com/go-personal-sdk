@@ -243,3 +243,7 @@ export const getFieldValues = async (params) => {
 export const setPreferences = (params) => {
   return httpPut(`/channel/preferences`, params);
 };
+
+export const getState = (params = {}) => {
+  return httpGet(`/channel/state`);
+}

@@ -1,5 +1,5 @@
 import { login, addInteraction, logout, getItems, search, imageSearch, getCount, getFieldValues,
-   getRanking, reRank, setPreferences, getItemById, init, clearSharedSession } from './api';
+   getRanking, reRank, setPreferences, getItemById, init, clearSharedSession, getState } from './api';
 import { getContent, getContentByContext } from './api/content';
 
 //plugins
@@ -61,7 +61,8 @@ const GSSDK = async (clientId, options = {}) => {
     getFieldValues: (params) => getFieldValues(params),
     getContent: (contentId, options = {}) => getContent(contentId, options),
     getContentByContext: (context, options) => getContentByContext(context, options),
-    clearSharedSession: () => clearSharedSession(clientId)
+    clearSharedSession: () => clearSharedSession(clientId),
+    getState: (params = {}) => getState(params)
   };
 };
 
