@@ -87,7 +87,11 @@ export const addJavaScriptToBody = (jsCode) => {
 
     const bodyElement = document.body;
     if (bodyElement) {
-        bodyElement.appendChild(scriptElement);
+        try{
+            bodyElement.appendChild(scriptElement);
+        }catch(e){
+            console.error(e)
+        }
     } else {
         console.error('Body element not found.');
     }
