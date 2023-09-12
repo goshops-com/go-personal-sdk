@@ -1,3 +1,4 @@
+import { md5 } from 'pure-md5';
 
 export const injectCSS = (css) => {
 
@@ -45,19 +46,26 @@ export const selectElementWithRetry = async (selector, maxRetries = 3, backoffFa
   };
 
   export const addHTMLToDiv = async (html, selector, selectorPosition) => {
-    //selectorPosition can be 'after', 'before'
+    const hash = md5(html);
+    if (document.querySelector(`[data-hash="${hash}"]`)) {
+        console.error(`Element with hash "${hash}" already exists.`);
+        return;
+    }
+
+    // Attach the hash to your HTML content.
+    const htmlWithHash = `<div data-hash="${hash}">${html}</div>`;
 
     const divElement = await selectElementWithRetry(selector);
     if (divElement) {
         switch (selectorPosition) {
             case 'after':
-                divElement.insertAdjacentHTML('afterend', html);
+                divElement.insertAdjacentHTML('afterend', htmlWithHash);
                 break;
             case 'before':
-                divElement.insertAdjacentHTML('beforebegin', html);
+                divElement.insertAdjacentHTML('beforebegin', htmlWithHash);
                 break;
             default:
-                divElement.innerHTML = html;
+                divElement.innerHTML = htmlWithHash;
         }
     } else {
         console.error(`Element with selector "${selector}" not found.`);

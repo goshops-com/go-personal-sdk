@@ -1,7 +1,9 @@
+
 import { httpGet, httpPost } from '../utils/http';
 import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody } from '../utils/dom';
 import { previewVariant, getParam } from '../utils/urlParam';
 import { suscribe } from '../utils/trigger';
+
 
 window.gsStore = {
   context: {
