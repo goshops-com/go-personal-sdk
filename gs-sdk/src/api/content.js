@@ -123,7 +123,7 @@ async function addContentToWebsite(content, options){
           if (canShow){
             console.log('suscribe')
             suscribe(content, function(html, js){
-              console.log('callback')
+              console.log('callback', html, js)
               addHTMLToBody(html);
               addJavaScriptToBody(js);
             })  
