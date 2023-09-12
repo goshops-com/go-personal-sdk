@@ -38,6 +38,7 @@ export const suscribe = (content, cb) => {
           });
         }
     }else if (trigger.id === 'page_load'){
+        console.log('page_load');
         cb(html, js);
     }else if (trigger.id === 'interaction'){
       // ev.on('interaction', function(interactionData){
