@@ -179,6 +179,11 @@ export const addBulkInteractions = (interactions) => {
   });
 };
 
+export const addFeedback = (feedbackData) => {
+  // Implementation of logout will depend on your specific API
+  return httpPost(`/feedback`, feedbackData);
+};
+
 export const logout = (clientId) => {
   // Implementation of logout will depend on your specific API
   return httpPost(`/logout`, { clientId });
