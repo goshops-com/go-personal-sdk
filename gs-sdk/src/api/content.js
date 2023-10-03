@@ -133,8 +133,13 @@ async function addContentToWebsite(content, options){
         }
       }else{
         // web content
-        const selector = content.selector;
-        const selectorPosition = content.selectorPosition;
+        let selector = content.selector;
+        let selectorPosition = content.selectorPosition;
+        if (!selector){
+          selector = 'body';
+          selectorPosition = 'after'
+        }
+        
         await addHTMLToDiv(html, selector, selectorPosition);
         if (js){
           addJavaScriptToBody(js);
