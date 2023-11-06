@@ -139,9 +139,12 @@ export const clearSharedSession = (clientId) => {
   clearToken(clientId);
 }
 
-export const login = (username) => {
-  // Implementation of login will depend on your specific API
-  return httpPost(`/channel/login`, { customerId: username });
+export const login = (id) => {
+  return httpPost(`/channel/login`, { customerId: id });
+};
+
+export const loginEmail = (email) => {
+  return httpPost(`/channel/login`, { email: email });
 };
 
 export const addInteraction = (interactionData) => {
