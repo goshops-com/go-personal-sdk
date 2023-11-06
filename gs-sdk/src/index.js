@@ -1,4 +1,4 @@
-import { login, addInteraction, logout, getItems, search, imageSearch, getCount, getFieldValues,
+import { login, loginEmail, addInteraction, logout, getItems, search, imageSearch, getCount, getFieldValues,
    getRanking, reRank, setPreferences, getItemById, init, clearSharedSession, getState, addBulkInteractions, addFeedback } from './api';
 import { getContent, getContentByContext } from './api/content';
 
@@ -48,6 +48,7 @@ const GSSDK = async (clientId, options = {}) => {
 
   return {
     login: (username) => login(username),
+    loginEmail: (email) => loginEmail(email),
     logout: () => logout(clientId),
     setPreferences: (params) => setPreferences(params),
     addInteraction: (interactionData) => addInteraction(interactionData),
