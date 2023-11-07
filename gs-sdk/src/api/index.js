@@ -165,6 +165,10 @@ export const findState = () => {
   return httpGet(`/channel/state`);
 };
 
+export const updateState = (obj) => {
+  return httpPut(`/channel/state`, obj);
+};
+
 export const addBulkInteractions = (interactions) => {
   if (interactions.length == 0){
     return;
