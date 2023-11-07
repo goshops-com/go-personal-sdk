@@ -14,7 +14,7 @@ window.gsStore = {
 
 export const getContentByContext = async (context, options) => {
 
-  console.log('getContentByContext', context, options)
+  window.gsLog('getContentByContext', context, options)
   if (!options){
     options = {}
   }
@@ -29,6 +29,7 @@ export const getContentByContext = async (context, options) => {
   const payload = buildContextPayload(options);
   const result = await httpPost(url, payload);
   const contents = result.loadNowContent;
+  window.gsLog('LoadNowContent' + contents.length);
   await Promise.all(contents.map(content => addContentToWebsite(content, options)));
   const lazyLoadContent = result.lazyLoadContent;
   await Promise.all(lazyLoadContent.map(content => getContent(content.key, options)));
@@ -96,7 +97,7 @@ function buildContextPayload(options){
   };
 }
 async function addContentToWebsite(content, options){
-  console.log('addContentToWebsite');
+  window.gsLog('addContentToWebsite', content.key);
 
   if (content && content.contentValue){
     const css = content.contentValue.css;
