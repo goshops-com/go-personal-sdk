@@ -14,7 +14,7 @@ export const selectElement = (selector) => {
     return document.querySelector(selector);
 }
 
-export const selectElementWithRetry = async (selector, maxRetries = 3, backoffFactor = 2, maxBackoffTime = 1000) => {
+export const selectElementWithRetry = async (selector, maxRetries = 10, backoffFactor = 2, maxBackoffTime = 2000) => {
     const attemptSelect = async () => {
       try {
         return document.querySelector(selector);
