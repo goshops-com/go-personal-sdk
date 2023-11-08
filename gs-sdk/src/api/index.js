@@ -68,7 +68,8 @@ async function executeInitialLoad(clientId, session, options){
   if (options && options.provider && options.provider != 'Custom'){
     const context = getPageType(options.provider);
     if (context){
-      const { pageType, ...contentWithoutPageType } = context;
+      let { pageType, ...contentWithoutPageType } = context;
+      contentWithoutPageType.singlePage = options.singlePage == true;
       const result = await getContentByContext(pageType, contentWithoutPageType);
       console.log('content result', result);
 

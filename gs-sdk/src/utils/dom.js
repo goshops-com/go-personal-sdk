@@ -45,18 +45,22 @@ export const selectElementWithRetry = async (selector, maxRetries = 3, backoffFa
     return selectedElement;
   };
 
-export const addHTMLToDiv = async (html, selector, selectorPosition) => {
-    const hash = md5(html);
+export const addHTMLToDiv = async (html, selector, selectorPosition, options = {}) => {
+    const hash = `element:${selector}-hash:${md5(html)}`;
     if (document.querySelector(`[data-hash="${hash}"]`)) {
         console.error(`Element with hash "${hash}" already exists.`);
         return;
     }
 
-    // Attach the hash to your HTML content.
-    const htmlWithHash = `<div data-hash="${hash}">${html}</div>`;
-
+    // Create the invisible div with the hash attribute and no inner HTML
     const divElement = await selectElementWithRetry(selector);
     if (divElement) {
+        // Idea is to mark this DOM so we don't add the same element again
+        const invisibleDiv = document.createElement('div');
+        invisibleDiv.style.display = 'none'; // Make it invisible
+        invisibleDiv.setAttribute('data-hash', hash);
+        document.body.appendChild(invisibleDiv);
+
         // Check if divElement is an image element
         if (divElement.tagName && divElement.tagName.toLowerCase() === 'img') {
             // Replace the image with the htmlWithHash content
@@ -64,13 +68,13 @@ export const addHTMLToDiv = async (html, selector, selectorPosition) => {
         } else {
             switch (selectorPosition) {
                 case 'after':
-                    divElement.insertAdjacentHTML('afterend', htmlWithHash);
+                    divElement.insertAdjacentHTML('afterend', html);
                     break;
                 case 'before':
-                    divElement.insertAdjacentHTML('beforebegin', htmlWithHash);
+                    divElement.insertAdjacentHTML('beforebegin', html);
                     break;
                 default:
-                    divElement.innerHTML = htmlWithHash;
+                    divElement.innerHTML = html;
             }
         }
     } else {

@@ -141,7 +141,7 @@ async function addContentToWebsite(content, options){
           selectorPosition = 'after'
         }
         
-        await addHTMLToDiv(html, selector, selectorPosition);
+        await addHTMLToDiv(html, selector, selectorPosition, options);
         if (js){
           addJavaScriptToBody(js);
         }
