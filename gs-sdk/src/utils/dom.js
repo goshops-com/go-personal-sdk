@@ -45,7 +45,7 @@ export const selectElementWithRetry = async (selector, maxRetries = 3, backoffFa
     return selectedElement;
   };
 
-  export const addHTMLToDiv = async (html, selector, selectorPosition) => {
+export const addHTMLToDiv = async (html, selector, selectorPosition) => {
     const hash = md5(html);
     if (document.querySelector(`[data-hash="${hash}"]`)) {
         console.error(`Element with hash "${hash}" already exists.`);
@@ -57,15 +57,21 @@ export const selectElementWithRetry = async (selector, maxRetries = 3, backoffFa
 
     const divElement = await selectElementWithRetry(selector);
     if (divElement) {
-        switch (selectorPosition) {
-            case 'after':
-                divElement.insertAdjacentHTML('afterend', htmlWithHash);
-                break;
-            case 'before':
-                divElement.insertAdjacentHTML('beforebegin', htmlWithHash);
-                break;
-            default:
-                divElement.innerHTML = htmlWithHash;
+        // Check if divElement is an image element
+        if (divElement.tagName && divElement.tagName.toLowerCase() === 'img') {
+            // Replace the image with the htmlWithHash content
+            divElement.outerHTML = htmlWithHash;
+        } else {
+            switch (selectorPosition) {
+                case 'after':
+                    divElement.insertAdjacentHTML('afterend', htmlWithHash);
+                    break;
+                case 'before':
+                    divElement.insertAdjacentHTML('beforebegin', htmlWithHash);
+                    break;
+                default:
+                    divElement.innerHTML = htmlWithHash;
+            }
         }
     } else {
         console.error(`Element with selector "${selector}" not found.`);
