@@ -64,7 +64,7 @@ export const addHTMLToDiv = async (html, selector, selectorPosition, options = {
         // Check if divElement is an image element
         if (divElement.tagName && divElement.tagName.toLowerCase() === 'img') {
             // Replace the image with the htmlWithHash content
-            divElement.outerHTML = htmlWithHash;
+            divElement.outerHTML = html;
         } else {
             switch (selectorPosition) {
                 case 'after':
