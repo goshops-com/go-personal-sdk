@@ -162,6 +162,23 @@ export const addInteraction = (interactionData) => {
   return httpPost(`/interaction`, interactionData);
 };
 
+export const addInteractionState = (state) => {
+  window.gsStore.interactionCount++;
+  let event = '';
+  if (state == 'cart'){
+    event = 'purchase';
+  }
+  const now = new Date().getTime();
+  const expirationDate = now + 24 * 60 * 60 * 1000; // Add 24 hours
+  const type = 'interaction-' + event;
+  addToQueue({
+    expirationDate,
+    type
+  });
+
+  return httpPost(`/interaction/state/${state}`);
+};
+
 export const findState = () => {
   return httpGet(`/channel/state`);
 };
