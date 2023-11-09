@@ -9,11 +9,12 @@ export const configure = (clientId) => {
     // Split the clientId at the hyphen
     const [region, secondPart] = clientId.split('-');
 
-    // Log the parts or use them as needed
     console.log('Region:', region);
     console.log('ClientId:', secondPart);
 
-    //TODO we may need to change base_url depending on the region
+    if (region == 'BR'){
+      BASE_URL = 'https://go-discover.goshops.ai';
+    }
     return secondPart;
   } else {
     console.log('Default region');
