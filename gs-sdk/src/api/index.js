@@ -1,5 +1,5 @@
 import { httpGet, httpPost, httpPut, httpPostFormData, configure } from '../utils/http';
-import { setSession, clearSession, isTokenValid, getToken, checkSameClientId, setClientId, getSession } from '../utils/storage';
+import { setSession, addDataToSession, clearSession, isTokenValid, getToken, checkSameClientId, setClientId, getSession } from '../utils/storage';
 import { jsonToQueryString, getParam } from '../utils/urlParam';
 import { setupContentSelector } from '../utils/configure';
 import { getContentByContext } from './content';
@@ -141,6 +141,7 @@ export const clearSharedSession = (clientId) => {
 }
 
 export const login = (id) => {
+  addDataToSession('customer_id', id);
   return httpPost(`/channel/login`, { customerId: id });
 };
 

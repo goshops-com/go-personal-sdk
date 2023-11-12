@@ -46,6 +46,17 @@ export const getSession = () => {
   }
 }
 
+export const addDataToSession = (key, value) => {
+  const item = localStorage.getItem(key);
+  if (item){
+    const session = JSON.parse(item);
+    session[key] = value;
+    this.setSession(session);
+  }else{
+    return {}
+  }
+}
+
 export const setSession = (data = {}) => {
     data.ts = new Date();
     localStorage.setItem(key, JSON.stringify(data));
