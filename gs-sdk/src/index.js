@@ -37,7 +37,12 @@ const GSSDK = async (clientId, options = {}) => {
   }
 
   window.gsConfig.clientId = clientId;
-  window.gsLog('Calling Init:', options)
+  window.gsConfig.options = options;
+  window.gsLog('Calling Init:', options);
+  window.gsResetSession = async function(){
+    await init(window.gsConfig.clientId, window.gsConfig.options);
+  };
+
   clientId = await init(clientId, options);
 
   const browsePlugin = hasPlugin(options, 'browse');

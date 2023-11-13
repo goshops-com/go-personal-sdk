@@ -220,6 +220,11 @@ export const addFeedback = (feedbackData) => {
 
 export const logout = (clientId) => {
   // Implementation of logout will depend on your specific API
+  const session = getSession();
+  if (session['customer_id']){
+    // we need to re-create the session
+    window.gsResetSession();
+  }
   return httpPost(`/logout`, { clientId });
 };
 
