@@ -145,7 +145,7 @@ export const login = (id) => {
   return httpPost(`/channel/login`, { customerId: id });
 };
 
-export const getSession = () => {
+export const getCustomerSession = () => {
   return getSession();
 };
 
