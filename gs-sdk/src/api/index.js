@@ -145,6 +145,10 @@ export const login = (id) => {
   return httpPost(`/channel/login`, { customerId: id });
 };
 
+export const getSession = () => {
+  return getSession();
+};
+
 export const loginEmail = (email) => {
   return httpPost(`/channel/login`, { email: email });
 };
