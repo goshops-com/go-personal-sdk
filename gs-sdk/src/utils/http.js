@@ -13,7 +13,7 @@ export const configure = (clientId) => {
     console.log('ClientId:', secondPart);
 
     if (region == 'BR'){
-      BASE_URL = 'https://go-discover.goshops.ai';
+      BASE_URL = 'https://discover.gopersonal.ai';
     }
     return secondPart;
   } else {
