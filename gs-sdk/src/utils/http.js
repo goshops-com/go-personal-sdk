@@ -1,7 +1,7 @@
 // const BASE_URL = 'http://localhost:3000';
 let BASE_URL = 'https://go-discover-dev.goshops.ai';
 
-import { getToken } from './storage';
+import { getToken, clearSession } from './storage';
 
 export const configure = (clientId) => {
   // Check if clientId contains a hyphen
@@ -22,6 +22,12 @@ export const configure = (clientId) => {
   }
 }
 
+async function handleInvalidAuth(){
+  console.log('Reset GS session');
+  clearSession();
+  await window.gsResetSession();
+}
+
 
 export const httpGet = async (endpoint, params = {}) => {
   const obj = getToken();
@@ -35,6 +41,11 @@ export const httpGet = async (endpoint, params = {}) => {
       'Authorization': `Bearer ${obj.token}`
     },
   });
+
+  if (response.status === 401) {
+
+    handleInvalidAuth();
+  }
 
   if (!response.ok) {
     throw new Error(`GET request failed: ${response.status}`);
@@ -55,6 +66,10 @@ export const httpPost = async (endpoint, body = {}) => {
     body: JSON.stringify(body),
   });
 
+  if (response.status === 401) {
+    handleInvalidAuth();
+  }
+
   if (!response.ok) {
     throw new Error(`POST request failed: ${response.status}`);
   }
@@ -72,6 +87,10 @@ export const httpPostFormData = async (endpoint, formData) => {
     },
     body: formData
   });
+
+  if (response.status === 401) {
+    handleInvalidAuth();
+  }
 
   if (!response.ok) {
     throw new Error(`POST request failed: ${response.status}`);
@@ -91,6 +110,10 @@ export const httpPut = async (endpoint, body = {}) => {
     },
     body: JSON.stringify(body),
   });
+
+  if (response.status === 401) {
+    handleInvalidAuth();
+  }
 
   if (!response.ok) {
     throw new Error(`POST request failed: ${response.status}`);
