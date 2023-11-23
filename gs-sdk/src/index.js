@@ -6,9 +6,9 @@ import { getContent, getContentByContext } from './api/content';
 
 import { install as installBrowse } from './api/browse';
 
-window.gsLog = function(s){
-  if (window.gsConfig.log){
-    console.log(s);
+window.gsLog = function(...args) {
+  if (window.gsConfig.log) {
+    console.log(...args);
   }
 }
 

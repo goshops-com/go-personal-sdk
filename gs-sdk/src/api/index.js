@@ -65,7 +65,17 @@ export const init = async (clientId, options) => {
 
 
 async function executeInitialLoad(clientId, session, options){
+  
   if (options && options.provider && options.provider != 'Custom'){
+    
+    if (options.provider.toUpperCase() == 'MAGENTO'){
+      try{
+        require('../providers/magentoV2').install(options)
+      }catch(e){
+        window.gsLog("Error installing Provider", e);
+      }
+    }
+    
     const context = getPageType(options.provider);
     if (context){
       let { pageType, ...contentWithoutPageType } = context;
@@ -85,7 +95,7 @@ async function executeInitialLoad(clientId, session, options){
     }
   }
 
-  console.log('session.channelConfig4', session.channelConfig);
+  window.gsLog('session.channelConfig4', session.channelConfig);
 
   if (session.channelConfig){
     const channelConfig = session.channelConfig.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
