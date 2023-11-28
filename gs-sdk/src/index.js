@@ -1,7 +1,7 @@
 import { login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, getItems, search, imageSearch, getCount, getFieldValues,
    getRanking, reRank, setPreferences,updateState,  getItemById, init, clearSharedSession, getState, addBulkInteractions, addFeedback } from './api';
 import { getContent, getContentByContext } from './api/content';
-import { bestProducts } from './api/recommendation';
+import { bestProducts, byContext } from './api/recommendation';
 
 //plugins
 
@@ -71,6 +71,7 @@ const GSSDK = async (clientId, options = {}) => {
     reRank: (ranking, params) => reRank(ranking, params),
     getFieldValues: (params) => getFieldValues(params),
     bestProducts: (params) => bestProducts(params),
+    recommendationByContex: (params) => byContext(params),
     getContent: (contentId, options = {}) => getContent(contentId, options),
     getContentByContext: (context, options) => getContentByContext(context, options),
     clearSharedSession: () => clearSharedSession(clientId),
