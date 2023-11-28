@@ -11,7 +11,7 @@ export const byContext = async (options = {}) => {
   if (currentPageContext.pageType == 'product_detail' && currentPageContext.product_id){
     context = {
       "currentPage": {
-        "productId": "21697"
+        "productId": currentPageContext.product_id + ''
       }
     }
   }
