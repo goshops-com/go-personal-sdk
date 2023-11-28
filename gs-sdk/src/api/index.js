@@ -243,7 +243,7 @@ export const logout = (clientId) => {
     // we need to re-create the session
     window.gsResetSession();
   }
-  return httpPost(`/logout`, { clientId });
+  return httpPost(`/channel/logout`, { clientId });
 };
 
 export const getItems = async (params) => {
