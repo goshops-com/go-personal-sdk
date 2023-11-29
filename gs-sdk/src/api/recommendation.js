@@ -51,5 +51,15 @@ export const byContext = async (options = {}) => {
 };
 
 export const openImpression = async (impressionId) => {
-  return await httpPatch(`/recommendations/impression/${impressionId}`, {status: 'opened'});
+  try {
+    if (!impressionId || typeof impressionId !== 'string' || window.gsImpressionIds.includes(impressionId)) {
+      return;
+    }
+
+    window.gsImpressionIds.push(impressionId);
+    return await httpPatch(`/recommendations/impression/${impressionId}`, { status: 'opened' });
+  } catch (error) {
+    console.error('Error:', error);
+    return;
+  }
 };

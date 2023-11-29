@@ -1,7 +1,7 @@
 import { login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, getItems, search, imageSearch, getCount, getFieldValues,
    getRanking, reRank, setPreferences,updateState,  getItemById, init, clearSharedSession, getState, addBulkInteractions, addFeedback } from './api';
-import { getContent, getContentByContext, observeElementInView } from './api/content';
-import { bestProducts, byContext, openImpression } from './api/recommendation';
+import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent } from './api/content';
+import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
 
 //plugins
 
@@ -28,6 +28,7 @@ const GSSDK = async (clientId, options = {}) => {
 
   window.gsConfig = {};
   window.gsEventHandlers = {};
+  window.gsImpressionIds = [];
   if (options.log){
     window.gsConfig.log = true;
   }
@@ -79,7 +80,8 @@ const GSSDK = async (clientId, options = {}) => {
     addBulkInteractions: (interactions) => addBulkInteractions(interactions),
     addFeedback: (feedbackData) => addFeedback(feedbackData),
     observeElementInView: (elementId, impressionId, cb) => observeElementInView(elementId, impressionId, cb),
-    openImpression: (impressionId) => openImpression(impressionId)
+    openImpression: (impressionId) => openImpressionForRecommendation(impressionId),
+    openImpressionContent: (impressionId) => openImpressionForContent(impressionId)
   };
 };
 

@@ -1,5 +1,5 @@
 
-import { httpGet, httpPost } from '../utils/http';
+import { httpGet, httpPost, httpPatch } from '../utils/http';
 import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody } from '../utils/dom';
 import { previewVariant, getParam } from '../utils/urlParam';
 import { suscribe } from '../utils/trigger';
@@ -226,6 +226,21 @@ function canShowContent(frequency, contentId) {
 
   return false;
 }
+
+export const openImpression = async (impressionId) => {
+  try {
+    if (!impressionId || typeof impressionId !== 'string' || window.gsImpressionIds.includes(impressionId)) {
+      return;
+    }
+
+    window.gsImpressionIds.push(impressionId);
+    return await httpPatch(`/personal/impression/${impressionId}`, { status: 'opened' });
+  } catch (error) {
+    console.error('Error:', error);
+    return;
+  }
+};
+
 
 export const observeElementInView = (elementId, impressionId, callback) => {
 
