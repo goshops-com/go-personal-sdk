@@ -11,6 +11,7 @@ export const bestProducts = async (options = {}) => {
 
 export const byContext = async (options = {}) => {
   let context = options.context;
+
   const currentPageContext = window.gsConfig.options.context || {};
   if (currentPageContext.pageType == 'product_detail' && currentPageContext.product_id){
     context = {
@@ -23,7 +24,12 @@ export const byContext = async (options = {}) => {
   const strategy = options.strategy || 'similarity';
   const count = options.count || 10;
 
-  return await httpPost(`/recommendations/by-context`, {
+  let q = '';
+  if (options.includeImpressionId){
+    q += 'includeImpressionId=true';
+  }
+
+  return await httpPost(`/recommendations/by-context?${q}`, {
     context: context,
     "variables": [
       {
