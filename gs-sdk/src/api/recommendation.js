@@ -2,7 +2,17 @@
 import { httpGet, httpPost } from '../utils/http';
 
 export const bestProducts = async (options = {}) => {
-  return await httpGet(`/recommendations/best-products`);
+  if (options.includeImpressionId){
+    const response = await httpGet(`/recommendations/best-products`, {}, true);
+    const impressionId = response.headers['X-GS-Reco-Impression-ID'];
+    return {
+      impressionId,
+      data: response.data
+    }
+  }else{
+    return await httpGet(`/recommendations/best-products`);
+  }
+  
 };
 
 export const byContext = async (options = {}) => {
