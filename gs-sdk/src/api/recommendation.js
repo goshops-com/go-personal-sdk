@@ -4,8 +4,8 @@ import { httpGet, httpPost } from '../utils/http';
 export const bestProducts = async (options = {}) => {
   if (options.includeImpressionId){
     const response = await httpGet(`/recommendations/best-products`, {}, true);
-    console.log(response);
-    const impressionId = response.headers['X-Gs-Reco-Impression-Id'];
+    // console.log(response);
+    const impressionId = response.headers.get('X-Gs-Reco-Impression-Id');
     return {
       impressionId,
       data: response.data
