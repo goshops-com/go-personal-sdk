@@ -29,7 +29,7 @@ async function handleInvalidAuth(){
 }
 
 
-export const httpGet = async (endpoint, params = {}) => {
+export const httpGet = async (endpoint, params = {}, includeHeaders = false) => {
   const obj = getToken();
   const url = new URL(`${BASE_URL}${endpoint}`);
   Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
@@ -43,7 +43,6 @@ export const httpGet = async (endpoint, params = {}) => {
   });
 
   if (response.status === 401) {
-
     handleInvalidAuth();
   }
 
@@ -51,8 +50,19 @@ export const httpGet = async (endpoint, params = {}) => {
     throw new Error(`GET request failed: ${response.status}`);
   }
 
-  return response.json();
+  const data = await response.json();
+
+  if (includeHeaders) {
+    const headers = {};
+    response.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    return { headers, data };
+  }
+
+  return data;
 };
+
 
 export const httpPost = async (endpoint, body = {}) => {
   const obj = getToken();
