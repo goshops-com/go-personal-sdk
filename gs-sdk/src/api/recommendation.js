@@ -2,18 +2,11 @@
 import { httpGet, httpPost } from '../utils/http';
 
 export const bestProducts = async (options = {}) => {
+  let q = '';
   if (options.includeImpressionId){
-    const response = await httpGet(`/recommendations/best-products`, {}, true);
-    // console.log(response);
-    const impressionId = response.headers.get('X-Gs-Reco-Impression-Id');
-    return {
-      impressionId,
-      data: response.data
-    }
-  }else{
-    return await httpGet(`/recommendations/best-products`);
+    q += 'includeImpressionId=true';
   }
-  
+  return await httpGet(`/recommendations/best-products?${q}`);
 };
 
 export const byContext = async (options = {}) => {
