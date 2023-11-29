@@ -53,6 +53,9 @@ export const httpGet = async (endpoint, params = {}, includeHeaders = false) => 
   const data = await response.json();
 
   if (includeHeaders) {
+    response.headers.forEach((value, name) => {
+      console.log(`${name}: ${value}`);
+    });
     const headers = response.headers;
     return { headers, data };
   }
