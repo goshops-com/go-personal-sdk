@@ -1,5 +1,5 @@
 
-import { httpGet, httpPost } from '../utils/http';
+import { httpGet, httpPost, httpPatch } from '../utils/http';
 
 export const bestProducts = async (options = {}) => {
   let q = '';
@@ -42,4 +42,8 @@ export const byContext = async (options = {}) => {
       }
     ]
   });
+};
+
+export const openImpression = async (impressionId) => {
+  return await httpPatch(`/recommendations/impression/${impressionId}`, {status: 'opened'});
 };

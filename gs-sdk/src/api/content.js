@@ -75,11 +75,20 @@ export const getContent = async (contentId, options) => {
 };
 
 function buildContextPayload(options){
+
+  let download;
+  let effectiveType;
+  try{
+    download = navigator.connection.downlink;
+    effectiveType = navigator.connection.effectiveType;
+  }catch(e){
+
+  }
   return {
     context: {
       network: {
-        downlink: navigator.connection.downlink,
-        effectiveType: navigator.connection.effectiveType,
+        downlink: download,
+        effectiveType: effectiveType,
       },
       screen: {
         width: window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth,
@@ -216,4 +225,26 @@ function canShowContent(frequency, contentId) {
   }
 
   return false;
+}
+
+export const observeElementInView = (elementId, impressionId, callback) => {
+
+  // Function that will be called when the div is in the viewport
+  function internalCallback(entries, observer) {
+      entries.forEach(entry => {
+          if(entry.isIntersecting) {
+              // The div is now in the viewport
+              callback(elementId, impressionId);
+          }
+      });
+  }
+
+  // Create an instance of the Intersection Observer
+  let observer = new IntersectionObserver(internalCallback);
+
+  // Target the div element you want to observe
+  let target = document.getElementById(elementId);
+
+  // Start observing the target element
+  observer.observe(target);
 }

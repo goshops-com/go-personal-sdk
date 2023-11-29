@@ -1,7 +1,7 @@
 import { login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, getItems, search, imageSearch, getCount, getFieldValues,
    getRanking, reRank, setPreferences,updateState,  getItemById, init, clearSharedSession, getState, addBulkInteractions, addFeedback } from './api';
-import { getContent, getContentByContext } from './api/content';
-import { bestProducts, byContext } from './api/recommendation';
+import { getContent, getContentByContext, observeElementInView } from './api/content';
+import { bestProducts, byContext, openImpression } from './api/recommendation';
 
 //plugins
 
@@ -77,10 +77,10 @@ const GSSDK = async (clientId, options = {}) => {
     clearSharedSession: () => clearSharedSession(clientId),
     getState: (params = {}) => getState(params),
     addBulkInteractions: (interactions) => addBulkInteractions(interactions),
-    addFeedback: (feedbackData) => addFeedback(feedbackData)
+    addFeedback: (feedbackData) => addFeedback(feedbackData),
+    observeElementInView: (elementId, impressionId, cb) => observeElementInView(elementId, impressionId, cb),
+    openImpression: (impressionId) => openImpression(impressionId)
   };
 };
 
 export default GSSDK;
-
-// window.GSSDK = GSSDK;

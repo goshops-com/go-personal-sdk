@@ -131,3 +131,26 @@ export const httpPut = async (endpoint, body = {}) => {
 
   return response.json();
 };
+
+export const httpPatch = async (endpoint, body = {}) => {
+  const obj = getToken();
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    method: 'PATCH', // Changed from PUT to PATCH
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${obj.token}`
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (response.status === 401) {
+    handleInvalidAuth();
+  }
+
+  if (!response.ok) {
+    throw new Error(`PATCH request failed: ${response.status}`); // Changed POST to PATCH in the error message
+  }
+
+  return response.json();
+};
