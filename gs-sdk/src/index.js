@@ -1,4 +1,4 @@
-import { login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, getItems, search, imageSearch, getCount, getFieldValues,
+import { login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, getItems, search, imageSearch, uploadImage, getCount, getFieldValues,
    getRanking, reRank, setPreferences,updateState,  getItemById, init, clearSharedSession, getState, addBulkInteractions, addFeedback } from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
@@ -66,6 +66,7 @@ const GSSDK = async (clientId, options = {}) => {
     updateState: (obj) => updateState(obj),
     search: (input, params) => search(input, params),
     imageSearch: (formData, params) => imageSearch(formData, params),
+    uploadImage: (formData) => uploadImage(formData),
     getCount: (params) => getCount(params),
     getItemById: (id) => getItemById(id),
     getRanking: (ranking, params) => getRanking(ranking, params),

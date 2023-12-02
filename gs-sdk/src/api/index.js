@@ -292,6 +292,10 @@ export const imageSearch = async (formData, params) => {
   return httpPostFormData(`/item/image-search${q}`, formData);
 };
 
+export const uploadImage = async (formData, params) => {
+  return httpPostFormData(`/item/upload`, formData);
+};
+
 export const getCount = async (params) => {
   let q = ``;
 
