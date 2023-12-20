@@ -28,12 +28,25 @@ export const getContentByContext = async (context, options) => {
 
   const payload = buildContextPayload(options);
   const result = await httpPost(url, payload);
+  console.log(result);
   const contents = result.loadNowContent;
-  window.gsLog('LoadNowContent' + contents.length);
-  await Promise.all(contents.map(content => addContentToWebsite(content, options)));
-  const lazyLoadContent = result.lazyLoadContent;
-  window.gsLog('LazyLoadContent' + lazyLoadContent.length);
-  await Promise.all(lazyLoadContent.map(content => getContent(content.key, options)));
+  console.log('asd', result.lazyLoadContent)
+  try {
+    window.gsLog('LoadNowContent ' + contents.length);
+    Promise.all(contents.map(content => addContentToWebsite(content, options)));
+  } catch (e) {
+    console.error(e);
+  }
+
+  console.log('hello')
+  try {
+    const lazyLoadContent = result.lazyLoadContent;
+    window.gsLog('LazyLoadContent ' + lazyLoadContent.length);
+    await Promise.all(lazyLoadContent.map(content => getContent(content.key, options)));
+  } catch (e) {
+    console.error(e);
+  }
+
 
 };
 
@@ -115,6 +128,7 @@ async function addContentToWebsite(content, options) {
     const js = content.contentValue.js;
 
     if (!css && !html && !js) {
+      window.gsLog('skip')
       return; //nothing to inyect
     }
 
@@ -150,7 +164,7 @@ async function addContentToWebsite(content, options) {
           selector = 'body';
           selectorPosition = 'after'
         }
-
+        window.gsLog('adding to dom', selector)
         await addHTMLToDiv(html, selector, selectorPosition, options);
         if (js) {
           addJavaScriptToBody(js);
@@ -166,6 +180,8 @@ async function addContentToWebsite(content, options) {
     }
 
   }
+
+  window.gsLog('end addContentToWebsite', content.key);
 }
 
 function canShowContent(frequency, contentId) {
