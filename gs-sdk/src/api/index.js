@@ -14,7 +14,7 @@ window.gsStore = {
 
 
 export const init = async (clientId, options) => {
-  
+
   window.gsLog('Init Options', JSON.stringify(options));
   window.gsConfig.includeDraft = options.includeDraft;
 
@@ -23,12 +23,12 @@ export const init = async (clientId, options) => {
 
   const sameClientId = checkSameClientId(clientId);
   const reset = getParam('gsReset');
-  if (reset || !sameClientId){
+  if (reset || !sameClientId) {
     clearSession();
     setClientId(clientId);
   }
 
-  if (isTokenValid()){
+  if (isTokenValid()) {
     const obj = getToken();
     const session = getSession();
     executeInitialLoad(clientId, session, options);
@@ -37,15 +37,15 @@ export const init = async (clientId, options) => {
   }
 
   let q = '?';
-  if (options.byPassCache){
+  if (options.byPassCache) {
     q += 'byPassCache=true';
   }
 
   let externalSessionId;
-  if (options.multipleDomains){
+  if (options.multipleDomains) {
     externalSessionId = await getSharedToken(clientId, clientOrigin);
   }
-  
+
   const obj = await httpPost(`/channel/init${q}`, { clientId, externalSessionId, firstURL: window.location.href });
   console.log(obj)
   setSession(obj);
@@ -55,7 +55,7 @@ export const init = async (clientId, options) => {
   console.log('gsElementSelector', gsElementSelector);
   console.log('gsContentKey', gsContentKey);
 
-  if (gsElementSelector != null && gsContentKey != null){
+  if (gsElementSelector != null && gsContentKey != null) {
     await setupContentSelector(gsContentKey);
   }
   executeInitialLoad(clientId, obj, options);
@@ -64,26 +64,26 @@ export const init = async (clientId, options) => {
 };
 
 
-async function executeInitialLoad(clientId, session, options){
-  
-  if (options && options.provider && options.provider != 'Custom'){
-    
-    if (options.provider.toUpperCase() == 'MAGENTO'){
-      try{
+async function executeInitialLoad(clientId, session, options) {
+
+  if (options && options.provider && options.provider != 'Custom') {
+
+    if (options.provider.toUpperCase() == 'MAGENTO') {
+      try {
         require('../providers/magentoV2').install(options)
-      }catch(e){
+      } catch (e) {
         window.gsLog("Error installing Provider", e);
       }
     }
-    
+
     const context = getPageType(options.provider);
-    if (context){
+    if (context) {
       let { pageType, ...contentWithoutPageType } = context;
       contentWithoutPageType.singlePage = options.singlePage == true;
       const result = await getContentByContext(pageType, contentWithoutPageType);
       console.log('content result', result);
 
-      if (context.pageType == 'product_detail'){
+      if (context.pageType == 'product_detail') {
         let eventData = {
           ...contentWithoutPageType,
           event: "view"
@@ -97,7 +97,7 @@ async function executeInitialLoad(clientId, session, options){
 
   window.gsLog('session.channelConfig4', session.channelConfig);
 
-  if (session.channelConfig){
+  if (session.channelConfig) {
     const channelConfig = session.channelConfig.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
 
     // Extract the function body from the string
@@ -113,13 +113,15 @@ async function executeInitialLoad(clientId, session, options){
     const result = await getContentByContext(pageType, contentWithoutPageType);
     console.log('content result', result);
     return;
-  }else if (options.context){
+  } else if (options.context) {
     // TODO implement this
     const { pageType, ...contentWithoutPageType } = options.context;
     const result = await getContentByContext(pageType, contentWithoutPageType);
-  }else{
+  } else {
     // assume context 'other'
-    const result = await getContentByContext('other', {});
+    if (!options.noDefaultContext) {
+      const result = await getContentByContext('other', {});
+    }
   }
 
 };
@@ -137,11 +139,11 @@ function getPageType(provider) {
     }
 
     if (path.startsWith('/catalogo/')) {
-      try{
+      try {
         const parts = path.split('_');
         let sku = `1:${parts[1]}:${parts[2]}:U:1`;
         return { pageType: 'product_detail', sku: sku };
-      }catch(e){
+      } catch (e) {
         console.error(e)
       }
     }
@@ -188,7 +190,7 @@ export const addInteraction = (interactionData) => {
 export const addInteractionState = (state) => {
   window.gsStore.interactionCount++;
   let event = '';
-  if (state == 'cart'){
+  if (state == 'cart') {
     event = 'purchase';
   }
   const now = new Date().getTime();
@@ -211,7 +213,7 @@ export const updateState = (obj) => {
 };
 
 export const addBulkInteractions = (interactions) => {
-  if (interactions.length == 0){
+  if (interactions.length == 0) {
     return;
   }
 
@@ -239,7 +241,7 @@ export const addFeedback = (feedbackData) => {
 export const logout = (clientId) => {
   // Implementation of logout will depend on your specific API
   const session = getSession();
-  if (session['customer_id']){
+  if (session['customer_id']) {
     // we need to re-create the session
     window.gsResetSession();
   }
@@ -271,7 +273,7 @@ export const search = async (input, params) => {
     q += `&insta=1`;
   }
 
-  if (window.gsSearchOptions && window.gsSearchOptions.hasRetrievalQA){
+  if (window.gsSearchOptions && window.gsSearchOptions.hasRetrievalQA) {
     q += `&hasRetrievalQA=${window.gsSearchOptions.hasRetrievalQA}`
   }
 
@@ -281,10 +283,10 @@ export const search = async (input, params) => {
 export const imageSearch = async (formData, params) => {
 
   let q = `?sdk=1`;
-  if (params.text && params.text.length > 0){
+  if (params.text && params.text.length > 0) {
     q = `&text=${params.text}`
   }
-  if (window.gsSearchOptions && window.gsSearchOptions.hasMultimodal){
+  if (window.gsSearchOptions && window.gsSearchOptions.hasMultimodal) {
     q += `&hasMultimodal=${window.gsSearchOptions.hasMultimodal}`
     q += `&ignoreRanking=${window.gsSearchOptions.hasMultimodal}`
   }
