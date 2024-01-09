@@ -67,14 +67,14 @@ export const getContent = async (contentId, options) => {
 
   // we need to check if we are on preview or not. 
   const prevVarId = previewVariant();
-  console.log('[DEBUG] Preview Variant Id', prevVarId);
+
   let content;
   if (prevVarId === null) {
     const payload = buildContextPayload(options)
 
-    let url = `/personal/content/${contentId}?byPassCache=true`;
+    let url = `/personal/content/${contentId}`;
     if (includeDraft) {
-      url += '&includeDraft=true';
+      url += '?includeDraft=true';
     }
     content = await httpPost(url, payload);
   } else {
