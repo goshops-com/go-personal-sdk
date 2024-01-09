@@ -83,6 +83,11 @@ export const addHTMLToDiv = async (html, selector, selectorPosition, options = {
 }
 
 export const addHTMLToBody = (html) => {
+    // Check if html is undefined, an empty string, or the string "undefined"
+    if (html === undefined || html === "" || html === "undefined") {
+        return; // Ignore and exit the function
+    }
+
     const bodyElement = document.body;
     if (bodyElement) {
         bodyElement.insertAdjacentHTML('beforeend', html);
