@@ -1,10 +1,10 @@
 import { md5 } from 'pure-md5';
 
 export const injectCSS = (css) => {
-
-    if (!css || css.length == 0) {
-        return;
+    if (css == undefined || css == "" || css == "undefined") {
+        return; // Ignore and exit the function
     }
+
     const styleElement = document.createElement('style');
     styleElement.textContent = css;
     document.head.appendChild(styleElement);
