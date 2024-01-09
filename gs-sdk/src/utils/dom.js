@@ -84,7 +84,7 @@ export const addHTMLToDiv = async (html, selector, selectorPosition, options = {
 
 export const addHTMLToBody = (html) => {
     // Check if html is undefined, an empty string, or the string "undefined"
-    if (html === undefined || html === "" || html === "undefined") {
+    if (html == undefined || html == "" || html == "undefined") {
         return; // Ignore and exit the function
     }
 
@@ -97,6 +97,10 @@ export const addHTMLToBody = (html) => {
 }
 
 export const addJavaScriptToBody = (jsCode) => {
+    if (jsCode == undefined || jsCode == "" || jsCode == "undefined") {
+        return; // Ignore and exit the function
+    }
+
     const scriptElement = document.createElement('script');
     scriptElement.textContent = jsCode;
 
