@@ -15,73 +15,87 @@ window.gsStore = {
 export const getContentByContext = async (context, options) => {
 
   window.gsLog('getContentByContext', context, options)
-  if (!options){
+  if (!options) {
     options = {}
   }
   options.type = context;
 
   const includeDraft = window.gsConfig.includeDraft;
   let url = `/personal/content-page?pageType=${context}`;
-  if (includeDraft){
+  if (includeDraft) {
     url += '&includeDraft=true';
   }
 
   const payload = buildContextPayload(options);
   const result = await httpPost(url, payload);
+  console.log(result);
   const contents = result.loadNowContent;
-  window.gsLog('LoadNowContent' + contents.length);
-  await Promise.all(contents.map(content => addContentToWebsite(content, options)));
-  const lazyLoadContent = result.lazyLoadContent;
-  await Promise.all(lazyLoadContent.map(content => getContent(content.key, options)));
+  console.log('asd', result.lazyLoadContent)
+  try {
+    window.gsLog('LoadNowContent ' + contents.length);
+    Promise.all(contents.map(content => addContentToWebsite(content, options)));
+  } catch (e) {
+    console.error(e);
+  }
+
+  console.log('hello')
+  try {
+    const lazyLoadContent = result.lazyLoadContent;
+    window.gsLog('LazyLoadContent ' + lazyLoadContent.length);
+    await Promise.all(lazyLoadContent.map(content => getContent(content.key, options)));
+  } catch (e) {
+    console.error(e);
+  }
+
 
 };
 
 export const getContent = async (contentId, options) => {
   console.log('Content', contentId, options);
-  if (!options){
+  if (!options) {
     options = {}
   }
-  if (!options.type){
+  if (!options.type) {
     options.type = "Home"
   }
   const includeDraft = window.gsConfig.includeDraft;
 
   const gsElementSelector = getParam('gsElementSelector');
-  if (gsElementSelector != null){
+  if (gsElementSelector != null) {
     return;
   }
-  
+
   // we need to check if we are on preview or not. 
   const prevVarId = previewVariant();
   console.log('[DEBUG] Preview Variant Id', prevVarId);
   let content;
-  if (prevVarId === null){
+  if (prevVarId === null) {
     const payload = buildContextPayload(options)
 
     let url = `/personal/content/${contentId}?byPassCache=true`;
-    if (includeDraft){
+    if (includeDraft) {
       url += '&includeDraft=true';
     }
     content = await httpPost(url, payload);
-  }else{
+  } else {
     content = await httpGet(`/personal/content/${contentId}/variant/${prevVarId}`);
   }
-  
+
   console.log('Content found', content);
-  if (!content.key){
+  if (!content.key) {
     content.key = contentId;
   }
   addContentToWebsite(content, options);
 };
 
-function buildContextPayload(options){
+function buildContextPayload(options) {
 
   let download;
   let effectiveType;
-  try{
+  try {
     download = navigator.connection.downlink;
     effectiveType = navigator.connection.effectiveType;
-  }catch(e){
+  } catch (e) {
 
   }
   return {
@@ -105,15 +119,16 @@ function buildContextPayload(options){
     },
   };
 }
-async function addContentToWebsite(content, options){
+async function addContentToWebsite(content, options) {
   window.gsLog('addContentToWebsite', content.key);
 
-  if (content && content.contentValue){
+  if (content && content.contentValue) {
     const css = content.contentValue.css;
     const html = content.contentValue.html;
     const js = content.contentValue.js;
-    
-    if (!css && !html && !js){
+
+    if (!css && !html && !js) {
+      window.gsLog('skip')
       return; //nothing to inyect
     }
 
@@ -122,41 +137,41 @@ async function addContentToWebsite(content, options){
 
       const types = ['custom_code', 'pop_up', 'notifications'];
 
-      if (types.includes(content.type)){
+      if (types.includes(content.type)) {
 
         const canShow = canShowContent(content.frequency, content.experienceId);
         console.log('canShow by frecuency', canShow, options.forceShow);
 
-        if (options.forceShow){
+        if (options.forceShow) {
           console.log('showing')
           addHTMLToBody(html);
           addJavaScriptToBody(js);
-        }else{
-          if (canShow){
+        } else {
+          if (canShow) {
             console.log('suscribe')
-            suscribe(content, function(html, js){
-              console.log('callback', html, js)
+            suscribe(content, function (html, js) {
+              // console.log('callback', html, js)
               addHTMLToBody(html);
               addJavaScriptToBody(js);
-            })  
+            })
           }
         }
-      }else{
+      } else {
         // web content
         let selector = content.selector;
         let selectorPosition = content.selectorPosition;
-        if (!selector){
+        if (!selector) {
           selector = 'body';
           selectorPosition = 'after'
         }
-        
+        window.gsLog('adding to dom', selector)
         await addHTMLToDiv(html, selector, selectorPosition, options);
-        if (js){
+        if (js) {
           addJavaScriptToBody(js);
         }
       }
     };
-    
+
     // Check if the DOM is ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', proceed); // Wait for DOM ready
@@ -165,11 +180,13 @@ async function addContentToWebsite(content, options){
     }
 
   }
+
+  window.gsLog('end addContentToWebsite', content.key);
 }
 
 function canShowContent(frequency, contentId) {
 
-  if (!frequency){
+  if (!frequency) {
     return true;
   }
 
@@ -246,12 +263,12 @@ export const observeElementInView = (elementId, impressionId, callback) => {
 
   // Function that will be called when the div is in the viewport
   function internalCallback(entries, observer) {
-      entries.forEach(entry => {
-          if(entry.isIntersecting) {
-              // The div is now in the viewport
-              callback(elementId, impressionId);
-          }
-      });
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        // The div is now in the viewport
+        callback(elementId, impressionId);
+      }
+    });
   }
 
   // Create an instance of the Intersection Observer
