@@ -343,3 +343,8 @@ function generateUniqueId() {
   const time = new Date().getTime();
   return time + Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
 }
+
+export const getCurrentSession = () => {
+  const session = getSession();
+  return session;
+}

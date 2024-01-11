@@ -1,5 +1,7 @@
-import { login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, getItems, search, imageSearch, uploadImage, getCount, getFieldValues,
-   getRanking, reRank, setPreferences,updateState,  getItemById, init, clearSharedSession, getState, addBulkInteractions, addFeedback } from './api';
+import {
+  login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, getItems, search, imageSearch, uploadImage, getCount, getFieldValues,
+  getRanking, reRank, setPreferences, updateState, getItemById, init, clearSharedSession, getState, addBulkInteractions, addFeedback, getCurrentSession
+} from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
 
@@ -7,19 +9,19 @@ import { bestProducts, byContext, openImpression as openImpressionForRecommendat
 
 import { install as installBrowse } from './api/browse';
 
-window.gsLog = function(...args) {
+window.gsLog = function (...args) {
   if (window.gsConfig.log) {
     console.log(...args);
   }
 }
 
 function hasPlugin(option, id) {
-  if (!option.plugins){
+  if (!option.plugins) {
     return { exists: false };
   }
   const plugin = option.plugins.find(plugin => plugin.id === id);
   if (plugin) {
-      return { exists: true, options: plugin.options };
+    return { exists: true, options: plugin.options };
   }
   return { exists: false, options: null };
 }
@@ -29,10 +31,10 @@ const GSSDK = async (clientId, options = {}) => {
   window.gsConfig = {};
   window.gsEventHandlers = {};
   window.gsImpressionIds = [];
-  if (options.log){
+  if (options.log) {
     window.gsConfig.log = true;
   }
-  
+
   window.gsLog(`GSSDK: ${clientId}`);
   if (!clientId) {
     throw new Error('Client ID is required to initialize the SDK');
@@ -41,14 +43,14 @@ const GSSDK = async (clientId, options = {}) => {
   window.gsConfig.clientId = clientId;
   window.gsConfig.options = options;
   window.gsLog('Calling Init:', options);
-  window.gsResetSession = async function(){
+  window.gsResetSession = async function () {
     await init(window.gsConfig.clientId, window.gsConfig.options);
   };
 
   clientId = await init(clientId, options);
 
   const browsePlugin = hasPlugin(options, 'browse');
-  if (browsePlugin.exists){
+  if (browsePlugin.exists) {
     window.gsLog('installing plugin')
     installBrowse(browsePlugin.options)
   }
@@ -82,7 +84,8 @@ const GSSDK = async (clientId, options = {}) => {
     addFeedback: (feedbackData) => addFeedback(feedbackData),
     observeElementInView: (elementId, impressionId, cb) => observeElementInView(elementId, impressionId, cb),
     openImpression: (impressionId) => openImpressionForRecommendation(impressionId),
-    openImpressionContent: (impressionId) => openImpressionForContent(impressionId)
+    openImpressionContent: (impressionId) => openImpressionForContent(impressionId),
+    getCurrentSession: () => getCurrentSession()
   };
 };
 
