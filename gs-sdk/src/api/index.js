@@ -160,9 +160,10 @@ export const clearSharedSession = (clientId) => {
   clearToken(clientId);
 }
 
-export const login = (id) => {
+export const login = (id, data = {}) => {
   addDataToSession('customer_id', id);
-  return httpPost(`/channel/login`, { customerId: id });
+  data.customerId = customerId;
+  return httpPost(`/channel/login`, data);
 };
 
 export const getCustomerSession = () => {

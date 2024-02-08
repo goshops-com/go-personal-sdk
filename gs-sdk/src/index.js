@@ -56,7 +56,7 @@ const GSSDK = async (clientId, options = {}) => {
   }
 
   return {
-    login: (username) => login(username),
+    login: (username, data) => login(username, data = {}),
     loginEmail: (email) => loginEmail(email),
     logout: () => logout(clientId),
     getSession: () => getCustomerSession(),
