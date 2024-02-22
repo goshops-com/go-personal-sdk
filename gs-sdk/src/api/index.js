@@ -162,6 +162,9 @@ export const clearSharedSession = (clientId) => {
 
 export const login = (id, data = {}) => {
   addDataToSession('customer_id', id);
+  if (data.email) {
+    addDataToSession('customer_email', data.email);
+  }
   data.customerId = id;
   return httpPost(`/channel/login`, data);
 };
