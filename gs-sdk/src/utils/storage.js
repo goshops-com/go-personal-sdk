@@ -46,11 +46,11 @@ export const getSession = () => {
   }
 }
 
-export const addDataToSession = (key, value) => {
+export const addDataToSession = (fieldKey, value) => {
   const item = localStorage.getItem(key);
   if (item) {
     const session = JSON.parse(item);
-    session[key] = value;
+    session[fieldKey] = value;
     setSession(session);
   } else {
     return {}
