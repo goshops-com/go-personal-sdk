@@ -1,12 +1,12 @@
 const key = 'gs-v-1';
 
 export const getToken = () => {
-    const item = localStorage.getItem(key);
-    if (!item) {
-      return {};
-    }
-    return JSON.parse(item);
-  };
+  const item = localStorage.getItem(key);
+  if (!item) {
+    return {};
+  }
+  return JSON.parse(item);
+};
 
 export const checkSameClientId = (clientId) => {
   const item = localStorage.getItem(key + '-clientId');
@@ -25,13 +25,13 @@ export const isTokenValid = () => {
   if (!item) {
     return false;
   }
-  try{
+  try {
     const itemObj = JSON.parse(item);
     const timestamp = new Date(itemObj.ts);
     const oneDayAgo = new Date();
     oneDayAgo.setHours(oneDayAgo.getHours() - 24);
     return timestamp > oneDayAgo;
-  }catch(e){
+  } catch (e) {
     console.log(e)
     return false;
   }
@@ -39,28 +39,28 @@ export const isTokenValid = () => {
 
 export const getSession = () => {
   const item = localStorage.getItem(key);
-  if (item){
+  if (item) {
     return JSON.parse(item)
-  }else{
+  } else {
     return {}
   }
 }
 
 export const addDataToSession = (key, value) => {
   const item = localStorage.getItem(key);
-  if (item){
+  if (item) {
     const session = JSON.parse(item);
     session[key] = value;
-    this.setSession(session);
-  }else{
+    setSession(session);
+  } else {
     return {}
   }
 }
 
 export const setSession = (data = {}) => {
-    data.ts = new Date();
-    localStorage.setItem(key, JSON.stringify(data));
-    return data;
+  data.ts = new Date();
+  localStorage.setItem(key, JSON.stringify(data));
+  return data;
 };
 
 export const clearSession = () => {
@@ -68,4 +68,3 @@ export const clearSession = () => {
   localStorage.removeItem('gs_content_seen');
 };
 
-  
