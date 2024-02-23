@@ -341,6 +341,10 @@ export const getState = (params = {}) => {
   return httpGet(`/channel/state`);
 }
 
+export const getAffinity = (params = {}) => {
+  return httpGet(`/channel/whoiam/affinity`);
+}
+
 function generateUniqueId() {
   let array = new Uint8Array(16);
   window.crypto.getRandomValues(array);
