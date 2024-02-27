@@ -86,7 +86,8 @@ const GSSDK = async (clientId, options = {}) => {
     observeElementInView: (elementId, impressionId, cb) => observeElementInView(elementId, impressionId, cb),
     openImpression: (impressionId) => openImpressionForRecommendation(impressionId),
     openImpressionContent: (impressionId) => openImpressionForContent(impressionId),
-    getCurrentSession: () => getCurrentSession()
+    getCurrentSession: () => getCurrentSession(),
+    trackError: (e) => console.log(e)
   };
 };
 
