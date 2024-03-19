@@ -43,17 +43,19 @@ const GSSDK = async (clientId, options = {}) => {
   window.gsConfig.clientId = clientId;
   window.gsConfig.options = options;
   window.gsLog('Calling Init:', options);
+  if (!window.gsResetData) {
+    window.gsResetData = { count: 0, timestamp: Date.now() };
+  }
+
   window.gsResetSession = async function () {
-
-    console.log('gsResetSession');
-
-    const storageKey = 'gsResetCount';
+    // Key for accessing data directly from the window object
+    const resetData = window.gsResetData;
+    // Get current time in milliseconds
     const now = Date.now();
     // Duration for counting resets (1 hour in milliseconds)
     const duration = 60 * 60 * 1000;
-    // Retrieve the reset data from localStorage
-    const data = localStorage.getItem(storageKey);
-    const resetData = data ? JSON.parse(data) : { count: 0, timestamp: now };
+
+    console.log('Attempting to reset session...');
 
     // Check if the current timestamp is within 1 hour of the stored timestamp
     if (now - resetData.timestamp < duration) {
@@ -71,12 +73,13 @@ const GSSDK = async (clientId, options = {}) => {
       resetData.timestamp = now;
     }
 
-    console.log('gsResetSession', JSON.stringify(resetData));
+    console.log(`Reset count: ${resetData.count}, Timestamp: ${new Date(resetData.timestamp).toISOString()}`);
 
-    // Update the localStorage with new count and timestamp
-    localStorage.setItem(storageKey, JSON.stringify(resetData));
+    // Update the window object with new count and timestamp
+    window.gsResetData = resetData;
 
     // Proceed to execute the init function as count is below 10
+    console.log('Init function is being executed...');
     await init(window.gsConfig.clientId, window.gsConfig.options);
   };
 
