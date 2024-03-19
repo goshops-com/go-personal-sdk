@@ -15,20 +15,7 @@ window.gsLog = function (...args) {
   }
 }
 
-function hasPlugin(option, id) {
-  if (!option.plugins) {
-    return { exists: false };
-  }
-  const plugin = option.plugins.find(plugin => plugin.id === id);
-  if (plugin) {
-    return { exists: true, options: plugin.options };
-  }
-  return { exists: false, options: null };
-}
-
 window.gsResetSession = async function () {
-  console.log('gsResetSession');
-
   // Key for accessing data directly from the window object
   const resetData = window.gsResetData;
   // Get current time in milliseconds
@@ -63,6 +50,17 @@ window.gsResetSession = async function () {
   console.log('Init function is being executed...');
   await init(window.gsConfig.clientId, window.gsConfig.options);
 };
+
+function hasPlugin(option, id) {
+  if (!option.plugins) {
+    return { exists: false };
+  }
+  const plugin = option.plugins.find(plugin => plugin.id === id);
+  if (plugin) {
+    return { exists: true, options: plugin.options };
+  }
+  return { exists: false, options: null };
+}
 
 const GSSDK = async (clientId, options = {}) => {
 

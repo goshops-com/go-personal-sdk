@@ -12,7 +12,7 @@ export const configure = (clientId) => {
     console.log('Region:', region);
     console.log('ClientId:', secondPart);
 
-    if (region == 'BR'){
+    if (region == 'BR') {
       BASE_URL = 'https://discover.gopersonal.ai';
     }
     return secondPart;
@@ -22,7 +22,7 @@ export const configure = (clientId) => {
   }
 }
 
-async function handleInvalidAuth(){
+async function handleInvalidAuth() {
   console.log('Reset GS session');
   clearSession();
   await window.gsResetSession();
@@ -43,7 +43,7 @@ export const httpGet = async (endpoint, params = {}, includeHeaders = false) => 
   });
 
   if (response.status === 401) {
-    handleInvalidAuth();
+    await handleInvalidAuth();
   }
 
   if (!response.ok) {
@@ -66,7 +66,7 @@ export const httpGet = async (endpoint, params = {}, includeHeaders = false) => 
 
 export const httpPost = async (endpoint, body = {}) => {
   const obj = getToken();
-  
+
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method: 'POST',
     headers: {
@@ -89,7 +89,7 @@ export const httpPost = async (endpoint, body = {}) => {
 
 export const httpPostFormData = async (endpoint, formData) => {
   const obj = getToken();
-  
+
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method: 'POST',
     headers: {
@@ -111,7 +111,7 @@ export const httpPostFormData = async (endpoint, formData) => {
 
 export const httpPut = async (endpoint, body = {}) => {
   const obj = getToken();
-  
+
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method: 'PUT',
     headers: {
