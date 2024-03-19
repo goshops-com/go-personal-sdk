@@ -191,7 +191,7 @@ export const addInteraction = (interactionData) => {
   return httpPost(`/interaction`, interactionData);
 };
 
-export const addInteractionState = (state) => {
+export const addInteractionState = (state, options = {}) => {
   window.gsStore.interactionCount++;
   let event = '';
   if (state == 'cart') {
@@ -205,7 +205,7 @@ export const addInteractionState = (state) => {
     type
   });
 
-  return httpPost(`/interaction/state/${state}`);
+  return httpPost(`/interaction/state/${state}`, options);
 };
 
 export const findState = () => {

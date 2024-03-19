@@ -44,6 +44,34 @@ const GSSDK = async (clientId, options = {}) => {
   window.gsConfig.options = options;
   window.gsLog('Calling Init:', options);
   window.gsResetSession = async function () {
+    const storageKey = 'gsResetCount';
+    const now = Date.now();
+    // Duration for counting resets (1 hour in milliseconds)
+    const duration = 60 * 60 * 1000;
+    // Retrieve the reset data from localStorage
+    const data = localStorage.getItem(storageKey);
+    const resetData = data ? JSON.parse(data) : { count: 0, timestamp: now };
+
+    // Check if the current timestamp is within 1 hour of the stored timestamp
+    if (now - resetData.timestamp < duration) {
+      // If within the same hour and count is 10 or more, cancel reset
+      if (resetData.count >= 10) {
+        console.log('Reset limit reached. Function will not proceed.');
+        return; // Exit the function without executing init
+      } else {
+        // Increment count since we're within the same hour
+        resetData.count += 1;
+      }
+    } else {
+      // If more than an hour has passed, reset count and timestamp
+      resetData.count = 1;
+      resetData.timestamp = now;
+    }
+
+    // Update the localStorage with new count and timestamp
+    localStorage.setItem(storageKey, JSON.stringify(resetData));
+
+    // Proceed to execute the init function as count is below 10
     await init(window.gsConfig.clientId, window.gsConfig.options);
   };
 
@@ -62,7 +90,7 @@ const GSSDK = async (clientId, options = {}) => {
     getSession: () => getCustomerSession(),
     setPreferences: (params) => setPreferences(params),
     addInteraction: (interactionData) => addInteraction(interactionData),
-    addInteractionState: (state) => addInteractionState(state),
+    addInteractionState: (state, options = {}) => addInteractionState(state, options),
     getItems: (params) => getItems(params),
     findState: () => findState(),
     updateState: (obj) => updateState(obj),
