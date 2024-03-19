@@ -26,6 +26,44 @@ function hasPlugin(option, id) {
   return { exists: false, options: null };
 }
 
+window.gsResetSession = async function () {
+  console.log('gsResetSession');
+
+  // Key for accessing data directly from the window object
+  const resetData = window.gsResetData;
+  // Get current time in milliseconds
+  const now = Date.now();
+  // Duration for counting resets (1 hour in milliseconds)
+  const duration = 60 * 60 * 1000;
+
+  console.log('Attempting to reset session...');
+
+  // Check if the current timestamp is within 1 hour of the stored timestamp
+  if (now - resetData.timestamp < duration) {
+    // If within the same hour and count is 10 or more, cancel reset
+    if (resetData.count >= 10) {
+      console.log('Reset limit reached. Function will not proceed.');
+      return; // Exit the function without executing init
+    } else {
+      // Increment count since we're within the same hour
+      resetData.count += 1;
+    }
+  } else {
+    // If more than an hour has passed, reset count and timestamp
+    resetData.count = 1;
+    resetData.timestamp = now;
+  }
+
+  console.log(`Reset count: ${resetData.count}, Timestamp: ${new Date(resetData.timestamp).toISOString()}`);
+
+  // Update the window object with new count and timestamp
+  window.gsResetData = resetData;
+
+  // Proceed to execute the init function as count is below 10
+  console.log('Init function is being executed...');
+  await init(window.gsConfig.clientId, window.gsConfig.options);
+};
+
 const GSSDK = async (clientId, options = {}) => {
 
   window.gsConfig = {};
@@ -47,41 +85,7 @@ const GSSDK = async (clientId, options = {}) => {
     window.gsResetData = { count: 0, timestamp: Date.now() };
   }
 
-  window.gsResetSession = async function () {
-    // Key for accessing data directly from the window object
-    const resetData = window.gsResetData;
-    // Get current time in milliseconds
-    const now = Date.now();
-    // Duration for counting resets (1 hour in milliseconds)
-    const duration = 60 * 60 * 1000;
 
-    console.log('Attempting to reset session...');
-
-    // Check if the current timestamp is within 1 hour of the stored timestamp
-    if (now - resetData.timestamp < duration) {
-      // If within the same hour and count is 10 or more, cancel reset
-      if (resetData.count >= 10) {
-        console.log('Reset limit reached. Function will not proceed.');
-        return; // Exit the function without executing init
-      } else {
-        // Increment count since we're within the same hour
-        resetData.count += 1;
-      }
-    } else {
-      // If more than an hour has passed, reset count and timestamp
-      resetData.count = 1;
-      resetData.timestamp = now;
-    }
-
-    console.log(`Reset count: ${resetData.count}, Timestamp: ${new Date(resetData.timestamp).toISOString()}`);
-
-    // Update the window object with new count and timestamp
-    window.gsResetData = resetData;
-
-    // Proceed to execute the init function as count is below 10
-    console.log('Init function is being executed...');
-    await init(window.gsConfig.clientId, window.gsConfig.options);
-  };
 
   clientId = await init(clientId, options);
 
