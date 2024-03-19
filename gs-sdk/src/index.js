@@ -44,6 +44,9 @@ const GSSDK = async (clientId, options = {}) => {
   window.gsConfig.options = options;
   window.gsLog('Calling Init:', options);
   window.gsResetSession = async function () {
+
+    console.log('gsResetSession');
+
     const storageKey = 'gsResetCount';
     const now = Date.now();
     // Duration for counting resets (1 hour in milliseconds)
@@ -67,6 +70,8 @@ const GSSDK = async (clientId, options = {}) => {
       resetData.count = 1;
       resetData.timestamp = now;
     }
+
+    console.log('gsResetSession', JSON.stringify(resetData));
 
     // Update the localStorage with new count and timestamp
     localStorage.setItem(storageKey, JSON.stringify(resetData));
