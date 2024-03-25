@@ -245,6 +245,7 @@ export const addFeedback = (feedbackData) => {
 export const logout = (clientId) => {
   const session = getSession();
   if (session['customer_id']) {
+    clearSession();
     window.gsResetSession();
   } else {
     return;
