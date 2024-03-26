@@ -79,9 +79,9 @@ async function executeInitialLoad(clientId, session, options) {
       }
     }
 
-    if (options.provider.toUpperCase() == 'VTEX') {
-      options.singlePage = true;
-    }
+    // if (options.provider.toUpperCase() == 'VTEX') {
+    //   options.singlePage = true;
+    // }
 
     const context = getPageType(options.provider);
     if (context) {
