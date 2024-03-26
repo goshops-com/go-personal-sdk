@@ -114,7 +114,7 @@ async function executeInitialLoad(clientId, session, options) {
       // Listen for changes
       window.onpopstate = history.onpushstate = history.onreplacestate = function (e) {
         // Call your function to handle the page logic
-        console.log('[tmp log] URL change triggered');
+        console.log('[tmp log] URL change triggered', window.location.href, options.provider);
         const context = getPageType(options.provider);
         let { pageType, ...contentWithoutPageType } = context;
         console.log('[tmp log]', pageType);
