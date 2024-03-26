@@ -90,15 +90,59 @@ async function executeInitialLoad(clientId, session, options) {
 
     if (options.singlePage) {
 
-      window.addEventListener('popstate', function (event) {
-        console.log('URL changed!', window.location.href);
-        console.log('[tmp log] URL change triggered 2', window.location.href, window.gsConfig.options.provider);
-        const context = getPageType(window.gsConfig.options.provider);
-        let { pageType, ...contentWithoutPageType } = context;
-        console.log('[tmp log]', pageType);
-        getContentByContext(pageType, contentWithoutPageType);
+      window.addEventListener('hashchange', function () {
+        console.log('Hash changed!', window.location.hash);
+        // Perform your actions here
       });
 
+      (function (history) {
+        var pushState = history.pushState;
+        history.pushState = function (state) {
+          if (typeof history.onpushstate == "function") {
+            history.onpushstate({ state: state });
+          }
+          // Call the original function with all its arguments
+          return pushState.apply(history, arguments);
+        };
+      })(window.history);
+
+      // Listen for changes
+      window.history.onpushstate = function (event) {
+        console.log('URL changed! onpushstat');
+      };
+
+      (function (history) {
+        var pushState = history.pushState;
+        var replaceState = history.replaceState;
+
+        history.pushState = function (state) {
+          if (typeof history.onpushstate == "function") {
+            history.onpushstate({ state: state });
+          }
+          // Call the original function afterwards
+          return pushState.apply(history, arguments);
+        };
+
+        history.replaceState = function (state) {
+          if (typeof history.onreplacestate == "function") {
+            history.onreplacestate({ state: state });
+          }
+          // Call the original function afterwards
+          return replaceState.apply(history, arguments);
+        };
+
+      })(window.history);
+
+      // Listen for changes
+      window.onpopstate = history.onpushstate = history.onreplacestate = function (e) {
+        // Call your function to handle the page logic
+        console.log('[tmp log] URL change triggered', window.location.href, options.provider);
+        const context = getPageType(options.provider);
+        let { pageType, ...contentWithoutPageType } = context;
+        console.log('[tmp log]', pageType);
+        contentWithoutPageType.singlePage = options.singlePage == true;
+        getContentByContext(pageType, contentWithoutPageType);
+      };
       return
     }
   }
