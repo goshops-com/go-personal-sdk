@@ -114,13 +114,16 @@ async function executeInitialLoad(clientId, session, options) {
 
       // Listen for changes
       window.onpopstate = history.onpushstate = history.onreplacestate = function (e) {
-        // Call your function to handle the page logic
-        console.log('[tmp log] URL change triggered', window.location.href, options.provider, e);
-        const context = getPageType(options.provider, e);
-        let { pageType, ...contentWithoutPageType } = context;
-        console.log('[tmp log]', pageType);
-        contentWithoutPageType.singlePage = options.singlePage == true;
-        getContentByContext(pageType, contentWithoutPageType);
+        console.log('[tmp log] URL change triggered 1', window.location.href);
+        setTimeout(function () {
+          console.log('[tmp log] URL change triggered 2', window.location.href);
+          const context = getPageType(options.provider);
+          let { pageType, ...contentWithoutPageType } = context;
+          console.log('[tmp log]', pageType);
+          contentWithoutPageType.singlePage = options.singlePage == true;
+          getContentByContext(pageType, contentWithoutPageType);
+        }, 1 * 1000)
+
       };
       return
     }
@@ -188,7 +191,7 @@ function getUrlFromState(event) {
 }
 
 
-function getPageType(provider, e = undefined) {
+function getPageType(provider) {
   if (provider && provider.toUpperCase() === 'VTEX') {
 
     window.gsLog('Init Vendor VTEX');
@@ -196,16 +199,6 @@ function getPageType(provider, e = undefined) {
     let path = window.location.pathname;
     let hash = window.location.hash; // Added to consider the hash in the URL
     let url = window.location.href;
-    if (e) {
-      const obj = getUrlFromState(e);
-      console.log('getUrlFromState', obj);
-      path = obj.path;
-      hash = obj.hash;
-      url = obj.url;
-    }
-    if (path === '/') {
-      return { pageType: 'home' };
-    }
 
     // New regex pattern to match paths ending with "/p" before query parameters
     const productDetailRegex = /\/[^/]+\/p$/;
