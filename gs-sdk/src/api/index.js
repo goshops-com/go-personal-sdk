@@ -90,27 +90,6 @@ async function executeInitialLoad(clientId, session, options) {
 
     if (options.singlePage) {
 
-      window.addEventListener('hashchange', function () {
-        console.log('Hash changed!', window.location.hash);
-        // Perform your actions here
-      });
-
-      (function (history) {
-        var pushState = history.pushState;
-        history.pushState = function (state) {
-          if (typeof history.onpushstate == "function") {
-            history.onpushstate({ state: state });
-          }
-          // Call the original function with all its arguments
-          return pushState.apply(history, arguments);
-        };
-      })(window.history);
-
-      // Listen for changes
-      window.history.onpushstate = function (event) {
-        console.log('URL changed! onpushstat');
-      };
-
       (function (history) {
         var pushState = history.pushState;
         var replaceState = history.replaceState;
@@ -136,7 +115,7 @@ async function executeInitialLoad(clientId, session, options) {
       // Listen for changes
       window.onpopstate = history.onpushstate = history.onreplacestate = function (e) {
         // Call your function to handle the page logic
-        console.log('[tmp log] URL change triggered', window.location.href, options.provider);
+        console.log('[tmp log] URL change triggered', window.location.href, options.provider, e);
         const context = getPageType(options.provider);
         let { pageType, ...contentWithoutPageType } = context;
         console.log('[tmp log]', pageType);
