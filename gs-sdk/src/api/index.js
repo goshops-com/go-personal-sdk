@@ -76,6 +76,10 @@ async function executeInitialLoad(clientId, session, options) {
       }
     }
 
+    if (options.provider.toUpperCase() == 'VTEX') {
+      options.singlePage = true;
+    }
+
     const context = getPageType(options.provider);
     if (context) {
       console.log('[gs] context', context)
