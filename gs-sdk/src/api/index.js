@@ -78,6 +78,7 @@ async function executeInitialLoad(clientId, session, options) {
 
     const context = getPageType(options.provider);
     if (context) {
+      console.log('[gs] context', context)
       let { pageType, ...contentWithoutPageType } = context;
       contentWithoutPageType.singlePage = options.singlePage == true;
       getContentByContext(pageType, contentWithoutPageType);
@@ -152,31 +153,7 @@ async function executeInitialLoad(clientId, session, options) {
 };
 
 function getPageType(provider) {
-  if (provider && provider.toUpperCase() === 'FENICIO') {
-
-    window.gsLog('Init Vendor 2');
-    initVendorFenicio({});
-
-    const path = window.location.pathname;
-
-    if (path === '/') {
-      return { pageType: 'home' };
-    }
-
-    if (path.startsWith('/catalogo/')) {
-      try {
-        const parts = path.split('_');
-        let sku = `1:${parts[1]}:${parts[2]}:U:1`;
-        return { pageType: 'product_detail', sku: sku };
-      } catch (e) {
-        console.error(e)
-      }
-    }
-
-    if (path === '/checkout/') {
-      return { pageType: 'cart' };
-    }
-  } else if (provider && provider.toUpperCase() === 'VTEX') {
+  if (provider && provider.toUpperCase() === 'VTEX') {
 
     window.gsLog('Init Vendor VTEX');
 
@@ -196,17 +173,6 @@ function getPageType(provider) {
     // Adjusted to check for both the pathname and hash for the checkout page
     if (path.startsWith('/checkout/') && hash.includes('#/cart')) {
       return { pageType: 'checkout' }; // Changed 'cart' to 'checkout' to match your requirement
-    }
-
-    // Existing condition for catalogo, assuming this still needs to be here
-    if (path.startsWith('/catalogo/')) {
-      try {
-        const parts = path.split('_');
-        let sku = `1:${parts[1]}:${parts[2]}:U:1`;
-        return { pageType: 'product_detail', url: window.location.href };
-      } catch (e) {
-        console.error(e)
-      }
     }
 
     // Default case if none of the above conditions are met
