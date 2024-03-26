@@ -80,18 +80,7 @@ async function executeInitialLoad(clientId, session, options) {
     if (context) {
       let { pageType, ...contentWithoutPageType } = context;
       contentWithoutPageType.singlePage = options.singlePage == true;
-      const result = await getContentByContext(pageType, contentWithoutPageType);
-      console.log('content result', result);
-
-      if (context.pageType == 'product_detail') {
-        let eventData = {
-          ...contentWithoutPageType,
-          event: "view"
-        };
-        eventData['type'] = undefined;
-        await window.gsSDK.addInteraction(eventData);
-      }
-      return;
+      getContentByContext(pageType, contentWithoutPageType);
     }
 
     if (options.singlePage) {
