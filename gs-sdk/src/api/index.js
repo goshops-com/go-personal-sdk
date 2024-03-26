@@ -93,6 +93,42 @@ async function executeInitialLoad(clientId, session, options) {
       }
       return;
     }
+
+    if (options.singlePage) {
+      (function (history) {
+        var pushState = history.pushState;
+        var replaceState = history.replaceState;
+
+        history.pushState = function (state) {
+          if (typeof history.onpushstate == "function") {
+            history.onpushstate({ state: state });
+          }
+          // Call the original function afterwards
+          return pushState.apply(history, arguments);
+        };
+
+        history.replaceState = function (state) {
+          if (typeof history.onreplacestate == "function") {
+            history.onreplacestate({ state: state });
+          }
+          // Call the original function afterwards
+          return replaceState.apply(history, arguments);
+        };
+
+      })(window.history);
+
+      // Listen for changes
+      window.onpopstate = history.onpushstate = history.onreplacestate = function (e) {
+        // Call your function to handle the page logic
+        console.log('[tmp log] URL change triggered');
+        const context = getPageType(options.provider);
+        let { pageType, ...contentWithoutPageType } = context;
+        console.log('[tmp log]', pageType);
+        contentWithoutPageType.singlePage = options.singlePage == true;
+        getContentByContext(pageType, contentWithoutPageType);
+      };
+      return
+    }
   }
 
   window.gsLog('session.channelConfig4', session.channelConfig);
@@ -151,6 +187,41 @@ function getPageType(provider) {
     if (path === '/checkout/') {
       return { pageType: 'cart' };
     }
+  } else if (provider && provider.toUpperCase() === 'VTEX') {
+
+    window.gsLog('Init Vendor VTEX');
+
+    const path = window.location.pathname;
+    const hash = window.location.hash; // Added to consider the hash in the URL
+
+    if (path === '/') {
+      return { pageType: 'home' };
+    }
+
+    // New regex pattern to match paths ending with "/p" before query parameters
+    const productDetailRegex = /\/[^/]+\/p$/;
+    if (productDetailRegex.test(path)) {
+      return { pageType: 'product_detail', url: window.location.href };
+    }
+
+    // Adjusted to check for both the pathname and hash for the checkout page
+    if (path.startsWith('/checkout/') && hash.includes('#/cart')) {
+      return { pageType: 'checkout' }; // Changed 'cart' to 'checkout' to match your requirement
+    }
+
+    // Existing condition for catalogo, assuming this still needs to be here
+    if (path.startsWith('/catalogo/')) {
+      try {
+        const parts = path.split('_');
+        let sku = `1:${parts[1]}:${parts[2]}:U:1`;
+        return { pageType: 'product_detail', url: window.location.href };
+      } catch (e) {
+        console.error(e)
+      }
+    }
+
+    // Default case if none of the above conditions are met
+    return { pageType: 'unknown' };
   }
 
   return undefined;
