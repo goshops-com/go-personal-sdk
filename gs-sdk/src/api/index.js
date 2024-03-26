@@ -116,7 +116,7 @@ async function executeInitialLoad(clientId, session, options) {
       window.onpopstate = history.onpushstate = history.onreplacestate = function (e) {
         // Call your function to handle the page logic
         console.log('[tmp log] URL change triggered', window.location.href, options.provider, e);
-        const context = getPageType(options.provider);
+        const context = getPageType(options.provider, e);
         let { pageType, ...contentWithoutPageType } = context;
         console.log('[tmp log]', pageType);
         contentWithoutPageType.singlePage = options.singlePage == true;
@@ -157,14 +157,51 @@ async function executeInitialLoad(clientId, session, options) {
 
 };
 
-function getPageType(provider) {
+function getUrlFromState(event) {
+  // Dynamically construct the base URL from the current location
+  const protocol = window.location.protocol;
+  const host = window.location.host; // Includes hostname and port if present
+  const basePath = `${protocol}//${host}`;
+
+  // Initialize default values
+  let path = '/';
+  let hash = '';
+
+  // Check if the navigationRoute or similar property is available in the state
+  const navigationRoute = event.state?.navigationRoute;
+  if (navigationRoute) {
+    // Assuming the path might sometimes include a hash
+    const pathAndHash = navigationRoute.path.split('#');
+    path = pathAndHash[0] || '/';
+    hash = pathAndHash[1] ? `#${pathAndHash[1]}` : '';
+  }
+
+  // Construct the full URL
+  const fullUrl = basePath + path + hash;
+
+  // Return an object with the constructed URL, path, and hash
+  return {
+    url: fullUrl,
+    path: path,
+    hash: hash
+  };
+}
+
+
+function getPageType(provider, e) {
   if (provider && provider.toUpperCase() === 'VTEX') {
 
     window.gsLog('Init Vendor VTEX');
 
-    const path = window.location.pathname;
-    const hash = window.location.hash; // Added to consider the hash in the URL
-
+    let path = window.location.pathname;
+    let hash = window.location.hash; // Added to consider the hash in the URL
+    let url = window.location.href;
+    if (e) {
+      const obj = getUrlFromState(e);
+      path = obj.path;
+      hash = obj.hash;
+      url = obj.url;
+    }
     if (path === '/') {
       return { pageType: 'home' };
     }
@@ -172,7 +209,7 @@ function getPageType(provider) {
     // New regex pattern to match paths ending with "/p" before query parameters
     const productDetailRegex = /\/[^/]+\/p$/;
     if (productDetailRegex.test(path)) {
-      return { pageType: 'product_detail', url: window.location.href };
+      return { pageType: 'product_detail', url };
     }
 
     // Adjusted to check for both the pathname and hash for the checkout page
