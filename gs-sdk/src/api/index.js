@@ -188,7 +188,7 @@ function getUrlFromState(event) {
 }
 
 
-function getPageType(provider, e) {
+function getPageType(provider, e = undefined) {
   if (provider && provider.toUpperCase() === 'VTEX') {
 
     window.gsLog('Init Vendor VTEX');
