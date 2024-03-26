@@ -65,6 +65,9 @@ export const init = async (clientId, options) => {
 
 
 async function executeInitialLoad(clientId, session, options) {
+  if (options.singlePage) {
+    return;
+  }
 
   if (options && options.provider && options.provider != 'Custom') {
 
@@ -88,45 +91,6 @@ async function executeInitialLoad(clientId, session, options) {
       getContentByContext(pageType, contentWithoutPageType);
     }
 
-    if (options.singlePage) {
-
-      (function (history) {
-        var pushState = history.pushState;
-        var replaceState = history.replaceState;
-
-        history.pushState = function (state) {
-          if (typeof history.onpushstate == "function") {
-            history.onpushstate({ state: state });
-          }
-          // Call the original function afterwards
-          return pushState.apply(history, arguments);
-        };
-
-        history.replaceState = function (state) {
-          if (typeof history.onreplacestate == "function") {
-            history.onreplacestate({ state: state });
-          }
-          // Call the original function afterwards
-          return replaceState.apply(history, arguments);
-        };
-
-      })(window.history);
-
-      // Listen for changes
-      window.onpopstate = history.onpushstate = history.onreplacestate = function (e) {
-        console.log('[tmp log] URL change triggered 1', window.location.href);
-        setTimeout(function () {
-          console.log('[tmp log] URL change triggered 2', window.location.href);
-          const context = getPageType(options.provider);
-          let { pageType, ...contentWithoutPageType } = context;
-          console.log('[tmp log]', pageType);
-          contentWithoutPageType.singlePage = options.singlePage == true;
-          getContentByContext(pageType, contentWithoutPageType);
-        }, 1 * 1000)
-
-      };
-      return
-    }
   }
 
   window.gsLog('session.channelConfig4', session.channelConfig);
