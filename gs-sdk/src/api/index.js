@@ -198,6 +198,7 @@ function getPageType(provider, e = undefined) {
     let url = window.location.href;
     if (e) {
       const obj = getUrlFromState(e);
+      console.log('getUrlFromState', obj);
       path = obj.path;
       hash = obj.hash;
       url = obj.url;
