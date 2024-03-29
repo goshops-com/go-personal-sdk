@@ -104,7 +104,7 @@ const GSSDK = async (clientId, options = {}) => {
 
   console.log('checking actions', options.provider)
   // check actions
-  if (hasActions(options.provider)) {
+  if (hasActions(options)) {
     console.log('actions true')
     executeActions(options.provider);
   } else {
