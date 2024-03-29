@@ -64,13 +64,13 @@ function hasPlugin(option, id) {
 }
 
 function hasActions(option) {
-  if (!option.provider) {
+  if (!option || !option.provider) {
     return false
   }
   if (option.provider == 'WooCommerce') {
-
     return true;
   }
+  return false;
 }
 
 const GSSDK = async (clientId, options = {}) => {
@@ -102,11 +102,13 @@ const GSSDK = async (clientId, options = {}) => {
     installBrowse(browsePlugin.options)
   }
 
-  console.log('checking actions')
+  console.log('checking actions', options.provider)
   // check actions
   if (hasActions(options.provider)) {
     console.log('actions true')
     executeActions(options.provider);
+  } else {
+    console.log('actions fas')
   }
 
   if (options.provider)
