@@ -89,6 +89,7 @@ async function executeInitialLoad(clientId, session, options) {
       let { pageType, ...contentWithoutPageType } = context;
       contentWithoutPageType.singlePage = options.singlePage == true;
       getContentByContext(pageType, contentWithoutPageType);
+      return;
     }
 
   }
