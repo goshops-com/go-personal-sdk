@@ -102,8 +102,10 @@ const GSSDK = async (clientId, options = {}) => {
     installBrowse(browsePlugin.options)
   }
 
+  console.log('checking actions')
   // check actions
-  if (hasActions()) {
+  if (hasActions(options.provider)) {
+    console.log('actions true')
     executeActions(options.provider);
   }
 
