@@ -4,6 +4,7 @@ import {
 } from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
+import { executeActions } from './actions/addToCart';
 
 //plugins
 
@@ -62,6 +63,16 @@ function hasPlugin(option, id) {
   return { exists: false, options: null };
 }
 
+function hasActions(option) {
+  if (!option.provider) {
+    return false
+  }
+  if (option.provider == 'WooCommerce') {
+
+    return true;
+  }
+}
+
 const GSSDK = async (clientId, options = {}) => {
 
   window.gsConfig = {};
@@ -83,8 +94,6 @@ const GSSDK = async (clientId, options = {}) => {
     window.gsResetData = { count: 0, timestamp: Date.now() };
   }
 
-
-
   clientId = await init(clientId, options);
 
   const browsePlugin = hasPlugin(options, 'browse');
@@ -93,40 +102,46 @@ const GSSDK = async (clientId, options = {}) => {
     installBrowse(browsePlugin.options)
   }
 
-  return {
-    login: (username, data = {}) => login(username, data),
-    loginEmail: (email) => loginEmail(email),
-    logout: () => logout(clientId),
-    getSession: () => getCustomerSession(),
-    setPreferences: (params) => setPreferences(params),
-    addInteraction: (interactionData) => addInteraction(interactionData),
-    addInteractionState: (state, options = {}) => addInteractionState(state, options),
-    getItems: (params) => getItems(params),
-    findState: () => findState(),
-    updateState: (obj) => updateState(obj),
-    search: (input, params) => search(input, params),
-    imageSearch: (formData, params) => imageSearch(formData, params),
-    uploadImage: (formData) => uploadImage(formData),
-    getCount: (params) => getCount(params),
-    getItemById: (id) => getItemById(id),
-    getRanking: (ranking, params) => getRanking(ranking, params),
-    reRank: (ranking, params) => reRank(ranking, params),
-    getFieldValues: (params) => getFieldValues(params),
-    bestProducts: (params) => bestProducts(params),
-    recommendationByContex: (params) => byContext(params),
-    getContent: (contentId, options = {}) => getContent(contentId, options),
-    getContentByContext: (context, options) => getContentByContext(context, options),
-    clearSharedSession: () => clearSharedSession(clientId),
-    getState: (params = {}) => getState(params),
-    getAffinity: () => getAffinity(),
-    addBulkInteractions: (interactions) => addBulkInteractions(interactions),
-    addFeedback: (feedbackData) => addFeedback(feedbackData),
-    observeElementInView: (elementId, impressionId, cb) => observeElementInView(elementId, impressionId, cb),
-    openImpression: (impressionId) => openImpressionForRecommendation(impressionId),
-    openImpressionContent: (impressionId) => openImpressionForContent(impressionId),
-    getCurrentSession: () => getCurrentSession(),
-    trackError: (e) => console.log(e)
-  };
+  // check actions
+  if (hasActions()) {
+    executeActions(options.provider);
+  }
+
+  if (options.provider)
+    return {
+      login: (username, data = {}) => login(username, data),
+      loginEmail: (email) => loginEmail(email),
+      logout: () => logout(clientId),
+      getSession: () => getCustomerSession(),
+      setPreferences: (params) => setPreferences(params),
+      addInteraction: (interactionData) => addInteraction(interactionData),
+      addInteractionState: (state, options = {}) => addInteractionState(state, options),
+      getItems: (params) => getItems(params),
+      findState: () => findState(),
+      updateState: (obj) => updateState(obj),
+      search: (input, params) => search(input, params),
+      imageSearch: (formData, params) => imageSearch(formData, params),
+      uploadImage: (formData) => uploadImage(formData),
+      getCount: (params) => getCount(params),
+      getItemById: (id) => getItemById(id),
+      getRanking: (ranking, params) => getRanking(ranking, params),
+      reRank: (ranking, params) => reRank(ranking, params),
+      getFieldValues: (params) => getFieldValues(params),
+      bestProducts: (params) => bestProducts(params),
+      recommendationByContex: (params) => byContext(params),
+      getContent: (contentId, options = {}) => getContent(contentId, options),
+      getContentByContext: (context, options) => getContentByContext(context, options),
+      clearSharedSession: () => clearSharedSession(clientId),
+      getState: (params = {}) => getState(params),
+      getAffinity: () => getAffinity(),
+      addBulkInteractions: (interactions) => addBulkInteractions(interactions),
+      addFeedback: (feedbackData) => addFeedback(feedbackData),
+      observeElementInView: (elementId, impressionId, cb) => observeElementInView(elementId, impressionId, cb),
+      openImpression: (impressionId) => openImpressionForRecommendation(impressionId),
+      openImpressionContent: (impressionId) => openImpressionForContent(impressionId),
+      getCurrentSession: () => getCurrentSession(),
+      trackError: (e) => console.log(e)
+    };
 };
 
 export default GSSDK;
