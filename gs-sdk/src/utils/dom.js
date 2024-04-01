@@ -129,7 +129,7 @@ export const deleteGoPersonalElements = () => {
         console.log('Remove ', `[data-gopersonal="true"]`);
 
         // Find all elements with the attribute data-gopersonal matching the specified id
-        const htmlElements = document.querySelectorAll(`[data-gopersonal="${id}"]`);
+        const htmlElements = document.querySelectorAll(`[data-gopersonal="true"]`);
 
         // Loop through the found elements and remove them
         htmlElements.forEach(element => {
