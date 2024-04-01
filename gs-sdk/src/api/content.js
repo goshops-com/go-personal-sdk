@@ -125,7 +125,7 @@ async function addContentToWebsite(content, options) {
 
   if (content && content.contentValue) {
 
-    if (options.singlePage) {
+    if (true || options.singlePage) {
       // remove old content
       deleteGoPersonalElements(content.key);
     }

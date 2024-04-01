@@ -118,6 +118,7 @@ export const addJavaScriptToBody = (jsCode) => {
 
 
 export const deleteGoPersonalElements = (id) => {
+    //reco-home
     try {
         console.log('Remove ', `[data-gopersonal="${id}"]`);
 
