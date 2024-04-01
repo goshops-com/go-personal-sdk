@@ -128,6 +128,12 @@ async function addContentToWebsite(content, options) {
     // if (true || options.singlePage) {
     //   deleteGoPersonalElements(content.key);
     // }
+    try {
+      console.log('about to delete', content.key);
+      deleteGoPersonalElements(content.key);
+    } catch (e) {
+      console.log(e);
+    }
 
 
     const css = content.contentValue.css;
