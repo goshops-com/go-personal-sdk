@@ -1,11 +1,14 @@
 import { md5 } from 'pure-md5';
 
-export const injectCSS = (css) => {
+export const injectCSS = (css, id = undefined) => {
     if (css == undefined || css == "" || css == "undefined") {
         return; // Ignore and exit the function
     }
 
     const styleElement = document.createElement('style');
+    if (id) {
+        styleElement.id = `gopersonal-style-${id}`;
+    }
     styleElement.textContent = css;
     document.head.appendChild(styleElement);
 }
@@ -96,12 +99,15 @@ export const addHTMLToBody = (html) => {
     }
 }
 
-export const addJavaScriptToBody = (jsCode) => {
+export const addJavaScriptToBody = (jsCode, id = undefined) => {
     if (jsCode == undefined || jsCode == "" || jsCode == "undefined") {
         return; // Ignore and exit the function
     }
 
     const scriptElement = document.createElement('script');
+    if (id) {
+        scriptElement.id = `gopersonal-script-${id}`;
+    }
     scriptElement.textContent = jsCode;
 
     const bodyElement = document.body;
@@ -117,18 +123,33 @@ export const addJavaScriptToBody = (jsCode) => {
 }
 
 
-export const deleteGoPersonalElements = (id) => {
+export const deleteGoPersonalElements = () => {
     //reco-home
     try {
-        console.log('Remove ', `[data-gopersonal="${id}"]`);
+        console.log('Remove ', `[data-gopersonal="true"]`);
 
         // Find all elements with the attribute data-gopersonal matching the specified id
-        const elements = document.querySelectorAll(`[data-gopersonal="${id}"]`);
+        const htmlElements = document.querySelectorAll(`[data-gopersonal="${id}"]`);
 
         // Loop through the found elements and remove them
-        elements.forEach(element => {
+        htmlElements.forEach(element => {
             element.remove();
         });
+
+        console.log('Remove styles');
+
+        const elements = document.querySelectorAll('style, script');
+
+        // Iterate through the selected elements
+        elements.forEach(element => {
+            // Check if the element's ID starts with "gopersonal-style-" or "gopersonal-script-"
+            if (element.id.startsWith('gopersonal-style-') || element.id.startsWith('gopersonal-script-')) {
+                // Remove the element from the document
+                element.parentNode.removeChild(element);
+            }
+        });
+
+
     } catch (e) {
         console.error(e);
     }

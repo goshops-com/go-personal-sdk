@@ -30,7 +30,15 @@ export const getContentByContext = async (context, options) => {
   const result = await httpPost(url, payload);
   console.log(result);
   const contents = result.loadNowContent;
-  console.log('asd', result.lazyLoadContent)
+
+  try {
+    if (options.singlePage) {
+      deleteGoPersonalElements();
+    }
+  } catch (e) {
+    console.log(e);
+  }
+
   try {
     window.gsLog('LoadNowContent ' + contents.length);
     Promise.all(contents.map(content => addContentToWebsite(content, options)));
@@ -125,17 +133,6 @@ async function addContentToWebsite(content, options) {
 
   if (content && content.contentValue) {
 
-    // if (true || options.singlePage) {
-    //   deleteGoPersonalElements(content.key);
-    // }
-    try {
-      console.log('about to delete', content.key, options.singlePage);
-      deleteGoPersonalElements(content.key);
-    } catch (e) {
-      console.log(e);
-    }
-
-
     const css = content.contentValue.css;
     const html = content.contentValue.html;
     const js = content.contentValue.js;
@@ -146,7 +143,7 @@ async function addContentToWebsite(content, options) {
     }
 
     const proceed = async () => {
-      injectCSS(css);
+      injectCSS(css, content.key);
 
       const types = ['custom_code', 'pop_up', 'notifications'];
 
@@ -158,7 +155,7 @@ async function addContentToWebsite(content, options) {
         if (options.forceShow) {
           console.log('showing')
           addHTMLToBody(html);
-          addJavaScriptToBody(js);
+          addJavaScriptToBody(js, content.key);
         } else {
           if (canShow) {
             console.log('suscribe')
