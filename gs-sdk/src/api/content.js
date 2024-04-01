@@ -1,6 +1,6 @@
 
 import { httpGet, httpPost, httpPatch } from '../utils/http';
-import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody } from '../utils/dom';
+import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody, deleteGoPersonalElements } from '../utils/dom';
 import { previewVariant, getParam } from '../utils/urlParam';
 import { suscribe } from '../utils/trigger';
 
@@ -122,7 +122,15 @@ function buildContextPayload(options) {
 async function addContentToWebsite(content, options) {
   window.gsLog('addContentToWebsite', content.key);
 
+
   if (content && content.contentValue) {
+
+    if (options.singlePage) {
+      // remove old content
+      deleteGoPersonalElements(content.key);
+    }
+
+
     const css = content.contentValue.css;
     const html = content.contentValue.html;
     const js = content.contentValue.js;

@@ -115,3 +115,20 @@ export const addJavaScriptToBody = (jsCode) => {
         console.error('Body element not found.');
     }
 }
+
+
+export const deleteGoPersonalElements = (id) => {
+    try {
+        console.log('Remove ', `[data-gopersonal="${id}"]`);
+
+        // Find all elements with the attribute data-gopersonal matching the specified id
+        const elements = document.querySelectorAll(`[data-gopersonal="${id}"]`);
+
+        // Loop through the found elements and remove them
+        elements.forEach(element => {
+            element.remove();
+        });
+    } catch (e) {
+        console.error(e);
+    }
+}
