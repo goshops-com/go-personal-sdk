@@ -125,10 +125,9 @@ async function addContentToWebsite(content, options) {
 
   if (content && content.contentValue) {
 
-    if (true || options.singlePage) {
-      // remove old content
-      deleteGoPersonalElements(content.key);
-    }
+    // if (true || options.singlePage) {
+    //   deleteGoPersonalElements(content.key);
+    // }
 
 
     const css = content.contentValue.css;
