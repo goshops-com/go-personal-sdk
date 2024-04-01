@@ -162,7 +162,7 @@ async function addContentToWebsite(content, options) {
             suscribe(content, function (html, js) {
               // console.log('callback', html, js)
               addHTMLToBody(html);
-              addJavaScriptToBody(js);
+              addJavaScriptToBody(js, content.key);
             })
           }
         }
@@ -177,7 +177,7 @@ async function addContentToWebsite(content, options) {
         window.gsLog('adding to dom', selector)
         await addHTMLToDiv(html, selector, selectorPosition, options);
         if (js) {
-          addJavaScriptToBody(js);
+          addJavaScriptToBody(js, content.key);
         }
       }
     };

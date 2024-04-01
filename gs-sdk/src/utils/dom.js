@@ -149,10 +149,7 @@ export const deleteGoPersonalElements = () => {
                 element.parentNode.removeChild(element);
             }
         });
-        if (count > 0) {
-            console.log("Removed", count, "Elements");
-        }
-
+        console.log("Removed", count, "Elements");
 
     } catch (e) {
         console.error(e);
