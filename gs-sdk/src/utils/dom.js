@@ -136,7 +136,7 @@ export const deleteGoPersonalElements = () => {
             element.remove();
         });
 
-        console.log('Remove styles');
+        let count = 0;
 
         const elements = document.querySelectorAll('style, script');
 
@@ -145,9 +145,13 @@ export const deleteGoPersonalElements = () => {
             // Check if the element's ID starts with "gopersonal-style-" or "gopersonal-script-"
             if (element.id.startsWith('gopersonal-style-') || element.id.startsWith('gopersonal-script-')) {
                 // Remove the element from the document
+                count++
                 element.parentNode.removeChild(element);
             }
         });
+        if (count > 0) {
+            console.log("Removed", count, "Elements");
+        }
 
 
     } catch (e) {
