@@ -129,7 +129,7 @@ async function addContentToWebsite(content, options) {
     //   deleteGoPersonalElements(content.key);
     // }
     try {
-      console.log('about to delete', content.key);
+      console.log('about to delete', content.key, options.singlePage);
       deleteGoPersonalElements(content.key);
     } catch (e) {
       console.log(e);
