@@ -126,8 +126,6 @@ export const addJavaScriptToBody = (jsCode, id = undefined) => {
 export const deleteGoPersonalElements = () => {
     //reco-home
     try {
-        console.log('Remove ', `[data-gopersonal="true"]`);
-
         // Find all elements with the attribute data-gopersonal matching the specified id
         const htmlElements = document.querySelectorAll(`[data-gopersonal="true"]`);
 
@@ -136,20 +134,15 @@ export const deleteGoPersonalElements = () => {
             element.remove();
         });
 
-        let count = 0;
-
         const elements = document.querySelectorAll('style, script');
 
         // Iterate through the selected elements
         elements.forEach(element => {
             // Check if the element's ID starts with "gopersonal-style-" or "gopersonal-script-"
             if (element.id.startsWith('gopersonal-style-') || element.id.startsWith('gopersonal-script-')) {
-                // Remove the element from the document
-                count++
                 element.parentNode.removeChild(element);
             }
         });
-        console.log("Removed", count, "Elements");
 
     } catch (e) {
         console.error(e);
