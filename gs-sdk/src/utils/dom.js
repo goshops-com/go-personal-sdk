@@ -50,19 +50,9 @@ export const selectElementWithRetry = async (selector, maxRetries = 10, backoffF
 
 export const addHTMLToDiv = async (html, selector, selectorPosition, options = {}) => {
     const hash = `element:${selector}-hash:${md5(html)}`;
-    // if (document.querySelector(`[data-hash="${hash}"]`)) {
-    //     console.error(`Element with hash "${hash}" already exists.`);
-    //     return;
-    // }
 
-    // Create the invisible div with the hash attribute and no inner HTML
     const divElement = await selectElementWithRetry(selector);
     if (divElement) {
-        // Idea is to mark this DOM so we don't add the same element again
-        // const invisibleDiv = document.createElement('div');
-        // invisibleDiv.style.display = 'none'; // Make it invisible
-        // invisibleDiv.setAttribute('data-hash', hash);
-        // document.body.appendChild(invisibleDiv);
 
         // Check if divElement is an image element
         if (divElement.tagName && divElement.tagName.toLowerCase() === 'img') {
