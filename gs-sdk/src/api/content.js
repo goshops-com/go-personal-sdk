@@ -175,6 +175,14 @@ async function addContentToWebsite(content, options) {
           selectorPosition = 'after'
         }
         window.gsLog('adding to dom', selector)
+
+        const isMobile = isMobileDevice();
+        const hasMobileSelector = isNotEmpty(content.mobileSelector);
+
+        if (isMobile && hasMobileSelector) {
+          selector = content.mobileSelector;
+        }
+
         await addHTMLToDiv(html, selector, selectorPosition, options);
         if (js) {
           addJavaScriptToBody(js, content.key);
@@ -194,6 +202,13 @@ async function addContentToWebsite(content, options) {
   window.gsLog('end addContentToWebsite', content.key);
 }
 
+function isMobileDevice() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+function isNotEmpty(str) {
+  return str !== null && str !== "";
+}
 function canShowContent(frequency, contentId) {
 
   if (!frequency) {
