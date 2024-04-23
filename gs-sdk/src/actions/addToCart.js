@@ -45,7 +45,7 @@ function _addToCartAction(provider) {
         borderRadius: '5px',
         boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
     });
-    popupContent.innerText = 'Please wait, adding products to cart...';
+    popupContent.innerText = 'Agregando tus productos al carrito...';
     overlay.appendChild(popupContent);
     document.body.appendChild(overlay);
 
