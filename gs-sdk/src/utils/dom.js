@@ -139,7 +139,7 @@ export const deleteGoPersonalElements = () => {
     }
 }
 
-export const getUrlParameter = () => {
+export const getUrlParameter = (name) => {
     name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
     var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
     var results = regex.exec(location.search);
