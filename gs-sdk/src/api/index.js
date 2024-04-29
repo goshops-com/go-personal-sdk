@@ -15,6 +15,13 @@ window.gsStore = {
 
 export const init = async (clientId, options) => {
 
+  if (options.playgroundToken) {
+    setSession({
+      token: options.playgroundToken
+    });
+    return clientId;
+  }
+
   window.gsLog('Init Options', JSON.stringify(options));
   window.gsConfig.includeDraft = options.includeDraft;
 

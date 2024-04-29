@@ -5,6 +5,7 @@ import {
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
 import { executeActions } from './actions/addToCart';
+import { getUrlParameter } from './utils/dom';
 
 //plugins
 
@@ -80,6 +81,13 @@ const GSSDK = async (clientId, options = {}) => {
   window.gsImpressionIds = [];
   if (options.log) {
     window.gsConfig.log = true;
+  }
+
+  const playgroundToken = getUrlParameter('_gsPlaygroundToken');
+  if (playgroundToken) {
+    const env = getUrlParameter('_gsPlaygroundEnv') || 'BR';
+    clientId = `${env}-playground`;
+    options.playgroundToken = playgroundToken;
   }
 
   window.gsLog(`GSSDK: ${clientId}`);
