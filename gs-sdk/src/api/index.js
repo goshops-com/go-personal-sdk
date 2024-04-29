@@ -309,6 +309,10 @@ export const search = async (input, params) => {
     q += `&hasRetrievalQA=${window.gsSearchOptions.hasRetrievalQA}`
   }
 
+  if (params.ignoreMetrics) {
+    q += `&ignoreMetrics=true`;
+  }
+
   return httpGet(`/item/search${q}`);
 };
 
@@ -321,6 +325,10 @@ export const imageSearch = async (formData, params) => {
   if (window.gsSearchOptions && window.gsSearchOptions.hasMultimodal) {
     q += `&hasMultimodal=${window.gsSearchOptions.hasMultimodal}`
     q += `&ignoreRanking=${window.gsSearchOptions.hasMultimodal}`
+  }
+
+  if (params.ignoreMetrics) {
+    q += `&ignoreMetrics=true`;
   }
 
   return httpPostFormData(`/item/image-search${q}`, formData);
