@@ -17,6 +17,7 @@ export const init = async (clientId, options) => {
 
   if (options.playgroundToken) {
     clearSession();
+    clientId = configure(clientId);
     setClientId(clientId);
     setSession({
       token: options.playgroundToken
