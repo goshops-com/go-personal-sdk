@@ -16,9 +16,12 @@ window.gsStore = {
 export const init = async (clientId, options) => {
 
   if (options.playgroundToken) {
+    clearSession();
+    setClientId(clientId);
     setSession({
       token: options.playgroundToken
     });
+    console.log('playgroundToken', clientId)
     return clientId;
   }
 
