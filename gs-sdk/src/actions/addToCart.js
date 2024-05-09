@@ -16,7 +16,6 @@ function _addToCartAction(provider) {
 
     // Immediately exit if _gsAdd is not present or empty
     if (!gsAddParam) {
-        console.log('_gsAdd parameter not found, exiting...');
         return; // Exit the function
     }
 
@@ -61,7 +60,6 @@ function _addToCartAction(provider) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                console.log('Success:', data.data.message);
                 document.body.removeChild(overlay); // Remove the popup
                 if (gsRedirect) {
                     window.location.href = `${window.location.origin}/${gsRedirect}`;

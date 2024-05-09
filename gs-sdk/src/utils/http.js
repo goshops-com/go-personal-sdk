@@ -9,21 +9,16 @@ export const configure = (clientId) => {
     // Split the clientId at the hyphen
     const [region, secondPart] = clientId.split('-');
 
-    console.log('Region:', region);
-    console.log('ClientId:', secondPart);
-
     if (region == 'BR') {
       BASE_URL = 'https://discover.gopersonal.ai';
     }
     return secondPart;
   } else {
-    console.log('Default region');
     return clientId;
   }
 }
 
 async function handleInvalidAuth() {
-  console.log('Reset GS session');
   clearSession();
   await window.gsResetSession();
 }
@@ -54,7 +49,6 @@ export const httpGet = async (endpoint, params = {}, includeHeaders = false) => 
 
   if (includeHeaders) {
     response.headers.forEach((value, name) => {
-      console.log(`${name}: ${value}`);
     });
     const headers = response.headers;
     return { headers, data };

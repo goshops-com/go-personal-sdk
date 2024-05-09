@@ -28,7 +28,6 @@ export const getContentByContext = async (context, options) => {
 
   const payload = buildContextPayload(options);
   const result = await httpPost(url, payload);
-  console.log(result);
   const contents = result.loadNowContent;
 
   try {
@@ -46,7 +45,6 @@ export const getContentByContext = async (context, options) => {
     console.error(e);
   }
 
-  console.log('hello')
   try {
     const lazyLoadContent = result.lazyLoadContent;
     window.gsLog('LazyLoadContent ' + lazyLoadContent.length);
@@ -59,7 +57,6 @@ export const getContentByContext = async (context, options) => {
 };
 
 export const getContent = async (contentId, options) => {
-  console.log('Content', contentId, options);
   if (!options) {
     options = {}
   }
@@ -89,7 +86,6 @@ export const getContent = async (contentId, options) => {
     content = await httpGet(`/personal/content/${contentId}/variant/${prevVarId}`);
   }
 
-  console.log('Content found', content);
   if (!content.key) {
     content.key = contentId;
   }
@@ -150,17 +146,13 @@ async function addContentToWebsite(content, options) {
       if (types.includes(content.type)) {
 
         const canShow = canShowContent(content.frequency, content.experienceId);
-        console.log('canShow by frecuency', canShow, options.forceShow);
 
         if (options.forceShow) {
-          console.log('showing')
           addHTMLToBody(html);
           addJavaScriptToBody(js, content.key);
         } else {
           if (canShow) {
-            console.log('suscribe')
             suscribe(content, function (html, js) {
-              // console.log('callback', html, js)
               addHTMLToBody(html);
               addJavaScriptToBody(js, content.key);
             })

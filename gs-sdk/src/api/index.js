@@ -22,7 +22,6 @@ export const init = async (clientId, options) => {
     setSession({
       token: options.playgroundToken
     });
-    console.log('playgroundToken', clientId)
     return clientId;
   }
 
@@ -58,13 +57,10 @@ export const init = async (clientId, options) => {
   }
 
   const obj = await httpPost(`/channel/init${q}`, { clientId, externalSessionId, firstURL: window.location.href });
-  console.log(obj)
   setSession(obj);
 
   const gsElementSelector = getParam('gsElementSelector');
   const gsContentKey = getParam('gsContentKey');
-  console.log('gsElementSelector', gsElementSelector);
-  console.log('gsContentKey', gsContentKey);
 
   if (gsElementSelector != null && gsContentKey != null) {
     await setupContentSelector(gsContentKey);
@@ -96,7 +92,6 @@ async function executeInitialLoad(clientId, session, options) {
 
     const context = getPageType(options.provider);
     if (context) {
-      console.log('[gs] context', context)
       let { pageType, ...contentWithoutPageType } = context;
       contentWithoutPageType.singlePage = options.singlePage == true;
       getContentByContext(pageType, contentWithoutPageType);
@@ -117,11 +112,8 @@ async function executeInitialLoad(clientId, session, options) {
     // Call the function and get the result
     const context = determinePageType();
 
-    console.log('context', context);
-
     const { pageType, ...contentWithoutPageType } = context;
     const result = await getContentByContext(pageType, contentWithoutPageType);
-    console.log('content result', result);
     return;
   } else if (options.context) {
     // TODO implement this

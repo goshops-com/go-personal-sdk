@@ -25,8 +25,6 @@ window.gsResetSession = async function () {
   // Duration for counting resets (1 hour in milliseconds)
   const duration = 60 * 60 * 1000;
 
-  console.log('Attempting to reset session...');
-
   // Check if the current timestamp is within 1 hour of the stored timestamp
   if (now - resetData.timestamp < duration) {
     // If within the same hour and count is 10 or more, cancel reset
@@ -43,13 +41,10 @@ window.gsResetSession = async function () {
     resetData.timestamp = now;
   }
 
-  console.log(`Reset count: ${resetData.count}, Timestamp: ${new Date(resetData.timestamp).toISOString()}`);
-
   // Update the window object with new count and timestamp
   window.gsResetData = resetData;
 
   // Proceed to execute the init function as count is below 10
-  console.log('Init function is being executed...');
   await init(window.gsConfig.clientId, window.gsConfig.options);
 };
 
@@ -110,13 +105,9 @@ const GSSDK = async (clientId, options = {}) => {
     installBrowse(browsePlugin.options)
   }
 
-  console.log('checking actions', options.provider)
   // check actions
   if (hasActions(options)) {
-    console.log('actions true')
     executeActions(options.provider);
-  } else {
-    console.log('actions fas')
   }
 
   if (options.provider)
