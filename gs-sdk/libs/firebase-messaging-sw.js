@@ -31,8 +31,8 @@ async function onNotificationReceived(e) {
     },
   }
 
-  if(data.banner){
-    options.image = data.banner;
+  if(data.data?.banner){
+    options.image = data.data.banner;
   }
   
   try {
