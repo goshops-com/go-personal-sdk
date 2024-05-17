@@ -337,6 +337,24 @@ export const imageSearch = async (formData, params) => {
   return httpPostFormData(`/item/image-search${q}`, formData);
 };
 
+export const voiceSearch = async (formData, params) => {
+
+  let q = `?sdk=1`;
+  if (params.text && params.text.length > 0) {
+    q = `&text=${params.text}`
+  }
+  if (window.gsSearchOptions && window.gsSearchOptions.hasMultimodal) {
+    q += `&hasMultimodal=${window.gsSearchOptions.hasMultimodal}`
+    q += `&ignoreRanking=${window.gsSearchOptions.hasMultimodal}`
+  }
+
+  if (params.ignoreMetrics) {
+    q += `&ignoreMetrics=true`;
+  }
+
+  return httpPostFormData(`/item/voice-search${q}`, formData);
+};
+
 export const uploadImage = async (formData, params) => {
   return httpPostFormData(`/item/upload`, formData);
 };
