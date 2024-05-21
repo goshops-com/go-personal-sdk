@@ -21,8 +21,9 @@ export const getContentByContext = async (context, options) => {
   options.type = context;
 
   const includeDraft = window.gsConfig.includeDraft;
+  const includeDraftParam = getParam('gsIncludeDraft');
   let url = `/personal/content-page?pageType=${context}`;
-  if (includeDraft) {
+  if (includeDraft || (includeDraftParam && includeDraftParam == 'true') {
     url += '&includeDraft=true';
   }
 
