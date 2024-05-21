@@ -64,7 +64,7 @@ export const getContent = async (contentId, options) => {
   if (!options.type) {
     options.type = "Home"
   }
-  const includeDraft = window.gsConfig.includeDraft;
+  let includeDraft = window.gsConfig.includeDraft;
   const includeDraftParam = getParam('gsIncludeDraft');
   if (includeDraftParam == 'true') {
     includeDraft = true;
