@@ -307,6 +307,9 @@ export const search = async (input, params) => {
   if (params.insta) {
     q += `&insta=1`;
   }
+  if (params.limit) {
+    q += `&limit=${params.limit}`;
+  }
 
   if (window.gsSearchOptions && window.gsSearchOptions.hasRetrievalQA) {
     q += `&hasRetrievalQA=${window.gsSearchOptions.hasRetrievalQA}`
