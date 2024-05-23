@@ -21,8 +21,8 @@ async function onNotificationReceived(e) {
     icon: data.notification.image || "",
     actions: [],
     data: {
-        url: "",
-        primaryUrl: "",
+        url: data.data?.url || '',
+        primaryUrl: data.data?.url || '',
         secondaryUrl: "",
         actions: [],
         title: data.notification.title,
