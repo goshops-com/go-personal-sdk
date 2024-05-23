@@ -21,8 +21,9 @@ export const getContentByContext = async (context, options) => {
   options.type = context;
 
   const includeDraft = window.gsConfig.includeDraft;
+  const includeDraftParam = getParam('gsIncludeDraft');
   let url = `/personal/content-page?pageType=${context}`;
-  if (includeDraft) {
+  if (includeDraft || (includeDraftParam && includeDraftParam == 'true')) {
     url += '&includeDraft=true';
   }
 
@@ -63,8 +64,11 @@ export const getContent = async (contentId, options) => {
   if (!options.type) {
     options.type = "Home"
   }
-  const includeDraft = window.gsConfig.includeDraft;
-
+  let includeDraft = window.gsConfig.includeDraft;
+  const includeDraftParam = getParam('gsIncludeDraft');
+  if (includeDraftParam == 'true') {
+    includeDraft = true;
+  }
   const gsElementSelector = getParam('gsElementSelector');
   if (gsElementSelector != null) {
     return;
