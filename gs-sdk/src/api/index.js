@@ -337,6 +337,10 @@ export const imageSearch = async (formData, params) => {
     q += `&ignoreMetrics=true`;
   }
 
+  if (params.limit) {
+    q += `&maxItems=${params.limit}`;
+  }
+
   return httpPostFormData(`/item/image-search${q}`, formData);
 };
 
