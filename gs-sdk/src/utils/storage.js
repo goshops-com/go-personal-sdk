@@ -68,3 +68,13 @@ export const clearSession = () => {
   localStorage.removeItem('gs_content_seen');
 };
 
+export const setVUUID = (value) => {
+  localStorage.setItem('gs_vuuid', value);
+  return;
+};
+export const getVUUID = () => {
+  const item = localStorage.getItem('gs_vuuid');
+  if (item) {
+    return item
+  }
+}

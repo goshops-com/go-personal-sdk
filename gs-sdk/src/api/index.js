@@ -1,5 +1,5 @@
 import { httpGet, httpPost, httpPut, httpPostFormData, configure } from '../utils/http';
-import { setSession, addDataToSession, clearSession, isTokenValid, getToken, checkSameClientId, setClientId, getSession } from '../utils/storage';
+import { setSession, addDataToSession, clearSession, isTokenValid, getToken, checkSameClientId, setClientId, getSession, getVUUID, setVUUID } from '../utils/storage';
 import { jsonToQueryString, getParam } from '../utils/urlParam';
 import { setupContentSelector } from '../utils/configure';
 import { getContentByContext } from './content';
@@ -25,7 +25,7 @@ export const init = async (clientId, options) => {
     return clientId;
   }
 
-  window.gsLog('Init Options', JSON.stringify(options));
+  // window.gsLog('Init Options', JSON.stringify(options));
   window.gsConfig.includeDraft = options.includeDraft;
 
   clientId = configure(clientId);
@@ -56,7 +56,12 @@ export const init = async (clientId, options) => {
     externalSessionId = await getSharedToken(clientId, clientOrigin);
   }
 
-  const obj = await httpPost(`/channel/init${q}`, { clientId, externalSessionId, firstURL: window.location.href });
+  let vuuid = getVUUID();
+  if (!vuuid) {
+    vuuid = generateUUID();
+    setVUUID(vuuid);
+  }
+  const obj = await httpPost(`/channel/init${q}`, { clientId, externalSessionId, gsVUID: vuuid, firstURL: window.location.href });
   setSession(obj);
 
   const gsElementSelector = getParam('gsElementSelector');
@@ -69,6 +74,31 @@ export const init = async (clientId, options) => {
   subscribeQueue();
   return clientId;
 };
+
+function generateUUID() {
+  // Generate a random UUID
+  function uuidv4() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  // Get the current timestamp
+  function getTimestamp() {
+    return Date.now();
+  }
+
+  // Generate the UUID and timestamp
+  const uuid = uuidv4();
+  const timestamp = getTimestamp();
+
+  // Return the prefixed string
+  return `_gsVUUID_${uuid}_${timestamp}`;
+}
+
+// Example usage:
+console.log(generateUUID());
 
 
 async function executeInitialLoad(clientId, session, options) {
