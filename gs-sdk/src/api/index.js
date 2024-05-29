@@ -97,10 +97,6 @@ function generateUUID() {
   return `_gsVUUID_${uuid}_${timestamp}`;
 }
 
-// Example usage:
-console.log(generateUUID());
-
-
 async function executeInitialLoad(clientId, session, options) {
   if (options.singlePage) {
     return;
