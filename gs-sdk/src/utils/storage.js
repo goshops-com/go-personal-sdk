@@ -1,4 +1,5 @@
 const key = 'gs-v-1';
+const GS_VUUID = 'gs_vuuid';
 
 export const getToken = () => {
   const item = localStorage.getItem(key);
@@ -68,13 +69,11 @@ export const clearSession = () => {
   localStorage.removeItem('gs_content_seen');
 };
 
+
 export const setVUUID = (value) => {
-  localStorage.setItem('gs_vuuid', value);
-  return;
+  localStorage.setItem(GS_VUUID, value);
 };
 export const getVUUID = () => {
-  const item = localStorage.getItem('gs_vuuid');
-  if (item) {
-    return item
-  }
+  const item = localStorage.getItem(GS_VUUID);
+  return item;
 }
