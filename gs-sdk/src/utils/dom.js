@@ -145,3 +145,9 @@ export const getUrlParameter = (name) => {
     var results = regex.exec(location.search);
     return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }
+
+export const removeParamFromUrl = (param) => {
+    const url = new URL(window.location);
+    url.searchParams.delete(param);
+    window.history.replaceState({}, document.title, url.toString());
+}

@@ -1,4 +1,4 @@
-import { httpGet, httpPost, httpPut, httpPostFormData, configure } from '../utils/http';
+import { httpGet, httpPost, httpPut, httpPostFormData, configure, httpPatch } from '../utils/http';
 import { setSession, addDataToSession, clearSession, isTokenValid, getToken, checkSameClientId, setClientId, getSession, getVUUID, setVUUID } from '../utils/storage';
 import { jsonToQueryString, getParam } from '../utils/urlParam';
 import { setupContentSelector } from '../utils/configure';
@@ -356,6 +356,10 @@ export const searchResult = async (payload) => {
   return httpPost(`/item/search-result`, payload);
 };
 
+export const updateSearchResult = async (id, payload) => {
+  payload.id = id;
+  return httpPatch(`/item/search-interaction`, payload);
+};
 
 export const imageSearch = async (formData, params) => {
 

@@ -1,11 +1,13 @@
 import {
-  login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, getItems, search, imageSearch, voiceSearch, searchResult, uploadImage, getCount, getFieldValues,
+  login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, getItems, search, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
   getRanking, reRank, setPreferences, updateState, getItemById, init, clearSharedSession, getState, getAffinity, addBulkInteractions, addFeedback, getCurrentSession
 } from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
 import { executeActions } from './actions/addToCart';
-import { getUrlParameter } from './utils/dom';
+import { executeActions as executeSearchActions } from './actions/search';
+
+import { getUrlParameter, removeParamFromUrl } from './utils/dom';
 
 //plugins
 
@@ -60,11 +62,11 @@ function hasPlugin(option, id) {
 }
 
 function hasActions(option) {
-  if (!option || !option.provider) {
-    return false
-  }
-  if (option.provider == 'WooCommerce') {
-    return true;
+  const urlParams = new URLSearchParams(window.location.search);
+  for (const key of urlParams.keys()) {
+    if (key.startsWith('_gs')) {
+      return true;
+    }
   }
   return false;
 }
@@ -108,6 +110,7 @@ const GSSDK = async (clientId, options = {}) => {
   // check actions
   if (hasActions(options)) {
     executeActions(options.provider);
+    executeSearchActions(options.provider);
   }
 
   if (options.provider)
@@ -126,6 +129,7 @@ const GSSDK = async (clientId, options = {}) => {
       imageSearch: (formData, params) => imageSearch(formData, params),
       voiceSearch: (formData, params) => voiceSearch(formData, params),
       searchResult: (payload) => searchResult(payload),
+      updateSearchResult: (id, payload) => updateSearchResult(id, payload),
       uploadImage: (formData) => uploadImage(formData),
       getCount: (params) => getCount(params),
       getItemById: (id) => getItemById(id),
