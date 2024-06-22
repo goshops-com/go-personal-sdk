@@ -113,6 +113,8 @@ const GSSDK = async (clientId, options = {}) => {
     executeSearchActions(options.provider);
   }
 
+  console.log('[go personal]', '1.0.0');
+
   if (options.provider)
     return {
       login: (username, data = {}) => login(username, data),

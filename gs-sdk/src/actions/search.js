@@ -1,7 +1,7 @@
 import { getUrlParameter, removeParamFromUrl } from '../utils/dom';
 import { updateSearchResult } from '../api/index'
 
-_searchAction = function () {
+function _searchAction() {
     const searchInteractionClicked = getUrlParameter('_gsSearchCTR');
     if (searchInteractionClicked) {
         updateSearchResult(searchInteractionClicked, {
