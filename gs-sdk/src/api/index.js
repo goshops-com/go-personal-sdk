@@ -352,6 +352,11 @@ export const search = async (input, params) => {
   return httpGet(`/item/search${q}`);
 };
 
+export const searchResult = async (payload) => {
+  return httpPost(`/item/search-result`, payload);
+};
+
+
 export const imageSearch = async (formData, params) => {
 
   let q = `?sdk=1`;

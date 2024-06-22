@@ -1,5 +1,5 @@
 import {
-  login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, getItems, search, imageSearch, voiceSearch, uploadImage, getCount, getFieldValues,
+  login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, getItems, search, imageSearch, voiceSearch, searchResult, uploadImage, getCount, getFieldValues,
   getRanking, reRank, setPreferences, updateState, getItemById, init, clearSharedSession, getState, getAffinity, addBulkInteractions, addFeedback, getCurrentSession
 } from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent } from './api/content';
@@ -125,6 +125,7 @@ const GSSDK = async (clientId, options = {}) => {
       search: (input, params) => search(input, params),
       imageSearch: (formData, params) => imageSearch(formData, params),
       voiceSearch: (formData, params) => voiceSearch(formData, params),
+      searchResult: (payload) => searchResult(payload),
       uploadImage: (formData) => uploadImage(formData),
       getCount: (params) => getCount(params),
       getItemById: (id) => getItemById(id),
