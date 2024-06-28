@@ -349,6 +349,10 @@ export const search = async (input, params) => {
     q += `&ignoreMetrics=true`;
   }
 
+  if (params.type) {
+    q += `&typeOverride=${params.type}`;
+  }
+
   return httpGet(`/item/search${q}`);
 };
 
