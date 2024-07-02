@@ -136,6 +136,7 @@ async function addContentToWebsite(content, options) {
     const css = content.contentValue.css;
     const html = content.contentValue.html;
     const js = content.contentValue.js;
+    const notAutomatic = content.notAutomatic || false;
 
     if (!css && !html && !js) {
       window.gsLog('skip')
@@ -155,7 +156,7 @@ async function addContentToWebsite(content, options) {
           addHTMLToBody(html);
           addJavaScriptToBody(js, content.key);
         } else {
-          if (canShow) {
+          if (canShow && !notAutomatic) {
             suscribe(content, function (html, js) {
               addHTMLToBody(html);
               addJavaScriptToBody(js, content.key);
