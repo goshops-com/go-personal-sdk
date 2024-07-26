@@ -90,7 +90,7 @@ export const addHTMLToBody = (html) => {
 }
 
 export const addJavaScriptToBody = (jsCode, id = undefined) => {
-    if (jsCode == undefined || jsCode == "" || jsCode == "undefined") {
+    if (!jsCode) {
         return; // Ignore and exit the function
     }
 
@@ -103,9 +103,11 @@ export const addJavaScriptToBody = (jsCode, id = undefined) => {
     const bodyElement = document.body;
     if (bodyElement) {
         try {
-            bodyElement.appendChild(scriptElement);
+            requestAnimationFrame(() => {
+                bodyElement.appendChild(scriptElement);
+            });
         } catch (e) {
-            console.error(e)
+            console.error('Error appending script:', e);
         }
     } else {
         console.error('Body element not found.');
