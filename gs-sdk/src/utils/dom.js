@@ -5,13 +5,17 @@ export const injectCSS = (css, id = undefined) => {
         return; // Ignore and exit the function
     }
 
-    const styleElement = document.createElement('style');
-    if (id) {
-        styleElement.id = `gopersonal-style-${id}`;
-    }
-    styleElement.textContent = css;
-    document.head.appendChild(styleElement);
-}
+    (async () => {
+        await new Promise(resolve => setTimeout(resolve, 0)); // Yield control to the UI thread
+        const styleElement = document.createElement('style');
+        if (id) {
+            styleElement.id = `gopersonal-style-${id}`;
+        }
+        styleElement.textContent = css;
+        document.head.appendChild(styleElement);
+    })();
+};
+
 
 export const selectElement = (selector) => {
     return document.querySelector(selector);
@@ -83,11 +87,14 @@ export const addHTMLToBody = (html) => {
 
     const bodyElement = document.body;
     if (bodyElement) {
-        bodyElement.insertAdjacentHTML('beforeend', html);
+        (async () => {
+            await new Promise(resolve => setTimeout(resolve, 0)); // Yield control to the UI thread
+            bodyElement.insertAdjacentHTML('beforeend', html);
+        })();
     } else {
         console.error('Body element not found.');
     }
-}
+};
 
 export const addJavaScriptToBody = (jsCode, id = undefined) => {
     if (!jsCode) {
