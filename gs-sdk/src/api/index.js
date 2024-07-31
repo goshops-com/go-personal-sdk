@@ -302,6 +302,11 @@ export const addFeedback = (feedbackData) => {
   return httpPost(`/feedback`, feedbackData);
 };
 
+export const triggerJourney = (data) => {
+  // Implementation of logout will depend on your specific API
+  return httpPost(`/journey/trigger`, data);
+};
+
 export const logout = (clientId) => {
   const session = getSession();
   if (session['customer_id']) {

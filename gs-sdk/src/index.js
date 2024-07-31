@@ -1,6 +1,6 @@
 import {
   login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, getItems, search, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
-  getRanking, reRank, setPreferences, updateState, getItemById, init, clearSharedSession, getState, getAffinity, addBulkInteractions, addFeedback, getCurrentSession
+  getRanking, reRank, setPreferences, updateState, getItemById, init, triggerJourney, clearSharedSession, getState, getAffinity, addBulkInteractions, addFeedback, getCurrentSession
 } from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
@@ -151,7 +151,8 @@ const GSSDK = async (clientId, options = {}) => {
       openImpression: (impressionId) => openImpressionForRecommendation(impressionId),
       openImpressionContent: (impressionId) => openImpressionForContent(impressionId),
       getCurrentSession: () => getCurrentSession(),
-      trackError: (e) => console.log(e)
+      trackError: (e) => console.log(e),
+      triggerJourney: (data) => triggerJourney(data)
     };
 };
 
