@@ -106,6 +106,33 @@ async function executeInitialLoad(clientId, session, options) {
     return;
   }
 
+  if (options && options.provider == 'Magento_V2') {
+    try {
+      console.log('magento v2 log1');
+      if (window.location.pathname.startsWith('/gpsearch')) {
+
+        document.querySelectorAll('a.product-item-photo').forEach(function (anchor) {
+          let href = anchor.getAttribute('href');
+          if (href) {
+            anchor.setAttribute('href', href.replace(/([^:]\/)\/+/g, "$1"));
+          }
+        });
+
+        document.querySelectorAll('a.product-item-link').forEach(element => {
+          // Get the current href attribute of the element
+          let url = element.getAttribute('href');
+
+          // Replace double slashes with a single slash, excluding the protocol part (e.g., http:// or https://)
+          let updatedUrl = url.replace(/([^:])\/\//g, '$1/');
+
+          // Update the href attribute with the corrected URL
+          element.setAttribute('href', updatedUrl);
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
   if (options && options.provider && options.provider != 'Custom') {
 
     if (options.provider.toUpperCase() == 'MAGENTO') {
