@@ -108,7 +108,6 @@ async function executeInitialLoad(clientId, session, options) {
 
   if (options && options.provider == 'Magento_V2') {
     try {
-      console.log('magento v2 log1');
       if (window.location.pathname.startsWith('/gpsearch')) {
 
         document.querySelectorAll('a.product-item-photo').forEach(function (anchor) {
@@ -130,7 +129,6 @@ async function executeInitialLoad(clientId, session, options) {
         });
       }
     } catch (e) {
-      console.error(e);
     }
   }
   if (options && options.provider && options.provider != 'Custom') {
