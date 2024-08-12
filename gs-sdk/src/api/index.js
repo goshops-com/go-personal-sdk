@@ -388,6 +388,16 @@ export const search = async (input, params) => {
   return httpGet(`/item/search${q}`);
 };
 
+export const searchRedirect = async (input, params) => {
+  let q = `?query=${input}`;
+
+  if (params.searchResultId) {
+    q += `&searchResultId=${params.searchResultId}`;
+  }
+
+  return httpGet(`/item/search-redirect${q}`);
+};
+
 export const searchResult = async (payload) => {
   return httpPost(`/item/search-result`, payload);
 };
