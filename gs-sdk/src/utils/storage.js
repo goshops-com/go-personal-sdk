@@ -41,6 +41,11 @@ export const isTokenValid = () => {
 export const getSession = () => {
   const item = localStorage.getItem(key);
   if (item) {
+    const vuuid = getVUUID();
+
+    if (item) {
+      item['vuuid'] = vuuid
+    }
     return JSON.parse(item)
   } else {
     return {}
