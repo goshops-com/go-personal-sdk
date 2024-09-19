@@ -280,6 +280,10 @@ export const openImpression = async (impressionId) => {
   }
 };
 
+export const trackURLClicked = (executionId) => {
+  return httpPatch(`/public/track`, { executionId: executionId });
+};
+
 
 export const observeElementInView = (elementId, impressionId, callback) => {
 

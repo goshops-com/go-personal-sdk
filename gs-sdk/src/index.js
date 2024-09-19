@@ -2,7 +2,7 @@ import {
   login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, getItems, search, searchRedirect, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
   getRanking, reRank, setPreferences, updateState, getItemById, init, triggerJourney, clearSharedSession, getState, getAffinity, addBulkInteractions, addFeedback, getCurrentSession
 } from './api';
-import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent } from './api/content';
+import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent, trackURLClicked } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
 import { executeActions } from './actions/addToCart';
 import { executeActions as executeSearchActions } from './actions/search';
@@ -111,6 +111,10 @@ const GSSDK = async (clientId, options = {}) => {
   if (hasActions(options)) {
     executeActions(options.provider);
     executeSearchActions(options.provider);
+    const trackURL = getUrlParameter('_gsTrackExecutionId');
+    if (trackURL) {
+      trackURLClicked(trackURL);
+    }
   }
 
   console.log('[go personal]', '1.0.0');
@@ -153,7 +157,8 @@ const GSSDK = async (clientId, options = {}) => {
       openImpressionContent: (impressionId) => openImpressionForContent(impressionId),
       getCurrentSession: () => getCurrentSession(),
       trackError: (e) => console.log(e),
-      triggerJourney: (data) => triggerJourney(data)
+      triggerJourney: (data) => triggerJourney(data),
+      trackURLClicked: (executionId) => trackURLClicked(executionId)
     };
 };
 
