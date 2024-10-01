@@ -110,10 +110,9 @@ export const addJavaScriptToBody = (jsCode, id = undefined) => {
     const bodyElement = document.body;
     if (bodyElement) {
         try {
-            // requestAnimationFrame(() => {
-            //     bodyElement.appendChild(scriptElement);
-            // });
-            bodyElement.appendChild(scriptElement);
+            requestAnimationFrame(() => {
+                bodyElement.appendChild(scriptElement);
+            });
         } catch (e) {
             console.error('Error appending script:', e);
         }
