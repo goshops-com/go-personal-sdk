@@ -94,6 +94,10 @@ export const getContent = async (contentId, options) => {
     content.key = contentId;
   }
   addContentToWebsite(content, options);
+
+  if (content.type == 'API'){
+    return content;
+  }
 };
 
 function buildContextPayload(options) {
