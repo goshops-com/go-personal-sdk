@@ -23,9 +23,9 @@ export const selectElement = (selector) => {
 
 export const selectElementWithRetry = async (
     selector, 
-    maxRetries = 10, 
-    initialBackoffTime = 500,  // Starting delay
-    backoffIncrement = 500,     // Increment for each retry
+    maxRetries = 40, 
+    initialBackoffTime = 200,  // Starting delay
+    backoffIncrement = 100,     // Increment for each retry
     maxBackoffTime = 4 * 1000   // Cap for backoff time
 ) => {
     const attemptSelect = async () => {
