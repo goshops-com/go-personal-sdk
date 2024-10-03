@@ -301,7 +301,7 @@ export const findLastInteractions = (limit = 10) => {
   return httpGet(`/channel/last-interactions?limit=${limit}`);
 };
 
-function reorderCategories(interactions, categories) {
+export const reorderCategories = (interactions, categories) => {
   // Initialize a map to store category counts
   const categoryCounts = new Map();
 
