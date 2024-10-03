@@ -297,6 +297,10 @@ export const findState = () => {
   return httpGet(`/channel/state`);
 };
 
+export const findLastInteractions = (limit = 10) => {
+  return httpGet(`/channel/last-interactions?limit=${limit}`);
+};
+
 export const updateState = (obj) => {
   return httpPut(`/channel/state`, obj);
 };
