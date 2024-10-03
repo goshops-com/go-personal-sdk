@@ -301,6 +301,39 @@ export const findLastInteractions = (limit = 10) => {
   return httpGet(`/channel/last-interactions?limit=${limit}`);
 };
 
+function reorderCategories(interactions, categories) {
+  // Initialize a map to store category counts
+  const categoryCounts = new Map();
+
+  // Count interactions for each category
+  interactions.forEach(interaction => {
+    // Check if data and itemData exist
+    if (interaction.data && interaction.data.itemData) {
+      const categoryIds = interaction.data.itemData.category_ids;
+      // Check if category_ids exists and is a string
+      if (typeof categoryIds === 'string') {
+        categoryIds.split(',').forEach(categoryId => {
+          const trimmedId = categoryId.trim();
+          if (trimmedId) {
+            categoryCounts.set(trimmedId, (categoryCounts.get(trimmedId) || 0) + 1);
+          }
+        });
+      }
+    }
+  });
+
+  // Update categories with interaction counts and sort
+  const updatedCategories = categories.map(category => ({
+    ...category,
+    interactionCount: categoryCounts.get(category.id) || 0
+  }));
+
+  // Sort categories by interaction count in descending order
+  updatedCategories.sort((a, b) => b.interactionCount - a.interactionCount);
+
+  return updatedCategories;
+}
+
 export const updateState = (obj) => {
   return httpPut(`/channel/state`, obj);
 };
