@@ -21,7 +21,13 @@ export const selectElement = (selector) => {
     return document.querySelector(selector);
 }
 
-export const selectElementWithRetry = async (selector, maxRetries = 10, backoffFactor = 2, maxBackoffTime = 4 * 1000) => {
+export const selectElementWithRetry = async (
+    selector, 
+    maxRetries = 10, 
+    initialBackoffTime = 500,  // Starting delay
+    backoffIncrement = 500,     // Increment for each retry
+    maxBackoffTime = 4 * 1000   // Cap for backoff time
+) => {
     const attemptSelect = async () => {
         try {
             return document.querySelector(selector);
@@ -42,8 +48,8 @@ export const selectElementWithRetry = async (selector, maxRetries = 10, backoffF
 
         retries += 1;
 
-        // Exponential backoff
-        const backoffTime = Math.min(maxBackoffTime, backoffFactor ** retries);
+        // Linear backoff
+        const backoffTime = Math.min(maxBackoffTime, initialBackoffTime + backoffIncrement * retries);
 
         // Wait for backoffTime milliseconds before next attempt
         await new Promise((resolve) => setTimeout(resolve, backoffTime));

@@ -93,6 +93,9 @@ export const getContent = async (contentId, options) => {
   if (!content.key) {
     content.key = contentId;
   }
+  if (content.delay){
+    await new Promise(resolve => setTimeout(resolve, content.delay));
+  }
   addContentToWebsite(content, options);
 
   if (content.type == 'API'){
