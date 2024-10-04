@@ -82,8 +82,15 @@ export const getContent = async (contentId, options) => {
     const payload = buildContextPayload(options)
 
     let url = `/personal/content/${contentId}`;
+    const params = new URLSearchParams();
     if (includeDraft) {
-      url += '?includeDraft=true';
+      params.append('includeDraft', 'true');
+    }
+    if (options.impressionStatus) {
+      params.append('impressionStatus', options.impressionStatus);
+    }
+    if (params.toString()) {
+      url += `?${params.toString()}`;
     }
     content = await httpPost(url, payload);
   } else {
