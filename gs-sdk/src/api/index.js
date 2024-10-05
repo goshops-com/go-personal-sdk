@@ -302,10 +302,8 @@ export const findLastInteractions = (limit = 10) => {
 };
 
 export const reorderCategories = (interactions, categories) => {
-  // Initialize a map to store category counts
   const categoryCounts = new Map();
 
-  // Count interactions for each category
   interactions.forEach(interaction => {
     // Check if data and itemData exist
     if (interaction.data && interaction.data.itemData) {
@@ -322,13 +320,11 @@ export const reorderCategories = (interactions, categories) => {
     }
   });
 
-  // Update categories with interaction counts and sort
   const updatedCategories = categories.map(category => ({
     ...category,
-    interactionCount: categoryCounts.get(category.id) || 0
+    interactionCount: categoryCounts.get(String(category.id)) || 0
   }));
 
-  // Sort categories by interaction count in descending order
   updatedCategories.sort((a, b) => b.interactionCount - a.interactionCount);
 
   return updatedCategories;
