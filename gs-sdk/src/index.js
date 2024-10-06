@@ -1,5 +1,5 @@
 import {
-  login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, findLastInteractions, reorderCategories, getItems, search, searchRedirect, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
+  login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, findLastInteractions, reorderCategories, getItems, search, searchAnswer, searchRedirect, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
   getRanking, reRank, setPreferences, updateState, getItemById, init, triggerJourney, clearSharedSession, getState, getAffinity, addBulkInteractions, addFeedback, getCurrentSession
 } from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent, trackURLClicked } from './api/content';
@@ -134,6 +134,7 @@ const GSSDK = async (clientId, options = {}) => {
       reorderCategories: (interactions, categories) => reorderCategories(interactions, categories),
       updateState: (obj) => updateState(obj),
       search: (input, params) => search(input, params),
+      searchAnswer: (input, params) => searchAnswer(input, params),
       searchRedirect: (input, params) => searchRedirect(input, params),
       imageSearch: (formData, params) => imageSearch(formData, params),
       voiceSearch: (formData, params) => voiceSearch(formData, params),

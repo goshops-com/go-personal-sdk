@@ -419,6 +419,14 @@ export const search = async (input, params) => {
   return httpGet(`/item/search${q}`);
 };
 
+export const searchAnswer = async (input, params) => {
+  const payload = {
+    input: input,
+    ...params
+  }
+  return httpPost(`/item/search-answer`, payload);
+}
+
 export const searchRedirect = async (input, params) => {
   let q = `?query=${input}`;
 
