@@ -6,7 +6,7 @@ import { getContent, getContentByContext, observeElementInView, openImpression a
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
 import { executeActions } from './actions/addToCart';
 import { executeActions as executeSearchActions } from './actions/search';
-
+import { loadPlugin } from './api/plugins';
 import { getUrlParameter, removeParamFromUrl } from './utils/dom';
 
 //plugins
@@ -142,6 +142,7 @@ const GSSDK = async (clientId, options = {}) => {
       searchResult: (payload) => searchResult(payload),
       updateSearchResult: (id, payload) => updateSearchResult(id, payload),
       uploadImage: (formData) => uploadImage(formData),
+      loadPlugin: (name, external = true) => loadPlugin(name, external),
       getCount: (params) => getCount(params),
       getItemById: (id) => getItemById(id),
       getRanking: (ranking, params) => getRanking(ranking, params),
