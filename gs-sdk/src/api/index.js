@@ -394,6 +394,10 @@ export const getItems = async (params) => {
   return httpGet(`/item${q}`);
 };
 
+export const downloadSearchAutocompleteIndex = async () => {
+  return httpGet(`/item/search-autocomplete`);
+}
+
 export const search = async (input, params) => {
   let q = `?query=${input}`;
 
