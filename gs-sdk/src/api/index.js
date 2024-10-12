@@ -398,6 +398,12 @@ export const downloadSearchAutocompleteIndex = async () => {
   return httpGet(`/item/search-autocomplete`);
 }
 
+export const searchFilterFacelets = async (query = undefined) => {
+  const endpoint = '/item/search-filter-facelets';
+  const queryParam = query ? `?query=${encodeURIComponent(query)}` : '';
+  return httpGet(`${endpoint}${queryParam}`);
+};
+
 export const search = async (input, params) => {
   let q = `?query=${input}`;
 
