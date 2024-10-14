@@ -439,6 +439,10 @@ export const search = async (input, params) => {
     q += `&typeOverride=${params.type}`;
   }
 
+  if (params.filter) {
+    q += `&jsonFilter=${encodeURIComponent(JSON.stringify(params.filter))}`;
+  }
+
   return httpGet(`/item/search${q}`);
 };
 
