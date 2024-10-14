@@ -398,6 +398,10 @@ export const downloadSearchAutocompleteIndex = async () => {
   return httpGet(`/item/search-autocomplete`);
 }
 
+export const searchChat = async (payload) => {
+  return httpPost(`/item/search-chat`, payload);
+}
+
 export const searchAutoFilter = async (filters, input) => {
   const endpoint = '/item/search-filter-builder';
   const payload = {
