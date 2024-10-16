@@ -505,6 +505,9 @@ export const voiceSearch = async (formData, params) => {
     q += `&hasMultimodal=${window.gsSearchOptions.hasMultimodal}`
     q += `&ignoreRanking=${window.gsSearchOptions.hasMultimodal}`
   }
+  if (params.limit) {
+    q += `&limit=${params.limit}`;
+  }
 
   if (params.ignoreMetrics) {
     q += `&ignoreMetrics=true`;
