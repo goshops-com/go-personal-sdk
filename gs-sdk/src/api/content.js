@@ -144,9 +144,14 @@ function buildContextPayload(options) {
 async function addContentToWebsite(content, options) {
   window.gsLog('addContentToWebsite', content.key);
 
-
+  
   if (content && content.contentValue) {
 
+    const skipKeys = Array.isArray(window.gsConfig?.options?.skipContents) ? window.gsConfig.options.skipContents : [];
+    if (skipKeys.length > 0 && content && typeof content.key === 'string' && skipKeys.includes(content.key)) {
+      // skip this content
+      return;
+    }
     const css = content.contentValue.css;
     const html = content.contentValue.html;
     const js = content.contentValue.js;
