@@ -1,4 +1,3 @@
-// const BASE_URL = 'http://localhost:3000';
 let BASE_URL = 'https://go-discover-dev.goshops.ai';
 
 import { getToken, clearSession } from './storage';
@@ -11,6 +10,8 @@ export const configure = (clientId) => {
 
     if (region == 'BR') {
       BASE_URL = 'https://discover.gopersonal.ai';
+    }else if (region == 'LOCAL') {
+      BASE_URL = 'http://localhost:3000';
     }
     return secondPart;
   } else {
