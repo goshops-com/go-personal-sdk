@@ -464,6 +464,10 @@ export const searchRedirect = async (input, params) => {
   return httpGet(`/item/search-redirect${q}`);
 };
 
+export const searchBulk = async (payload) => {
+  return httpPost(`/item/bulk-search`, payload);
+};
+
 export const searchResult = async (payload) => {
   return httpPost(`/item/search-result`, payload);
 };

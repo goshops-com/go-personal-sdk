@@ -1,6 +1,6 @@
 import {
   login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, findLastInteractions, reorderCategories, getItems, search, searchAnswer, searchRedirect, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
-  getRanking, reRank, setPreferences, updateState, getItemById, init, triggerJourney, clearSharedSession, getState, getAffinity, addBulkInteractions, addFeedback, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat
+  getRanking, reRank, setPreferences, updateState, getItemById, init, triggerJourney, clearSharedSession, getState, getAffinity, addBulkInteractions, addFeedback, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk
 } from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent, trackURLClicked } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
@@ -137,6 +137,7 @@ const GSSDK = async (clientId, options = {}) => {
       searchAnswer: (input, params) => searchAnswer(input, params),
       searchChat: (payload) => searchChat(payload),
       searchRedirect: (input, params) => searchRedirect(input, params),
+      searchBulk: (payload) => searchBulk(payload),
       searchAutoFilter: (filters, input) => searchAutoFilter(filters, input),
       downloadSearchAutocompleteIndex: () => downloadSearchAutocompleteIndex(),
       searchFilterFacelets: (query = undefined) => searchFilterFacelets(query),
