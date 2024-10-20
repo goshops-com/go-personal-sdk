@@ -402,6 +402,10 @@ export const searchChat = async (payload) => {
   return httpPost(`/item/search-chat`, payload);
 }
 
+export const isSearch = async (payload) => {
+  return httpPost(`/item/search-chat-is-search`, payload);
+}
+
 export const searchAutoFilter = async (filters, input) => {
   const endpoint = '/item/search-filter-builder';
   const payload = {
