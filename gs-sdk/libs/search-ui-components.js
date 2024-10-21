@@ -144,7 +144,23 @@ const AudioSearch = (function() {
               // Use the config.limit in the SDK call
               const sdkOptions = { type: 'voice', ...config };
               const data = await window.gsSDK.voiceSearch(formData, sdkOptions);
-              let query = removeSpecialCharsAndSpaces(data.query);
+              
+              let hallucinations = [
+                " Subtítulos realizados por la comunidad de Amara.org",
+                " Subtitulado por la comunidad de Amara.org",
+                " Subtítulos por la comunidad de Amara.org",
+                " Subtítulos creados por la comunidad de Amara.org",
+                " Subtítulos en español de Amara.org",
+                " Subtítulos hechos por la comunidad de Amara.org",
+                " Subtitulos por la comunidad de Amara.org",
+                " Más información www.alimmenta.com",
+                " www.mooji.org",
+              ]
+
+              if (hallucinations.includes(data.query)) {
+                data.query = undefined;
+              }
+
               callback(data);
             } catch (error) {
               console.error("Error during voice search:", error);

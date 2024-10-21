@@ -275,6 +275,11 @@ class gsDistanceUtil {
 
     for (const entity of entities) {
       const normalizedEntity = this.normalizeText(entity);
+      
+      if (normalizedEntity.length <= 1) {
+        continue;
+      }
+
       const entityWords = normalizedEntity.split(/\s+/);
 
       for (let i = 0; i <= textWords.length - entityWords.length; i++) {
@@ -286,14 +291,16 @@ class gsDistanceUtil {
           const entityWord = entityWords[j];
           const maxDistance = this.getMaxDistance(entityWord.length);
 
-          if (this.levenshteinDistance(textWord, entityWord) > maxDistance) {
+          const distance = this.levenshteinDistance(textWord, entityWord);
+
+          if (distance > maxDistance) {
             isMatch = false;
             break;
           }
           matchedWords.push(textWord);
         }
 
-        if (isMatch) {
+        if (isMatch && matchedWords.length > 0) {
           return {
             found: true,
             match: {
