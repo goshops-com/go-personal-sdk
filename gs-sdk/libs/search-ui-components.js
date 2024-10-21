@@ -146,18 +146,19 @@ const AudioSearch = (function() {
               const data = await window.gsSDK.voiceSearch(formData, sdkOptions);
               
               let hallucinations = [
-                " Subtítulos realizados por la comunidad de Amara.org",
-                " Subtitulado por la comunidad de Amara.org",
-                " Subtítulos por la comunidad de Amara.org",
-                " Subtítulos creados por la comunidad de Amara.org",
-                " Subtítulos en español de Amara.org",
-                " Subtítulos hechos por la comunidad de Amara.org",
-                " Subtitulos por la comunidad de Amara.org",
-                " Más información www.alimmenta.com",
-                " www.mooji.org",
+                "¡Gracias por ver!",
+                "Subtítulos realizados por la comunidad de Amara.org",
+                "Subtitulado por la comunidad de Amara.org",
+                "Subtítulos por la comunidad de Amara.org",
+                "Subtítulos creados por la comunidad de Amara.org",
+                "Subtítulos en español de Amara.org",
+                "Subtítulos hechos por la comunidad de Amara.org",
+                "Subtitulos por la comunidad de Amara.org",
+                "Más información www.alimmenta.com",
+                "www.mooji.org",
               ]
 
-              if (hallucinations.includes(data.query)) {
+              if (hallucinations.includes(data.query.trim())) {
                 data.query = undefined;
               }
 
