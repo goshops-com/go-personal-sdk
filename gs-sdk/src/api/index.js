@@ -251,6 +251,11 @@ export const login = (id, data = {}) => {
     addDataToSession('customer_email', data.email);
   }
   data.customerId = id;
+  try {
+    data.provider = window.gsConfig.options.provider.toLowerCase();
+  } catch (error) {
+    console.error('Error setting provider:', error);
+  }
   return httpPost(`/channel/login`, data);
 };
 
