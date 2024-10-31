@@ -73,6 +73,10 @@ function hasActions(option) {
 
 const GSSDK = async (clientId, options = {}) => {
 
+  if (options && options.provider == 'Fenicio') {
+    console.log('[gopersonal] Fenicio provider - starting', window.gsSDK != undefined);
+  }
+
   window.gsConfig = {};
   window.gsEventHandlers = {};
   window.gsImpressionIds = [];
