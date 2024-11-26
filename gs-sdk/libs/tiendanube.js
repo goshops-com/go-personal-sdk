@@ -2,23 +2,8 @@
   // Function to extract store ID from script src
   function getStoreId() {
     try {
-      // Find all script tags
-      const scripts = document.getElementsByTagName("script");
-
-      // Look for our script tag
-      for (const script of scripts) {
-        const url = new URL(script.src);
-        // Check if this is our script
-        if (url.pathname.endsWith("tiendanube.js")) {
-          // Extract store ID from query parameter
-          const storeId = url.searchParams.get("store");
-          if (storeId) {
-            return storeId;
-          }
-        }
-      }
-      console.error("Store ID not found in script URL");
-      return null;
+      const storeId = LS.store.id;
+      return storeId;
     } catch (error) {
       console.error("Error extracting store ID:", error);
       return null;
@@ -32,10 +17,24 @@
       if (!storeId) {
         throw new Error("Store ID is required for initialization");
       }
+      console.log("storeId", storeId);
+
+      let pageType = "home";
+      let productId = LS.product?.id;
+      let categoryId = LS.category?.id;
+      if (LS.product && productId) {
+        pageType = "product_detail";
+      } else if (LS.category && categoryId) {
+        pageType = "category_detail";
+      } else if (LS.cart) {
+        pageType = "cart";
+      } else if (LS.order) {
+        pageType = "thankyou";
+      }
 
       window.gsSDK = await new window.GSSDK.default(storeId, {
-        provider: "Luna",
-        context: { pageType: "home" },
+        provider: "TiendaNube",
+        context: { pageType: pageType, product_id: productId },
       });
     } catch (error) {
       console.error("Failed to initialize GSSDK:", error);
@@ -44,6 +43,7 @@
 
   // Load the GSSDK script
   function loadGSSDK() {
+    console.log("loadGSSDK V1");
     var gsSDKScript = document.createElement("script");
     gsSDKScript.src = "https://sdk.gopersonal.ai/gs-sdk.js";
     gsSDKScript.onload = initializeGSSDK;
