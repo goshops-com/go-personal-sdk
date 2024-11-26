@@ -32,7 +32,7 @@
         pageType = "thankyou";
       }
 
-      window.gsSDK = await new window.GSSDK.default(storeId, {
+      window.gsSDK = await new window.GSSDK.default("BR-TNSID-" + storeId, {
         provider: "TiendaNube",
         context: { pageType: pageType, product_id: productId },
       });
