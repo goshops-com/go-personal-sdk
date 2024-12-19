@@ -137,6 +137,7 @@ function buildContextPayload(options) {
       currentPage: {
         ...options,
         location: window.location.href,
+        referrer: typeof document !== 'undefined' ? document.referrer || '' : '',
       },
     },
   };
