@@ -8,6 +8,7 @@ import { executeActions } from './actions/addToCart';
 import { executeActions as executeSearchActions } from './actions/search';
 import { loadPlugin } from './api/plugins';
 import { getUrlParameter, removeParamFromUrl } from './utils/dom';
+import { getCurrentGeoIPLocation } from './api/geolocation';
 
 //plugins
 
@@ -174,6 +175,7 @@ const GSSDK = async (clientId, options = {}) => {
       openImpression: (impressionId) => openImpressionForRecommendation(impressionId),
       openImpressionContent: (impressionId) => openImpressionForContent(impressionId),
       getCurrentSession: () => getCurrentSession(),
+      getCurrentGeoIPLocation: () => getCurrentGeoIPLocation(),
       trackError: (e) => console.log(e),
       triggerJourney: (data) => triggerJourney(data),
       trackURLClicked: (executionId) => trackURLClicked(executionId)
