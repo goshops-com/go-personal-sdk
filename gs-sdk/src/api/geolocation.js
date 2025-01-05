@@ -1,4 +1,3 @@
-
 let endpoint = 'https://ipapi.co/json';
 let endpoint2 = 'https://gopersonal-ip-geolocation.fly.dev/myip';
 
@@ -16,15 +15,24 @@ export const getCurrentGeoIPLocation = async () => {
 
     try {
         const response = await fetch(endpoint);
+        if (response.status >= 400) {
+            throw new Error();
+        }
         const data = await response.json();
         localStorage.setItem(cacheKey, JSON.stringify(data));
         localStorage.setItem(cacheExpiry, (Date.now() + oneHour).toString());
         return data;
     } catch (error) {
-        const response = await fetch(endpoint2);
-        const data = await response.json();
-        localStorage.setItem(cacheKey, JSON.stringify(data));
-        localStorage.setItem(cacheExpiry, (Date.now() + oneHour).toString());
-        return data;
+        if (response?.status >= 400) {
+            const response = await fetch(endpoint2);
+            if (response.status >= 400) {
+                throw new Error();
+            }
+            const data = await response.json();
+            localStorage.setItem(cacheKey, JSON.stringify(data));
+            localStorage.setItem(cacheExpiry, (Date.now() + oneHour).toString());
+            return data;
+        }
+        throw error;
     }
 }
