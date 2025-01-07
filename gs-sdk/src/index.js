@@ -9,6 +9,7 @@ import { executeActions as executeSearchActions } from './actions/search';
 import { loadPlugin } from './api/plugins';
 import { getUrlParameter, removeParamFromUrl } from './utils/dom';
 import { getCurrentGeoIPLocation } from './api/geolocation';
+import { liveGetVideo, liveLikeVideo, liveUnlikeVideo } from './api/live';
 
 //plugins
 
@@ -178,7 +179,10 @@ const GSSDK = async (clientId, options = {}) => {
       getCurrentGeoIPLocation: () => getCurrentGeoIPLocation(),
       trackError: (e) => console.log(e),
       triggerJourney: (data) => triggerJourney(data),
-      trackURLClicked: (executionId) => trackURLClicked(executionId)
+      trackURLClicked: (executionId) => trackURLClicked(executionId),
+      liveGetVideo: (videoId) => liveGetVideo(videoId),
+      liveLikeVideo: (videoId) => liveLikeVideo(videoId),
+      liveUnlikeVideo: (videoId) => liveUnlikeVideo(videoId)
     };
 };
 
