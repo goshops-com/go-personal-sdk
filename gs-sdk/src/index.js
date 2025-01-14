@@ -9,7 +9,7 @@ import { executeActions as executeSearchActions } from './actions/search';
 import { loadPlugin } from './api/plugins';
 import { getUrlParameter, removeParamFromUrl } from './utils/dom';
 import { getCurrentGeoIPLocation } from './api/geolocation';
-import { liveGetVideo, liveLikeVideo, liveUnlikeVideo } from './api/live';
+import { liveGetVideo, liveLikeVideo, liveUnlikeVideo, liveTrackVideoTime } from './api/live';
 
 //plugins
 
@@ -182,7 +182,8 @@ const GSSDK = async (clientId, options = {}) => {
       trackURLClicked: (executionId) => trackURLClicked(executionId),
       liveGetVideo: (videoId) => liveGetVideo(videoId),
       liveLikeVideo: (videoId) => liveLikeVideo(videoId),
-      liveUnlikeVideo: (videoId) => liveUnlikeVideo(videoId)
+      liveUnlikeVideo: (videoId) => liveUnlikeVideo(videoId),
+      liveTrackVideoTime: (videoId, time) => liveTrackVideoTime(videoId, time)
     };
 };
 
