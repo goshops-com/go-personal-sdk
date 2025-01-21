@@ -183,7 +183,7 @@ const GSSDK = async (clientId, options = {}) => {
       liveGetVideo: (videoId) => liveGetVideo(videoId),
       liveLikeVideo: (videoId) => liveLikeVideo(videoId),
       liveUnlikeVideo: (videoId) => liveUnlikeVideo(videoId),
-      liveTrackVideoTime: (videoId, time) => liveTrackVideoTime(videoId, time)
+      liveTrackVideoTime: (videoId, time, videoViewId) => liveTrackVideoTime(videoId, time, videoViewId)
     };
 };
 

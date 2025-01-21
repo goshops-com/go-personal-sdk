@@ -19,9 +19,9 @@ export const liveUnlikeVideo = async (videoId) => {
     return result;
 }
 
-export const liveTrackVideoTime = async (videoId, time) => {
+export const liveTrackVideoTime = async (videoId, time, videoViewId) => {
     const url = `/addon/live/video/${videoId}/time`;
-    const result = await httpPatch(url, { time });
+    const result = await httpPatch(url, { time, videoViewId });
     return result;
 }
 
