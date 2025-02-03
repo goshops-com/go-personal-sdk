@@ -37,7 +37,10 @@
 
       if (pageType === "product_detail") {
         setTimeout(() => {
-            window.gsSDK.addInteraction("view", { item: productId + '' });
+          window.gsSDK.addInteraction({
+            event: "view",
+            item: productId + "",
+          });
         }, 1000);
       }
     } catch (error) {
