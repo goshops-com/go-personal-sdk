@@ -36,7 +36,9 @@
       });
 
       if (pageType === "product_detail") {
-        window.gsSDK.addInteraction("view", { item: productId + '' });
+        setTimeout(() => {
+            window.gsSDK.addInteraction("view", { item: productId + '' });
+        }, 1000);
       }
     } catch (error) {
       console.error("Failed to initialize GSSDK:", error);
