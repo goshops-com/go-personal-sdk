@@ -26,8 +26,6 @@
         pageType = "product_detail";
       } else if (LS.category && categoryId) {
         pageType = "category_detail";
-      } else if (LS.cart) {
-        pageType = "cart";
       } else if (LS.order) {
         pageType = "thankyou";
       }
