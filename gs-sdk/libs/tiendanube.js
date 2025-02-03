@@ -34,6 +34,10 @@
         provider: "TiendaNube",
         context: { pageType: pageType, product_id: productId },
       });
+
+      if (pageType === "product_detail") {
+        window.gsSDK.addInteraction("view", { item: productId + '' });
+      }
     } catch (error) {
       console.error("Failed to initialize GSSDK:", error);
     }
