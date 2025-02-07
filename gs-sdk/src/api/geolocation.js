@@ -4,7 +4,7 @@ let endpoint2 = 'https://gopersonal-ip-geolocation.fly.dev/myip';
 export const getCurrentGeoIPLocation = async () => {
     const cacheKey = 'gs_geoip_location';
     const cacheExpiry = 'gs_geoip_location_expiry';
-    const oneHour = 60 * 60 * 1000;
+    const oneHour = 60 * 60 * 1000 * 3;
 
     const cached = localStorage.getItem(cacheKey);
     const expiry = localStorage.getItem(cacheExpiry);
