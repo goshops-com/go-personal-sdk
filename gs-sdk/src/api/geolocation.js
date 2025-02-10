@@ -26,13 +26,13 @@ export const getCurrentGeoIPLocation = async () => {
         if (response?.status >= 400) {
             const response = await fetch(endpoint2);
             if (response.status >= 400) {
-                throw new Error();
+                return {}
             }
             const data = await response.json();
             localStorage.setItem(cacheKey, JSON.stringify(data));
             localStorage.setItem(cacheExpiry, (Date.now() + oneHour).toString());
             return data;
         }
-        throw error;
+        return {}
     }
 }
