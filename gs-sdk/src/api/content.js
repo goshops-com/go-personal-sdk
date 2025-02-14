@@ -326,3 +326,4 @@ export const observeElementInView = (elementId, impressionId, callback) => {
   // Start observing the target element
   observer.observe(target);
 }
+
