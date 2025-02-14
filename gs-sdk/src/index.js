@@ -78,11 +78,11 @@ const GSSDK = async (clientId, options = {}) => {
   if (options && options.provider == 'Fenicio') {
     console.log('[gopersonal] Fenicio provider - starting', window.gsSDK != undefined);
     if (window.gsSDK != undefined) {
-      console.log('[gopersonal] Fenicio provider - existing SDK (already loaded)', window.gsConfig);
-      console.log('[gopersonal] Fenicio provider - cleaning up for ', options);
+      console.log('[gopersonal] Fenicio provider - existing SDK (already loaded) 2', window.gsConfig);
+      console.log('[gopersonal] Fenicio provider - cleaning up for 2', options);
 
-      
-      //return window.gsSDK;
+
+      return window.gsSDK;
     }
   }
 
