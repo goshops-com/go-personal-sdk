@@ -86,6 +86,7 @@ const GSSDK = async (clientId, options = {}) => {
         return window.gsSDK;
       }
 
+      return window.gsSDK;
     }
   }
 
