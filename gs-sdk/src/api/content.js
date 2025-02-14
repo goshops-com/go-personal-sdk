@@ -327,3 +327,6 @@ export const observeElementInView = (elementId, impressionId, callback) => {
   observer.observe(target);
 }
 
+export const cleanContent = () => {
+  deleteGoPersonalElements();
+}
