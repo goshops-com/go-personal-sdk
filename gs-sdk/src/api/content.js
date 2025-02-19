@@ -122,7 +122,6 @@ function buildContextPayload(options) {
   }
   return {
     context: {
-      provider: window?.gsConfig?.options?.provider || null,
       network: {
         downlink: download,
         effectiveType: effectiveType,
@@ -137,6 +136,7 @@ function buildContextPayload(options) {
       },
       currentPage: {
         ...options,
+        provider: window?.gsConfig?.options?.provider || null,
         location: window.location.href,
         referrer: typeof document !== 'undefined' ? document.referrer || '' : '',
       },
