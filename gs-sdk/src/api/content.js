@@ -122,6 +122,7 @@ function buildContextPayload(options) {
   }
   return {
     context: {
+      provider: window?.gsConfig?.options?.provider || null,
       network: {
         downlink: download,
         effectiveType: effectiveType,
