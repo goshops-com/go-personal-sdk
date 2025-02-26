@@ -147,6 +147,13 @@ const GSSDK = async (clientId, options = {}) => {
 
   console.log('[go personal]', '1.0.0');
 
+  if (options && options.provider == 'Fenicio'){
+    setTimeout(() => {
+      console.log('[go personal]', 'installing fenicio scripts [1]');
+      installFenicio(options);
+    }, 100);
+  }
+
   if (options.provider)
     return {
       login: (username, data = {}) => login(username, data),
@@ -203,13 +210,7 @@ const GSSDK = async (clientId, options = {}) => {
       liveUnlikeVideo: (videoId) => liveUnlikeVideo(videoId),
       liveTrackVideoTime: (videoId, time, videoViewId) => liveTrackVideoTime(videoId, time, videoViewId)
     };
-
-
-    if (options && options.provider == 'Fenicio'){
-      setTimeout(() => {
-        installFenicio(options);
-      }, 100);
-    }
+    
 };
 
 export default GSSDK;
