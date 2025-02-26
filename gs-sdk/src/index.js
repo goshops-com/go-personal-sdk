@@ -10,6 +10,7 @@ import { loadPlugin } from './api/plugins';
 import { getUrlParameter, removeParamFromUrl } from './utils/dom';
 import { getCurrentGeoIPLocation } from './api/geolocation';
 import { liveGetVideo, liveLikeVideo, liveUnlikeVideo, liveTrackVideoTime } from './api/live';
+import { installFenicio } from './providers/fenicio';
 
 //plugins
 
@@ -76,17 +77,13 @@ function hasActions(option) {
 const GSSDK = async (clientId, options = {}) => {
 
   if (options && options.provider == 'Fenicio') {
-    console.log('[gopersonal] Fenicio provider - starting', window.gsSDK != undefined);
+    
     if (window.gsSDK != undefined) {
-      console.log('[gopersonal] Fenicio provider - existing SDK (already loaded) 4', window.gsConfig);
-      console.log('[gopersonal] Fenicio provider - new options', options);
 
       if (options?.context?.pageType === window?.gsConfig?.options?.context?.pageType) {
-        console.log('[gopersonal] Fenicio provider - same context returning existing SDK');
         return window.gsSDK;
       }else{
         if (options?.context?.pageType == 'product_detail'){
-          console.log('[gopersonal] Fenicio provider - product detail - cleaning up for 2');
 
           if (window.gsConfig?.options?.context) {
             window.gsConfig.options.context.pageType = 'product_detail';
@@ -206,6 +203,13 @@ const GSSDK = async (clientId, options = {}) => {
       liveUnlikeVideo: (videoId) => liveUnlikeVideo(videoId),
       liveTrackVideoTime: (videoId, time, videoViewId) => liveTrackVideoTime(videoId, time, videoViewId)
     };
+
+
+    if (options && options.provider == 'Fenicio'){
+      setTimeout(() => {
+        installFenicio(options);
+      }, 100);
+    }
 };
 
 export default GSSDK;
