@@ -9,12 +9,12 @@ export const installFenicio = async (options) => {
         
         if (window.gsSDK.addInteraction === originalAddInteraction) {
             window.gsSDK.addInteraction = function(data) {
-                if (data.event === 'cart') {
+                if (data.event === 'cart' || data.event === 'remove-cart') {
                     const item = data.item;
                     const quantity = data.quantity;
                     // Call the original function with modified data
                     originalAddInteraction({
-                        "event": "cart",
+                        "event": data.event,
                         "preProcess": ["findItemByField:sku_list"],
                         "fieldValue": item,
                         "quantity": quantity
