@@ -3,7 +3,7 @@ import { httpGet, httpPost, httpPatch } from '../utils/http';
 import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody, deleteGoPersonalElements } from '../utils/dom';
 import { previewVariant, getParam } from '../utils/urlParam';
 import { suscribe } from '../utils/trigger';
-
+import { getSession } from '../utils/storage';
 
 window.gsStore = {
   context: {
@@ -89,9 +89,15 @@ export const getContent = async (contentId, options) => {
     if (options.impressionStatus) {
       params.append('impressionStatus', options.impressionStatus);
     }
+    const sessionObj = getSession();
+    if (sessionObj &&sessionObj.project) {
+      params.append('project', sessionObj.project);
+    }
+    
     if (params.toString()) {
       url += `?${params.toString()}`;
     }
+    
     content = await httpPost(url, payload);
   } else {
     content = await httpGet(`/personal/content/${contentId}/variant/${prevVarId}`);
