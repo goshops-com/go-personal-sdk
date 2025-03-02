@@ -1,5 +1,4 @@
-
-import { httpGet, httpPost, httpPatch } from '../utils/http';
+import { httpGet, httpPost, httpPatch, httpPublicGet } from '../utils/http';
 import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody, deleteGoPersonalElements } from '../utils/dom';
 import { previewVariant, getParam } from '../utils/urlParam';
 import { suscribe } from '../utils/trigger';
@@ -11,6 +10,44 @@ window.gsStore = {
   },
   interactionCount: 0
 };
+
+async function obtainContentByContext(url, payload) {
+  const cacheKey = `gs_content_cache`;
+  const now = Date.now();
+  const CACHE_TTL = 5000; // 5 seconds in milliseconds
+  
+  let cachedData = localStorage.getItem(cacheKey);
+  
+  if (cachedData) {
+    cachedData = JSON.parse(cachedData);
+    
+    if (now - cachedData.timestamp < CACHE_TTL) {
+      return cachedData.data;
+    }
+    
+    const result = cachedData.data;
+    
+    httpPost(url, payload).then(freshData => {
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data: freshData,
+        timestamp: Date.now()
+      }));
+    }).catch(error => {
+      console.error('Error updating cached content:', error);
+    });
+    
+    return result;
+  }
+  
+  const result = await httpPost(url, payload);
+  
+  localStorage.setItem(cacheKey, JSON.stringify({
+    data: result,
+    timestamp: now
+  }));
+  
+  return result;
+}
 
 export const getContentByContext = async (context, options) => {
 
@@ -28,7 +65,7 @@ export const getContentByContext = async (context, options) => {
   }
 
   const payload = buildContextPayload(options);
-  const result = await httpPost(url, payload);
+  const result = await obtainContentByContext(url, payload);
   const contents = result.loadNowContent;
 
   try {
@@ -49,7 +86,7 @@ export const getContentByContext = async (context, options) => {
   try {
     const lazyLoadContent = result.lazyLoadContent;
     window.gsLog('LazyLoadContent ' + lazyLoadContent.length);
-    await Promise.all(lazyLoadContent.map(content => getContent(content.key, options)));
+    await Promise.all(lazyLoadContent.map(content => getContent(content.key, { ...options, cache: content.cache || 0 })));
   } catch (e) {
     console.error(e);
   }
@@ -78,29 +115,36 @@ export const getContent = async (contentId, options) => {
   const prevVarId = previewVariant();
 
   let content;
-  if (prevVarId === null) {
-    const payload = buildContextPayload(options)
 
-    let url = `/personal/content/${contentId}`;
-    const params = new URLSearchParams();
-    if (includeDraft) {
-      params.append('includeDraft', 'true');
+  const sessionObj = getSession();
+
+  if (options.cache && sessionObj.project){
+    content = await httpPublicGet(`/public/cached-content/${sessionObj.project}/${contentId}`);
+  }else{
+    if (prevVarId === null) {
+      const payload = buildContextPayload(options)
+  
+      let url = `/personal/content/${contentId}`;
+      const params = new URLSearchParams();
+      if (includeDraft) {
+        params.append('includeDraft', 'true');
+      }
+      if (options.impressionStatus) {
+        params.append('impressionStatus', options.impressionStatus);
+      }
+      
+      if (sessionObj &&sessionObj.project) {
+        params.append('project', sessionObj.project);
+      }
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      content = await httpPost(url, payload);
+    } else {
+      content = await httpGet(`/personal/content/${contentId}/variant/${prevVarId}`);
     }
-    if (options.impressionStatus) {
-      params.append('impressionStatus', options.impressionStatus);
-    }
-    const sessionObj = getSession();
-    if (sessionObj &&sessionObj.project) {
-      params.append('project', sessionObj.project);
-    }
-    
-    if (params.toString()) {
-      url += `?${params.toString()}`;
-    }
-    
-    content = await httpPost(url, payload);
-  } else {
-    content = await httpGet(`/personal/content/${contentId}/variant/${prevVarId}`);
   }
 
   if (!content.key) {

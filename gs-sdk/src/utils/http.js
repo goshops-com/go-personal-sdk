@@ -58,6 +58,24 @@ export const httpGet = async (endpoint, params = {}, includeHeaders = false) => 
   return data;
 };
 
+export const httpPublicGet = async (endpoint, params = {}) => {
+  const url = new URL(`${BASE_URL}${endpoint}`);
+  Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`GET request failed: ${response.status}`);
+  }
+
+  return await response.json();
+};
+
 
 export const httpPost = async (endpoint, body = {}) => {
   const obj = getToken();
