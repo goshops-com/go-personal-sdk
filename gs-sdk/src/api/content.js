@@ -18,7 +18,7 @@ async function obtainContentByContext(url, payload) {
   
   let cachedData = localStorage.getItem(cacheKey);
   
-  if (cachedData) {
+  if (false && cachedData) {
     cachedData = JSON.parse(cachedData);
     
     if (now - cachedData.timestamp < CACHE_TTL) {
