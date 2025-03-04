@@ -1,2 +1,2 @@
 /gs-sdk.js
-  Cache-Control: public, max-age=300, immutable
+  Cache-Control: public, max-age=300, stale-while-revalidate=120, immutable
