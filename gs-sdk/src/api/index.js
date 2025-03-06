@@ -576,6 +576,10 @@ export const getAffinity = (params = {}) => {
   return httpGet(`/channel/whoiam/affinity`);
 }
 
+export const getAffinityCustomer = (params = {}) => {
+  return httpGet(`/channel/whoiam?includeCustomer=true`);
+}
+
 function generateUniqueId() {
   let array = new Uint8Array(16);
   window.crypto.getRandomValues(array);
