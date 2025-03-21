@@ -11,10 +11,10 @@ window.gsStore = {
   interactionCount: 0
 };
 
-async function obtainContentByContext(url, payload, context) {
-  const cacheKey = `gs_content_cache_${context}`;
+async function obtainContentByContext(url, payload, context, includeDraft = false) {
+  const cacheKey = `gs_content_cache_${context}_${includeDraft}`;
   const now = Date.now();
-  const CACHE_TTL = 5000; // 5 seconds in milliseconds
+  const CACHE_TTL = 5000;
   
   let cachedData = localStorage.getItem(cacheKey);
   
@@ -65,7 +65,7 @@ export const getContentByContext = async (context, options) => {
   }
 
   const payload = buildContextPayload(options);
-  const result = await obtainContentByContext(url, payload, context);
+  const result = await obtainContentByContext(url, payload, context, includeDraftParam);
   const contents = result.loadNowContent;
 
   try {
