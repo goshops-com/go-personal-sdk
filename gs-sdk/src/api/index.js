@@ -1,4 +1,4 @@
-import { httpGet, httpPost, httpPut, httpPostFormData, configure, httpPatch } from '../utils/http';
+import { httpGet, httpPost, httpPut, httpPostFormData, configure, httpPatch, httpPublicGet } from '../utils/http';
 import { setSession, addDataToSession, clearSession, isTokenValid, getToken, checkSameClientId, setClientId, getSession, getVUUID, setVUUID } from '../utils/storage';
 import { jsonToQueryString, getParam } from '../utils/urlParam';
 import { setupContentSelector } from '../utils/configure';
@@ -400,7 +400,9 @@ export const getItems = async (params) => {
 };
 
 export const downloadSearchAutocompleteIndex = async () => {
-  return httpGet(`/item/search-autocomplete`);
+  const sessionObj = getSession();
+  const project = sessionObj.project;
+  return httpPublicGet(`/public/search-autocomplete/${project}`);
 }
 
 export const searchChat = async (payload) => {
