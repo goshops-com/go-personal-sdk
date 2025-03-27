@@ -11,6 +11,7 @@ import { getUrlParameter, removeParamFromUrl } from './utils/dom';
 import { getCurrentGeoIPLocation } from './api/geolocation';
 import { liveGetVideo, liveLikeVideo, liveUnlikeVideo, liveTrackVideoTime } from './api/live';
 import { installFenicio } from './providers/fenicio';
+import { setSharedToken, getSharedToken } from './utils/session';
 
 //plugins
 
@@ -209,7 +210,9 @@ const GSSDK = async (clientId, options = {}) => {
       liveGetVideo: (videoId) => liveGetVideo(videoId),
       liveLikeVideo: (videoId) => liveLikeVideo(videoId),
       liveUnlikeVideo: (videoId) => liveUnlikeVideo(videoId),
-      liveTrackVideoTime: (videoId, time, videoViewId) => liveTrackVideoTime(videoId, time, videoViewId)
+      liveTrackVideoTime: (videoId, time, videoViewId) => liveTrackVideoTime(videoId, time, videoViewId),
+      setSharedToken: () => setSharedToken(),
+      getSharedToken: () => getSharedToken()
     };
     
 };

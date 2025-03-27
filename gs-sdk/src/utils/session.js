@@ -1,8 +1,10 @@
-
 const iframeOrigin = "https://gs-sdk.pages.dev"; // adjust this to your iframe server domain
 
+import { getToken } from './storage';
 
-export const getSharedToken = (clientId, clientOrigin) => {
+export const getSharedToken = () => {
+    const clientId = window.gsConfig.clientId;
+    const clientOrigin = clientId;
 
     return new Promise((resolve, reject) => {
         const iframeUrl = `${iframeOrigin}/iframe.html?clientOrigin=${encodeURIComponent(clientOrigin)}&clientId=${clientId}`;
@@ -38,12 +40,26 @@ export const getSharedToken = (clientId, clientOrigin) => {
    
 }
 
-export const clearToken = (clientId) => {
+export const clearToken = () => {
+    const clientId = window.gsConfig.clientId;
     const iframe = document.getElementById('gs_sessionTokenIframe');
     if (iframe) {
         iframe.contentWindow.postMessage({
             action: 'clearToken',
             clientId: clientId
         }, iframeOrigin);
+    }
+}
+
+export const setSharedToken = () => {
+    const clientId = window.gsConfig.clientId;
+    const obj = getToken();
+    const iframe = document.getElementById('gs_sessionTokenIframe')
+    if (iframe) {
+        iframe.contentWindow.postMessage({
+            action: 'setToken',
+            clientId: clientId,
+            token: obj.token
+        }, iframeOrigin)
     }
 }

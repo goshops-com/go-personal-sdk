@@ -11,6 +11,7 @@ export const bestProducts = async (options = {}) => {
 
 export const byContext = async (options = {}) => {
   let context = options.context;
+  const filter = options.filter;
 
   const currentPageContext = window.gsConfig.options.context || {};
   if (currentPageContext.pageType == 'product_detail' && currentPageContext.product_id){
@@ -20,7 +21,16 @@ export const byContext = async (options = {}) => {
       }
     }
   }
-    
+
+  let filterVariable;
+  if (filter) {
+    filterVariable = {
+      "type": {
+          "id": "recoOptions"
+      },
+      "value": {"filter_string": JSON.stringify(filter)}
+    }
+  }
   const strategy = options.strategy || 'similarity';
   const count = options.count || 10;
 
@@ -29,24 +39,28 @@ export const byContext = async (options = {}) => {
     q += 'includeImpressionId=true';
   }
 
+  const variables = [
+    {
+        "type": {
+            "id": "gs_recoStrategy"
+        },
+        "value": {
+            "id": strategy
+        }
+    },
+    {
+        "type": {
+            "id": "gs_recoCount"
+        },
+        "value": count + ''
+    }
+  ]
+  if (filterVariable) {
+    variables.push(filterVariable);
+  }
   return await httpPost(`/recommendations/by-context?${q}`, {
     context: context,
-    "variables": [
-      {
-          "type": {
-              "id": "gs_recoStrategy"
-          },
-          "value": {
-              "id": strategy
-          }
-      },
-      {
-          "type": {
-              "id": "gs_recoCount"
-          },
-          "value": count + ''
-      }
-    ]
+    "variables": variables
   });
 };
 
