@@ -4,7 +4,7 @@ import { getToken } from './storage';
 
 export const getSharedToken = () => {
     const clientId = window.gsConfig.clientId;
-    const clientOrigin = clientId;
+    const clientOrigin = window.location.origin;
 
     return new Promise((resolve, reject) => {
         const iframeUrl = `${iframeOrigin}/iframe.html?clientOrigin=${encodeURIComponent(clientOrigin)}&clientId=${clientId}`;
