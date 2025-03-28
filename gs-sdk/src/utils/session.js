@@ -1,6 +1,6 @@
 const iframeOrigin = "https://sdk.gopersonal.ai";
 
-import { getToken } from './storage';
+import { getToken, getSession } from './storage';
 
 export const getSharedToken = () => {
     const clientId = window.gsConfig.clientId;
@@ -54,7 +54,7 @@ export const clearToken = () => {
 export const setSharedToken = () => {
     const clientId = window.gsConfig.clientId;
     const clientOrigin = window.location.origin;
-    const obj = getToken();
+    const obj = getSession();
     let iframe = document.getElementById('gs_sessionTokenIframe');
 
     if (!iframe) {
@@ -67,8 +67,8 @@ export const setSharedToken = () => {
     }
 
     iframe.contentWindow.postMessage({
-        action: 'setToken',
+        action: 'setSession',
         clientId: clientId,
-        token: obj.token
+        session: obj
     }, iframeOrigin);
 }

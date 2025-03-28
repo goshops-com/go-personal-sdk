@@ -80,6 +80,11 @@
             console.log('Session data for client ' + data.clientId + ' set.');
             // Optionally notify the client that the token has been cleared
             window.parent.postMessage({ action: 'tokenSet', clientId: data.clientId }, clientOrigin);
+        }else if (data.action === 'setSession' && data.clientId) {
+            localStorage.setItem('sessionData_' + data.clientId, JSON.stringify(data.session));
+            console.log('Session data for client ' + data.clientId + ' set.');
+            // Optionally notify the client that the token has been cleared
+            window.parent.postMessage({ action: 'sessionSet', clientId: data.clientId }, clientOrigin);
         }
     });
 </script>
