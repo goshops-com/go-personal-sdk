@@ -5,39 +5,45 @@ import { getToken, getSession } from './storage';
 export const getSharedToken = () => {
     const clientId = window.gsConfig.clientId;
     const clientOrigin = window.location.origin;
+    let iframe = document.getElementById('gs_sessionTokenIframe');
 
     return new Promise((resolve, reject) => {
-        const iframeUrl = `${iframeOrigin}/iframe.html?clientOrigin=${encodeURIComponent(clientOrigin)}&clientId=${clientId}`;
-
-        // Create iframe dynamically
-        const iframe = document.createElement('iframe');
-        iframe.src = iframeUrl;
-        iframe.style.display = "none"; // Hide the iframe
-        iframe.id = 'gs_sessionTokenIframe';
-        document.body.appendChild(iframe);
-
-        // Listener for messages from the iframe
         function messageHandler(event) {
-            // Ensure messages are coming from the expected origin
             if (event.origin !== iframeOrigin) {
                 return;
             }
 
-            const token = event.data;
-
-            if (token) {
-                resolve(token);
-            } else {
-                reject(new Error("Token not received"));
+            if (event.data.action === 'sessionData') {
+                window.removeEventListener('message', messageHandler);
+                if (event.data.session) {
+                    resolve(event.data.session);
+                } else {
+                    reject(new Error("Session not received"));
+                }
             }
-
-            // Remove the event listener to avoid any potential memory leaks
-            window.removeEventListener('message', messageHandler);
         }
 
         window.addEventListener('message', messageHandler);
+
+        const setupIframe = () => {
+            iframe.contentWindow.postMessage({
+                action: 'getSession',
+                clientId: clientId
+            }, iframeOrigin);
+        };
+
+        if (!iframe) {
+            const iframeUrl = `${iframeOrigin}/iframe.html?clientOrigin=${encodeURIComponent(clientOrigin)}&clientId=${clientId}`;
+            iframe = document.createElement('iframe');
+            iframe.src = iframeUrl;
+            iframe.style.display = "none";
+            iframe.id = 'gs_sessionTokenIframe';
+            iframe.onload = setupIframe;
+            document.body.appendChild(iframe);
+        } else {
+            setupIframe();
+        }
     });
-   
 }
 
 export const clearToken = () => {
@@ -57,23 +63,38 @@ export const setSharedToken = () => {
     const obj = getSession();
     let iframe = document.getElementById('gs_sessionTokenIframe');
 
-    const sendMessage = () => {
-        iframe.contentWindow.postMessage({
-            action: 'setSession',
-            clientId: clientId,
-            session: obj
-        }, iframeOrigin);
-    };
+    return new Promise((resolve, reject) => {
+        function messageHandler(event) {
+            if (event.origin !== iframeOrigin) {
+                return;
+            }
 
-    if (!iframe) {
-        const iframeUrl = `${iframeOrigin}/iframe.html?clientOrigin=${encodeURIComponent(clientOrigin)}&clientId=${clientId}`;
-        iframe = document.createElement('iframe');
-        iframe.src = iframeUrl;
-        iframe.style.display = "none";
-        iframe.id = 'gs_sessionTokenIframe';
-        iframe.onload = sendMessage;
-        document.body.appendChild(iframe);
-    } else {
-        sendMessage();
-    }
+            if (event.data.action === 'sessionSet') {
+                window.removeEventListener('message', messageHandler);
+                resolve();
+            }
+        }
+
+        window.addEventListener('message', messageHandler);
+
+        const sendMessage = () => {
+            iframe.contentWindow.postMessage({
+                action: 'setSession',
+                clientId: clientId,
+                session: obj
+            }, iframeOrigin);
+        };
+
+        if (!iframe) {
+            const iframeUrl = `${iframeOrigin}/iframe.html?clientOrigin=${encodeURIComponent(clientOrigin)}&clientId=${clientId}`;
+            iframe = document.createElement('iframe');
+            iframe.src = iframeUrl;
+            iframe.style.display = "none";
+            iframe.id = 'gs_sessionTokenIframe';
+            iframe.onload = sendMessage;
+            document.body.appendChild(iframe);
+        } else {
+            sendMessage();
+        }
+    });
 }
