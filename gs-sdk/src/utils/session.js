@@ -57,18 +57,23 @@ export const setSharedToken = () => {
     const obj = getSession();
     let iframe = document.getElementById('gs_sessionTokenIframe');
 
+    const sendMessage = () => {
+        iframe.contentWindow.postMessage({
+            action: 'setSession',
+            clientId: clientId,
+            session: obj
+        }, iframeOrigin);
+    };
+
     if (!iframe) {
         const iframeUrl = `${iframeOrigin}/iframe.html?clientOrigin=${encodeURIComponent(clientOrigin)}&clientId=${clientId}`;
         iframe = document.createElement('iframe');
         iframe.src = iframeUrl;
         iframe.style.display = "none";
         iframe.id = 'gs_sessionTokenIframe';
+        iframe.onload = sendMessage;
         document.body.appendChild(iframe);
+    } else {
+        sendMessage();
     }
-
-    iframe.contentWindow.postMessage({
-        action: 'setSession',
-        clientId: clientId,
-        session: obj
-    }, iframeOrigin);
 }
