@@ -9,8 +9,6 @@
 <body>
 
 <script>
-
-    // Function to retrieve URL parameters
     function getParameterByName(name, url) {
         if (!url) url = window.location.href;
         name = name.replace(/[\[\]]/g, '\\$&');
@@ -21,43 +19,17 @@
         return decodeURIComponent(results[2].replace(/\+/g, ' '));
     }
 
-    // Function to generate a unique session token (UUID + timestamp)
     function generateTokenWithTimestamp() {
         return uuid.v4() + '_' + Date.now();
     }
 
-    // Retrieve clientOrigin and clientId from URL parameters
     const clientOrigin = getParameterByName('clientOrigin');
     const clientId = getParameterByName('clientId');
 
-    if (clientOrigin && clientId) {
-        // console.log(`ClientOrigin: ${clientOrigin}, ClientId: ${clientId}`);
-
-        const currentTimestamp = Date.now();
-        const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
-
-        let sessionData = JSON.parse(localStorage.getItem('sessionData_' + clientId));
-        // console.log('sessionData', sessionData);
-        
-        if (sessionData && (currentTimestamp - sessionData.timestamp < oneDayInMilliseconds)) {
-            // If the token is valid, send it back to the client
-            window.parent.postMessage(sessionData.token, clientOrigin);
-        } else {
-            // Generate a new token if the old one is invalid or doesn't exist
-            const newToken = generateTokenWithTimestamp();
-            sessionData = {
-                token: newToken,
-                timestamp: currentTimestamp
-            };
-            localStorage.setItem('sessionData_' + clientId, JSON.stringify(sessionData));
-
-            window.parent.postMessage(newToken, clientOrigin);
-        }
-    } else {
+    if (!clientOrigin || !clientId) {
         console.error("Client origin or clientId not specified!");
     }
 
-    // Listen for messages from the parent window
     window.addEventListener('message', (event) => {
         if (event.origin !== clientOrigin) {
             return;
