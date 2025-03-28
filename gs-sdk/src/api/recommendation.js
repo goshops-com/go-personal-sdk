@@ -12,7 +12,7 @@ export const bestProducts = async (options = {}) => {
 export const byContext = async (options = {}) => {
   let context = options.context;
   const filter = options.filter;
-  const options = options.options;
+  const recoOptions = options.options;
 
   const currentPageContext = window.gsConfig.options.context || {};
   if (currentPageContext.pageType == 'product_detail' && currentPageContext.product_id){
@@ -27,7 +27,7 @@ export const byContext = async (options = {}) => {
   if (filter || options.filter) {
     const mergedFilter = {
       ...filter,
-      ...options
+      ...recoOptions
     }
     filterVariable = {
       "type": {
