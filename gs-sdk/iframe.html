@@ -10,8 +10,6 @@
 
 <script>
 
-    console.log('Loaddd');
-
     // Function to retrieve URL parameters
     function getParameterByName(name, url) {
         if (!url) url = window.location.href;
@@ -77,6 +75,11 @@
 
             // Optionally notify the client that the token has been cleared
             window.parent.postMessage({ action: 'tokenCleared', clientId: data.clientId }, clientOrigin);
+        }else if (data.action === 'setToken' && data.clientId) {
+            localStorage.setItem('sessionData_' + data.clientId, data.token);
+            console.log('Session data for client ' + data.clientId + ' set.');
+            // Optionally notify the client that the token has been cleared
+            window.parent.postMessage({ action: 'tokenSet', clientId: data.clientId }, clientOrigin);
         }
     });
 </script>
