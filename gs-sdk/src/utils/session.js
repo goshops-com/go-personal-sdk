@@ -1,4 +1,4 @@
-const iframeOrigin = "https://gs-sdk.pages.dev"; // adjust this to your iframe server domain
+const iframeOrigin = "https://sdk.gopersonal.ai";
 
 import { getToken } from './storage';
 
