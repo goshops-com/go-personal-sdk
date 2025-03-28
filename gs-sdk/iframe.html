@@ -31,13 +31,13 @@
     const clientId = getParameterByName('clientId');
 
     if (clientOrigin && clientId) {
-        console.log(`ClientOrigin: ${clientOrigin}, ClientId: ${clientId}`);
+        // console.log(`ClientOrigin: ${clientOrigin}, ClientId: ${clientId}`);
 
         const currentTimestamp = Date.now();
         const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
 
         let sessionData = JSON.parse(localStorage.getItem('sessionData_' + clientId));
-        console.log('sessionData', sessionData);
+        // console.log('sessionData', sessionData);
         
         if (sessionData && (currentTimestamp - sessionData.timestamp < oneDayInMilliseconds)) {
             // If the token is valid, send it back to the client
@@ -71,7 +71,7 @@
         // Handle the clearToken action
         if (data.action === 'clearToken' && data.clientId) {
             localStorage.removeItem('sessionData_' + data.clientId);
-            console.log('Session data for client ' + data.clientId + ' cleared.');
+            // console.log('Session data for client ' + data.clientId + ' cleared.');
 
             // Optionally notify the client that the token has been cleared
             window.parent.postMessage({ action: 'tokenCleared', clientId: data.clientId }, clientOrigin);
@@ -82,7 +82,7 @@
             window.parent.postMessage({ action: 'tokenSet', clientId: data.clientId }, clientOrigin);
         }else if (data.action === 'setSession' && data.clientId) {
             localStorage.setItem('sessionData_' + data.clientId, JSON.stringify(data.session));
-            console.log('Session data for client ' + data.clientId + ' set.');
+            console.log('Session data for client ' + data.clientId + ' set.', data.session);
             // Optionally notify the client that the token has been cleared
             window.parent.postMessage({ action: 'sessionSet', clientId: data.clientId }, clientOrigin);
         }
