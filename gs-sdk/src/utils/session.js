@@ -53,13 +53,22 @@ export const clearToken = () => {
 
 export const setSharedToken = () => {
     const clientId = window.gsConfig.clientId;
+    const clientOrigin = window.location.origin;
     const obj = getToken();
-    const iframe = document.getElementById('gs_sessionTokenIframe')
-    if (iframe) {
-        iframe.contentWindow.postMessage({
-            action: 'setToken',
-            clientId: clientId,
-            token: obj.token
-        }, iframeOrigin)
+    let iframe = document.getElementById('gs_sessionTokenIframe');
+
+    if (!iframe) {
+        const iframeUrl = `${iframeOrigin}/iframe.html?clientOrigin=${encodeURIComponent(clientOrigin)}&clientId=${clientId}`;
+        iframe = document.createElement('iframe');
+        iframe.src = iframeUrl;
+        iframe.style.display = "none";
+        iframe.id = 'gs_sessionTokenIframe';
+        document.body.appendChild(iframe);
     }
+
+    iframe.contentWindow.postMessage({
+        action: 'setToken',
+        clientId: clientId,
+        token: obj.token
+    }, iframeOrigin);
 }

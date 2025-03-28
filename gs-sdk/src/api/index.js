@@ -53,7 +53,7 @@ export const init = async (clientId, options) => {
 
   let externalSessionId;
   if (options.multipleDomains) {
-    externalSessionId = await getSharedToken(clientId, clientOrigin);
+    externalSessionId = await getSharedToken();
   }
 
   let vuuid = getVUUID();
