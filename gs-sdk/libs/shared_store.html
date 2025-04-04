@@ -30,28 +30,50 @@
             const key = getParameterByName('key');
             const value = getParameterByName('value');
             const action = getParameterByName('action') || 'set';
+            const useSharedCookie = getParameterByName('useSharedCookie') === 'true';
+            const origin = getParameterByName('origin') || '*';
 
             if (key) {
                 if (action === 'get') {
-                    const storedValue = localStorage.getItem(key);
+                    let storedValue;
+                    
+                    if (useSharedCookie) {
+                        // Get from cookie instead of localStorage
+                        const cookies = document.cookie.split(';');
+                        const cookie = cookies.find(c => c.trim().startsWith(`${key}=`));
+                        storedValue = cookie ? cookie.split('=')[1] : null;
+                    } else {
+                        // Get from localStorage
+                        storedValue = localStorage.getItem(key);
+                    }
+                    
                     if (window.parent && window.parent !== window) {
                         window.parent.postMessage({
                             type: 'localStorage',
                             action: 'get',
                             key: key,
                             value: storedValue
-                        }, '*');
+                        }, origin);
                     }
                     return storedValue;
                 } else if (action === 'set' && value !== null) {
-                    localStorage.setItem(key, value);
+                    if (useSharedCookie) {
+                        // Store in cookie instead of localStorage
+                        // Set cookie with broad domain access
+                        const domain = window.location.hostname.split('.').slice(-2).join('.');
+                        document.cookie = `${key}=${value}; path=/; domain=.${domain}; max-age=31536000; SameSite=None; Secure`;
+                    } else {
+                        // Store in localStorage
+                        localStorage.setItem(key, value);
+                    }
+                    
                     if (window.parent && window.parent !== window) {
                         window.parent.postMessage({
                             type: 'localStorage',
                             action: 'set',
                             key: key,
                             success: true
-                        }, '*');
+                        }, origin);
                     }
                     return true;
                 }
@@ -60,6 +82,53 @@
         }
 
         window.addEventListener('load', processRequest);
+        
+        // Add support for CORS
+        window.addEventListener('message', function(event) {
+            // Respond to external requests
+            if (event.data && event.data.type === 'localStorage-request') {
+                const key = event.data.key;
+                const value = event.data.value;
+                const action = event.data.action || 'set';
+                const useSharedCookie = event.data.useSharedCookie;
+                
+                let result;
+                if (action === 'get') {
+                    if (useSharedCookie) {
+                        // Get from cookie
+                        const cookies = document.cookie.split(';');
+                        const cookie = cookies.find(c => c.trim().startsWith(`${key}=`));
+                        result = cookie ? cookie.split('=')[1] : null;
+                    } else {
+                        // Get from localStorage
+                        result = localStorage.getItem(key);
+                    }
+                    
+                    event.source.postMessage({
+                        type: 'localStorage',
+                        action: 'get',
+                        key: key,
+                        value: result
+                    }, event.origin);
+                } else if (action === 'set' && value !== undefined) {
+                    if (useSharedCookie) {
+                        // Store in cookie
+                        const domain = window.location.hostname.split('.').slice(-2).join('.');
+                        document.cookie = `${key}=${value}; path=/; domain=.${domain}; max-age=31536000; SameSite=None; Secure`;
+                    } else {
+                        // Store in localStorage
+                        localStorage.setItem(key, value);
+                    }
+                    
+                    event.source.postMessage({
+                        type: 'localStorage',
+                        action: 'set',
+                        key: key,
+                        success: true
+                    }, event.origin);
+                }
+            }
+        });
     </script>
 </body>
 </html>
