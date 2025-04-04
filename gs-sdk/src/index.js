@@ -108,6 +108,8 @@ const GSSDK = async (clientId, options = {}) => {
   window.gsImpressionIds = [];
   if (options.log) {
     window.gsConfig.log = true;
+  }else{
+    window.gsConfig.log = getUrlParameter('_gsLog');
   }
 
   const playgroundToken = getUrlParameter('_gsPlaygroundToken');
@@ -148,11 +150,10 @@ const GSSDK = async (clientId, options = {}) => {
     }
   }
 
-  console.log('[go personal]', '1.0.0');
+  console.log('[go personal]', '1.0.1');
 
   if (options && options.provider == 'Fenicio'){
     setTimeout(() => {
-      console.log('[go personal]', 'installing fenicio scripts [1]');
       installFenicio(options);
     }, 100);
   }
