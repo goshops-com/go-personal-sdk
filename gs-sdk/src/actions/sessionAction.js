@@ -3,7 +3,7 @@ import { getSession } from '../utils/storage';
 import { getUrlParameter } from '../utils/dom';
 
 function storeValue(key, value) {
-    return fetch('https://gopersonal-kv.go-shops.workers.dev/' + key, {
+    return fetch('https://kv.gopersonal.ai/' + key, {
         method: 'PUT',
         body: value,
         headers: {
