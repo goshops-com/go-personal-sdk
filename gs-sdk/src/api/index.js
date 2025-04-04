@@ -38,6 +38,13 @@ export const init = async (clientId, options) => {
     setClientId(clientId);
   }
 
+  if (options.readSharedSession) {
+    const sharedSession = await getSharedToken();
+    if (sharedSession) {
+      setSession(sharedSession);
+    }
+  }
+
   if (isTokenValid()) {
     const obj = getToken();
     const session = getSession();
