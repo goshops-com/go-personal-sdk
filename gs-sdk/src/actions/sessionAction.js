@@ -37,8 +37,10 @@ function storeValue(key, value) {
 }
 
 async function _setSharedSession(key) {
+    console.log('setSharedSession', key);
     const obj = getSession();
     await storeValue(key, JSON.stringify(obj));
+    console.log('setSharedSession', key, obj);
 };
 
 export const executeActions = (provider) => {
