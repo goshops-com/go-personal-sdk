@@ -28,7 +28,7 @@ async function _setSharedSession(key) {
     await storeValue(key, JSON.stringify(obj));
 };
 
-export const executeActions = (provider) => {
+export const executeActions = async (provider) => {
     const key = getUrlParameter('_gsSessionSet');
     const callback = getUrlParameter('callback');
     if (!key || !callback) {
@@ -37,7 +37,7 @@ export const executeActions = (provider) => {
 
     const id = uuidv4();
 
-    _setSharedSession(id);
+    await _setSharedSession(id);
 
     if (callback) {
         const redirectUrl = new URL(callback);
