@@ -143,7 +143,7 @@ const GSSDK = async (clientId, options = {}) => {
   if (hasActions(options)) {
     executeActions(options.provider);
     executeSearchActions(options.provider);
-    await executeSessionActions(options.provider);
+    executeSessionActions(options.provider);
     const trackURL = getUrlParameter('_gsTrackExecutionId');
     if (trackURL) {
       trackURLClicked(trackURL);

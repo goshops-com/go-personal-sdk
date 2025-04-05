@@ -28,20 +28,20 @@ async function _setSharedSession(key) {
     await storeValue(key, JSON.stringify(obj));
 };
 
-export const executeActions = async (provider) => {
+export const executeActions = (provider) => {
     const key = getUrlParameter('_gsSessionSet');
     const callback = getUrlParameter('callback');
     if (!key || !callback) {
         return;
     }
 
-    const id = uuidv4();
+    const obj = getSession();
 
-    await _setSharedSession(id);
-
+    
     if (callback) {
         const redirectUrl = new URL(callback);
-        redirectUrl.searchParams.append('gsSessionId', id);
+        redirectUrl.searchParams.append('gsSessionId', obj.sessionId);
+        redirectUrl.searchParams.append('gsCustomerId', obj.vuuid);
         window.location.href = redirectUrl.toString();
     }
 }
