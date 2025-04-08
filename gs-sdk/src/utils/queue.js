@@ -7,13 +7,11 @@ export const addToQueue = (data) => {
   const queue = JSON.parse(localStorage.getItem('queue') || '[]');
   queue.push(data);
   localStorage.setItem(queueKey, JSON.stringify(queue));
-  console.log('task added to queue');
 }
 
 export const subscribeToTask = (taskType, callback, params) => {
-  console.log('subscribeToTask')
   const subscribers = JSON.parse(localStorage.getItem(subscriberKey) || '{}');
-  
+
   if (!subscribers[taskType]) {
     subscribers[taskType] = [];
   }
@@ -27,49 +25,40 @@ export const subscribeToTask = (taskType, callback, params) => {
   });
 
   localStorage.setItem(subscriberKey, JSON.stringify(subscribers));
-  console.log(JSON.stringify(subscribers));
 }
 
 export const subscribeQueue = () => {
 
-  console.log('subscribeQueue');
-
   setInterval(() => {
-    
+
     const queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
     const subscribers = JSON.parse(localStorage.getItem(subscriberKey) || '{}');
 
     if (queue.length > 0) {
-        console.log('Processing:', queue[0]);
-        console.log('subscribers', subscribers);
 
-        const task = queue[0];
-        const expirationDate = task.expirationDate;
-        const now = new Date().getTime()
-        if (now < expirationDate) {
-          
-          // Find subscribers to this task.
-          console.log('expirationDate', expirationDate);
-          console.log('task.type', task.type);
-          
-          const taskSubscribers = subscribers[task.type] || [];
-          console.log('taskSubscribers', taskSubscribers);
+      const task = queue[0];
+      const expirationDate = task.expirationDate;
+      const now = new Date().getTime()
+      if (now < expirationDate) {
 
-          // Execute all the subscribers.
-          taskSubscribers.forEach(subscriber => {
-            console.log('subscriber.params', subscriber.params)
-            const deserializedFunc = eval('(' + subscriber.callback + ')');
-            deserializedFunc(subscriber.params);
-          });
+        // Find subscribers to this task.
 
-          // Clear subscribers for this task type to ensure they are executed only once.
-          delete subscribers[task.type];
-          localStorage.setItem(subscriberKey, JSON.stringify(subscribers));
-        }
+        const taskSubscribers = subscribers[task.type] || [];
 
-        // Remove the task from the queue.
-        queue.shift();
-        localStorage.setItem(queueKey, JSON.stringify(queue));
+        // Execute all the subscribers.
+        taskSubscribers.forEach(subscriber => {
+          const deserializedFunc = eval('(' + subscriber.callback + ')');
+          deserializedFunc(subscriber.params);
+        });
+
+        // Clear subscribers for this task type to ensure they are executed only once.
+        delete subscribers[task.type];
+        localStorage.setItem(subscriberKey, JSON.stringify(subscribers));
+      }
+
+      // Remove the task from the queue.
+      queue.shift();
+      localStorage.setItem(queueKey, JSON.stringify(queue));
     }
 
   }, 500); // Checks localStorage every 500ms

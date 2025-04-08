@@ -9,10 +9,6 @@
 <body>
 
 <script>
-
-    console.log('Loaddd');
-
-    // Function to retrieve URL parameters
     function getParameterByName(name, url) {
         if (!url) url = window.location.href;
         name = name.replace(/[\[\]]/g, '\\$&');
@@ -23,60 +19,40 @@
         return decodeURIComponent(results[2].replace(/\+/g, ' '));
     }
 
-    // Function to generate a unique session token (UUID + timestamp)
     function generateTokenWithTimestamp() {
         return uuid.v4() + '_' + Date.now();
     }
 
-    // Retrieve clientOrigin and clientId from URL parameters
     const clientOrigin = getParameterByName('clientOrigin');
     const clientId = getParameterByName('clientId');
 
-    if (clientOrigin && clientId) {
-        console.log(`ClientOrigin: ${clientOrigin}, ClientId: ${clientId}`);
-
-        const currentTimestamp = Date.now();
-        const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
-
-        let sessionData = JSON.parse(localStorage.getItem('sessionData_' + clientId));
-        console.log('sessionData', sessionData);
-        
-        if (sessionData && (currentTimestamp - sessionData.timestamp < oneDayInMilliseconds)) {
-            // If the token is valid, send it back to the client
-            window.parent.postMessage(sessionData.token, clientOrigin);
-        } else {
-            // Generate a new token if the old one is invalid or doesn't exist
-            const newToken = generateTokenWithTimestamp();
-            sessionData = {
-                token: newToken,
-                timestamp: currentTimestamp
-            };
-            localStorage.setItem('sessionData_' + clientId, JSON.stringify(sessionData));
-
-            window.parent.postMessage(newToken, clientOrigin);
-        }
-    } else {
+    if (!clientOrigin || !clientId) {
         console.error("Client origin or clientId not specified!");
     }
 
-    // Listen for messages from the parent window
     window.addEventListener('message', (event) => {
-
-        console.log('message')
-        // Validate the origin
         if (event.origin !== clientOrigin) {
             return;
         }
 
         const data = event.data;
 
-        // Handle the clearToken action
         if (data.action === 'clearToken' && data.clientId) {
             localStorage.removeItem('sessionData_' + data.clientId);
-            console.log('Session data for client ' + data.clientId + ' cleared.');
-
-            // Optionally notify the client that the token has been cleared
             window.parent.postMessage({ action: 'tokenCleared', clientId: data.clientId }, clientOrigin);
+        } else if (data.action === 'setToken' && data.clientId) {
+            localStorage.setItem('sessionData_' + data.clientId, JSON.stringify({token: data.token, timestamp: Date.now()}));
+            window.parent.postMessage({ action: 'tokenSet', clientId: data.clientId }, clientOrigin);
+        } else if (data.action === 'setSession' && data.clientId) {
+            localStorage.setItem('sessionData_' + data.clientId, JSON.stringify(data.session));
+            window.parent.postMessage({ action: 'sessionSet', clientId: data.clientId }, clientOrigin);
+        } else if (data.action === 'getSession' && data.clientId) {
+            const sessionData = JSON.parse(localStorage.getItem('sessionData_' + data.clientId));
+            window.parent.postMessage({ 
+                action: 'sessionData', 
+                clientId: data.clientId,
+                session: sessionData 
+            }, clientOrigin);
         }
     });
 </script>

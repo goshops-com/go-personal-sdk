@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>localStorage Handler</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 0;
+            height: 0;
+            overflow: hidden;
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        function getParameterByName(name, url = window.location.href) {
+            name = name.replace(/[\[\]]/g, '\\$&');
+            const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+            const results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+
+        function processRequest() {
+            const key = getParameterByName('key');
+            const value = getParameterByName('value');
+            const action = getParameterByName('action') || 'set';
+            const origin = getParameterByName('origin') || '*';
+
+            if (key) {
+                if (action === 'get') {
+                    const storedValue = localStorage.getItem(key);
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage({
+                            type: 'localStorage',
+                            action: 'get',
+                            key: key,
+                            value: storedValue
+                        }, origin);
+                    }
+                    return storedValue;
+                } else if (action === 'set' && value !== null) {
+                    localStorage.setItem(key, value);
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage({
+                            type: 'localStorage',
+                            action: 'set',
+                            key: key,
+                            success: true
+                        }, origin);
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        window.addEventListener('load', processRequest);
+        
+        // Enable CORS through postMessage
+        window.addEventListener('message', function(event) {
+            // Accept requests from any domain
+            if (event.data && event.data.type === 'localStorage-request') {
+                const key = event.data.key;
+                const value = event.data.value;
+                const action = event.data.action || 'set';
+                
+                let result;
+                if (action === 'get') {
+                    result = localStorage.getItem(key);
+                    
+                    event.source.postMessage({
+                        type: 'localStorage',
+                        action: 'get',
+                        key: key,
+                        value: result
+                    }, event.origin);
+                } else if (action === 'set' && value !== undefined) {
+                    localStorage.setItem(key, value);
+                    
+                    event.source.postMessage({
+                        type: 'localStorage',
+                        action: 'set',
+                        key: key,
+                        success: true
+                    }, event.origin);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

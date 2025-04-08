@@ -1,9 +1,8 @@
-
-import { httpGet, httpPost, httpPatch } from '../utils/http';
-import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody } from '../utils/dom';
+import { httpGet, httpPost, httpPatch, httpPublicGet } from '../utils/http';
+import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody, deleteGoPersonalElements } from '../utils/dom';
 import { previewVariant, getParam } from '../utils/urlParam';
 import { suscribe } from '../utils/trigger';
-
+import { getSession } from '../utils/storage';
 
 window.gsStore = {
   context: {
@@ -11,6 +10,44 @@ window.gsStore = {
   },
   interactionCount: 0
 };
+
+async function obtainContentByContext(url, payload, context, includeDraft = false) {
+  const cacheKey = `gs_content_cache_${context}_${includeDraft}`;
+  const now = Date.now();
+  const CACHE_TTL = 5000;
+  
+  let cachedData = localStorage.getItem(cacheKey);
+  
+  if (cachedData) {
+    cachedData = JSON.parse(cachedData);
+    
+    if (now - cachedData.timestamp < CACHE_TTL) {
+      return cachedData.data;
+    }
+    
+    const result = cachedData.data;
+    
+    httpPost(url, payload).then(freshData => {
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data: freshData,
+        timestamp: Date.now()
+      }));
+    }).catch(error => {
+      console.error('Error updating cached content:', error);
+    });
+    
+    return result;
+  }
+  
+  const result = await httpPost(url, payload);
+  
+  localStorage.setItem(cacheKey, JSON.stringify({
+    data: result,
+    timestamp: now
+  }));
+  
+  return result;
+}
 
 export const getContentByContext = async (context, options) => {
 
@@ -21,16 +58,24 @@ export const getContentByContext = async (context, options) => {
   options.type = context;
 
   const includeDraft = window.gsConfig.includeDraft;
+  const includeDraftParam = getParam('gsIncludeDraft');
   let url = `/personal/content-page?pageType=${context}`;
-  if (includeDraft) {
+  if (includeDraft || (includeDraftParam && includeDraftParam == 'true')) {
     url += '&includeDraft=true';
   }
 
   const payload = buildContextPayload(options);
-  const result = await httpPost(url, payload);
-  console.log(result);
+  const result = await obtainContentByContext(url, payload, context, includeDraftParam);
   const contents = result.loadNowContent;
-  console.log('asd', result.lazyLoadContent)
+
+  try {
+    if (options.singlePage) {
+      deleteGoPersonalElements();
+    }
+  } catch (e) {
+    console.log(e);
+  }
+
   try {
     window.gsLog('LoadNowContent ' + contents.length);
     Promise.all(contents.map(content => addContentToWebsite(content, options)));
@@ -38,11 +83,10 @@ export const getContentByContext = async (context, options) => {
     console.error(e);
   }
 
-  console.log('hello')
   try {
     const lazyLoadContent = result.lazyLoadContent;
     window.gsLog('LazyLoadContent ' + lazyLoadContent.length);
-    await Promise.all(lazyLoadContent.map(content => getContent(content.key, options)));
+    await Promise.all(lazyLoadContent.map(content => getContent(content.key, { ...options, cache: content.cache || 0 })));
   } catch (e) {
     console.error(e);
   }
@@ -51,15 +95,17 @@ export const getContentByContext = async (context, options) => {
 };
 
 export const getContent = async (contentId, options) => {
-  console.log('Content', contentId, options);
   if (!options) {
     options = {}
   }
   if (!options.type) {
     options.type = "Home"
   }
-  const includeDraft = window.gsConfig.includeDraft;
-
+  let includeDraft = window.gsConfig.includeDraft;
+  const includeDraftParam = getParam('gsIncludeDraft');
+  if (includeDraftParam == 'true') {
+    includeDraft = true;
+  }
   const gsElementSelector = getParam('gsElementSelector');
   if (gsElementSelector != null) {
     return;
@@ -67,25 +113,51 @@ export const getContent = async (contentId, options) => {
 
   // we need to check if we are on preview or not. 
   const prevVarId = previewVariant();
-  console.log('[DEBUG] Preview Variant Id', prevVarId);
-  let content;
-  if (prevVarId === null) {
-    const payload = buildContextPayload(options)
 
-    let url = `/personal/content/${contentId}?byPassCache=true`;
-    if (includeDraft) {
-      url += '&includeDraft=true';
+  let content;
+
+  const sessionObj = getSession();
+
+  if (options.cache && sessionObj.project){
+    content = await httpPublicGet(`/public/cached-content/${sessionObj.project}/${contentId}`);
+  }else{
+    if (prevVarId === null) {
+      const payload = buildContextPayload(options)
+  
+      let url = `/personal/content/${contentId}`;
+      const params = new URLSearchParams();
+      if (includeDraft) {
+        params.append('includeDraft', 'true');
+      }
+      if (options.impressionStatus) {
+        params.append('impressionStatus', options.impressionStatus);
+      }
+      
+      if (sessionObj &&sessionObj.project) {
+        params.append('project', sessionObj.project);
+      }
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      content = await httpPost(url, payload);
+    } else {
+      content = await httpGet(`/personal/content/${contentId}/variant/${prevVarId}`);
     }
-    content = await httpPost(url, payload);
-  } else {
-    content = await httpGet(`/personal/content/${contentId}/variant/${prevVarId}`);
   }
 
-  console.log('Content found', content);
   if (!content.key) {
     content.key = contentId;
   }
+  if (content.delay){
+    await new Promise(resolve => setTimeout(resolve, content.delay));
+  }
   addContentToWebsite(content, options);
+
+  if (content.type == 'API'){
+    return content;
+  }
 };
 
 function buildContextPayload(options) {
@@ -114,7 +186,9 @@ function buildContextPayload(options) {
       },
       currentPage: {
         ...options,
+        provider: window?.gsConfig?.options?.provider || null,
         location: window.location.href,
+        referrer: typeof document !== 'undefined' ? document.referrer || '' : '',
       },
     },
   };
@@ -122,10 +196,18 @@ function buildContextPayload(options) {
 async function addContentToWebsite(content, options) {
   window.gsLog('addContentToWebsite', content.key);
 
+  
   if (content && content.contentValue) {
+
+    const skipKeys = Array.isArray(window.gsConfig?.options?.skipContents) ? window.gsConfig.options.skipContents : [];
+    if (skipKeys.length > 0 && content && typeof content.key === 'string' && skipKeys.includes(content.key)) {
+      // skip this content
+      return;
+    }
     const css = content.contentValue.css;
     const html = content.contentValue.html;
     const js = content.contentValue.js;
+    const notAutomatic = content.notAutomatic || false;
 
     if (!css && !html && !js) {
       window.gsLog('skip')
@@ -133,26 +215,22 @@ async function addContentToWebsite(content, options) {
     }
 
     const proceed = async () => {
-      injectCSS(css);
+      injectCSS(css, content.key);
 
       const types = ['custom_code', 'pop_up', 'notifications'];
 
       if (types.includes(content.type)) {
 
         const canShow = canShowContent(content.frequency, content.experienceId);
-        console.log('canShow by frecuency', canShow, options.forceShow);
 
         if (options.forceShow) {
-          console.log('showing')
           addHTMLToBody(html);
-          addJavaScriptToBody(js);
+          addJavaScriptToBody(js, content.key);
         } else {
-          if (canShow) {
-            console.log('suscribe')
+          if (canShow && !notAutomatic) {
             suscribe(content, function (html, js) {
-              // console.log('callback', html, js)
               addHTMLToBody(html);
-              addJavaScriptToBody(js);
+              addJavaScriptToBody(js, content.key);
             })
           }
         }
@@ -165,9 +243,17 @@ async function addContentToWebsite(content, options) {
           selectorPosition = 'after'
         }
         window.gsLog('adding to dom', selector)
+
+        const isMobile = isMobileDevice();
+        const hasMobileSelector = isNotEmpty(content.mobileSelector);
+
+        if (isMobile && hasMobileSelector) {
+          selector = content.mobileSelector;
+        }
+
         await addHTMLToDiv(html, selector, selectorPosition, options);
         if (js) {
-          addJavaScriptToBody(js);
+          addJavaScriptToBody(js, content.key);
         }
       }
     };
@@ -184,6 +270,13 @@ async function addContentToWebsite(content, options) {
   window.gsLog('end addContentToWebsite', content.key);
 }
 
+function isMobileDevice() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+function isNotEmpty(str) {
+  return str !== null && str !== "";
+}
 function canShowContent(frequency, contentId) {
 
   if (!frequency) {
@@ -258,6 +351,10 @@ export const openImpression = async (impressionId) => {
   }
 };
 
+export const trackURLClicked = (executionId) => {
+  return httpPatch(`/public/track`, { executionId: executionId });
+};
+
 
 export const observeElementInView = (elementId, impressionId, callback) => {
 
@@ -279,4 +376,8 @@ export const observeElementInView = (elementId, impressionId, callback) => {
 
   // Start observing the target element
   observer.observe(target);
+}
+
+export const cleanContent = () => {
+  deleteGoPersonalElements();
 }

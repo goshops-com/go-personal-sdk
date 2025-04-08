@@ -66,19 +66,19 @@ export const setupContentSelector = async (contentId) => {
   function showNotification(message) {
     notification.textContent = message;
     notification.style.display = 'block';  // Show notification
-    setTimeout(function() {
+    setTimeout(function () {
       notification.style.display = 'none';  // Hide after 3 seconds
     }, 10000);
   }
 
 
   function addEventListenersToAllElements(element) {
-    element.addEventListener('mouseover', function(event) {
+    element.addEventListener('mouseover', function (event) {
       event.stopPropagation();
       highlight(element);
     });
 
-    element.addEventListener('mouseout', function(event) {
+    element.addEventListener('mouseout', function (event) {
       event.stopPropagation();
       if (element.id.startsWith('temp_id_')) {
         element.id = '';
@@ -87,14 +87,12 @@ export const setupContentSelector = async (contentId) => {
       tooltip.textContent = '';
     });
 
-    element.addEventListener('click', async function(event) {
+    element.addEventListener('click', async function (event) {
       event.stopPropagation();
       event.preventDefault();
 
-      console.log('window.selected', window.selected);
-      await httpPut(`/configure/content/${window.contentId}/selector`, {selector: window.selected});
-    //   alert(`Element selected: ${window.selected} \n Close this Window.`);
-        showNotification(`Success! The element '${window.selected}' has been selected. You may now close this window.`);
+      await httpPut(`/configure/content/${window.contentId}/selector`, { selector: window.selected });
+      showNotification(`Success! The element '${window.selected}' has been selected. You may now close this window.`);
 
     });
 

@@ -1,4 +1,3 @@
-// const BASE_URL = 'http://localhost:3000';
 let BASE_URL = 'https://go-discover-dev.goshops.ai';
 
 import { getToken, clearSession } from './storage';
@@ -9,21 +8,18 @@ export const configure = (clientId) => {
     // Split the clientId at the hyphen
     const [region, secondPart] = clientId.split('-');
 
-    console.log('Region:', region);
-    console.log('ClientId:', secondPart);
-
-    if (region == 'BR'){
+    if (region == 'BR') {
       BASE_URL = 'https://discover.gopersonal.ai';
+    }else if (region == 'LOCAL') {
+      BASE_URL = 'http://localhost:3000';
     }
     return secondPart;
   } else {
-    console.log('Default region');
     return clientId;
   }
 }
 
-async function handleInvalidAuth(){
-  console.log('Reset GS session');
+async function handleInvalidAuth() {
   clearSession();
   await window.gsResetSession();
 }
@@ -43,7 +39,7 @@ export const httpGet = async (endpoint, params = {}, includeHeaders = false) => 
   });
 
   if (response.status === 401) {
-    handleInvalidAuth();
+    await handleInvalidAuth();
   }
 
   if (!response.ok) {
@@ -54,7 +50,6 @@ export const httpGet = async (endpoint, params = {}, includeHeaders = false) => 
 
   if (includeHeaders) {
     response.headers.forEach((value, name) => {
-      console.log(`${name}: ${value}`);
     });
     const headers = response.headers;
     return { headers, data };
@@ -63,10 +58,28 @@ export const httpGet = async (endpoint, params = {}, includeHeaders = false) => 
   return data;
 };
 
+export const httpPublicGet = async (endpoint, params = {}) => {
+  const url = new URL(`${BASE_URL}${endpoint}`);
+  Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`GET request failed: ${response.status}`);
+  }
+
+  return await response.json();
+};
+
 
 export const httpPost = async (endpoint, body = {}) => {
   const obj = getToken();
-  
+
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method: 'POST',
     headers: {
@@ -89,7 +102,7 @@ export const httpPost = async (endpoint, body = {}) => {
 
 export const httpPostFormData = async (endpoint, formData) => {
   const obj = getToken();
-  
+
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method: 'POST',
     headers: {
@@ -111,7 +124,7 @@ export const httpPostFormData = async (endpoint, formData) => {
 
 export const httpPut = async (endpoint, body = {}) => {
   const obj = getToken();
-  
+
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method: 'PUT',
     headers: {
