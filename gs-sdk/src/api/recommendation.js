@@ -24,18 +24,28 @@ export const byContext = async (options = {}) => {
   }
 
   let filterVariable;
-  if (filter || options.filter) {
-    const mergedFilter = {
-      ...filter,
-      ...recoOptions
+  if (filter || recoOptions) {
+    const mergedFilter = filter ? {
+      "filter_string": filter,
+    } : {};
+
+    const mergedOptions = recoOptions ? {
+      "options": recoOptions,
+    } : {};
+
+    const mergedValue = {
+      ...mergedOptions,
+      ...mergedFilter
     }
+
     filterVariable = {
       "type": {
           "id": "recoOptions"
       },
-      "value": {"filter_string": JSON.stringify(mergedFilter)}
+      "value": mergedValue
     }
   }
+
   const strategy = options.strategy || 'similarity';
   const count = options.count || 10;
 
