@@ -7,7 +7,7 @@ import { getSharedToken, clearToken } from '../utils/session';
 import { initVendorFenicio } from '../vendors/fenicio';
 import { subscribeQueue } from '../utils/queue';
 import { addToQueue } from '../utils/queue';
-
+import { getGAId, markSessionEvent } from '../utils/ga';
 window.gsStore = {
   interactionCount: 0
 };
@@ -68,9 +68,14 @@ export const init = async (clientId, options) => {
     vuuid = generateUUID();
     setVUUID(vuuid);
   }
-  const obj = await httpPost(`/channel/init${q}`, { clientId, externalSessionId, gsVUID: vuuid, firstURL: window.location.href });
+
+  const gaId = getGAId();
+  const obj = await httpPost(`/channel/init${q}`, { clientId, externalSessionId, gsVUID: vuuid, firstURL: window.location.href, gaId: gaId });
   setSession(obj);
 
+  if (obj.hasSessionSplitTraffic){
+    markSessionEvent();
+  }
   const gsElementSelector = getParam('gsElementSelector');
   const gsContentKey = getParam('gsContentKey');
 
