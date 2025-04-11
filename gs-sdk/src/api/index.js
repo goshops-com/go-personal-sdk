@@ -449,6 +449,9 @@ export const search = async (input, params) => {
   if (params.limit) {
     q += `&limit=${params.limit}`;
   }
+  if (params.includeAllItemFields) {
+    q += `&includeAllItemFields=${params.includeAllItemFields}`;
+  }
 
   if (window.gsSearchOptions && window.gsSearchOptions.hasRetrievalQA) {
     q += `&hasRetrievalQA=${window.gsSearchOptions.hasRetrievalQA}`
