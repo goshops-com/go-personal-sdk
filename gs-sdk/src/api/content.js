@@ -3,7 +3,7 @@ import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody, deleteGoPe
 import { previewVariant, getParam } from '../utils/urlParam';
 import { suscribe } from '../utils/trigger';
 import { getSession } from '../utils/storage';
-
+import { sendEvent } from '../utils/custom';
 window.gsStore = {
   context: {
 
@@ -380,4 +380,8 @@ export const observeElementInView = (elementId, impressionId, callback) => {
 
 export const cleanContent = () => {
   deleteGoPersonalElements();
+}
+
+export const sendEvent = (key, value, customer) => {
+  sendEvent(key, value, customer);
 }
