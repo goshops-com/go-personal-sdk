@@ -216,7 +216,7 @@ const GSSDK = async (clientId, options = {}) => {
       liveTrackVideoTime: (videoId, time, videoViewId) => liveTrackVideoTime(videoId, time, videoViewId),
       setSharedToken: () => setSharedToken(),
       getSharedToken: () => getSharedToken(),
-      sendEvent: (key, value, customer) => sendEvent(key, value, customer)
+      sendEvent: (key, value) => sendEvent(key, value)
     };
     
 };

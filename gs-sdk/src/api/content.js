@@ -382,6 +382,7 @@ export const cleanContent = () => {
   deleteGoPersonalElements();
 }
 
-export const sendEvent = (key, value, customer) => {
-  sendEvent(key, value, customer);
+export const sendEvent = (key, value) => {
+  const sessionObj = getSession();
+  sendEvent(key, value, sessionObj.vuuid);
 }
