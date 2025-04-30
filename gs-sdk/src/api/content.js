@@ -384,5 +384,5 @@ export const cleanContent = () => {
 
 export const sendContentEvent = (key, value) => {
   const sessionObj = getSession();
-  sendEvent(key, value, sessionObj.vuuid);
+  sendEvent(key, value, sessionObj.sessionId);
 }
