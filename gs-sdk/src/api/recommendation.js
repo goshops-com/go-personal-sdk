@@ -1,4 +1,3 @@
-
 import { httpGet, httpPost, httpPatch } from '../utils/http';
 
 export const bestProducts = async (options = {}) => {
@@ -73,10 +72,15 @@ export const byContext = async (options = {}) => {
   if (filterVariable) {
     variables.push(filterVariable);
   }
-  return await httpPost(`/recommendations/by-context?${q}`, {
-    context: context,
-    "variables": variables
-  });
+  try {
+    return await httpPost(`/recommendations/by-context?${q}`, {
+      context: context,
+      "variables": variables
+    });
+  } catch (error) {
+    console.error('Error fetching recommendations by context:', error);
+    return [];
+  }
 };
 
 export const openImpression = async (impressionId) => {
