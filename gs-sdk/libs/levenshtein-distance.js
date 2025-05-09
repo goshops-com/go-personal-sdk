@@ -258,14 +258,17 @@ class gsDistanceUtil {
   }
 
   removeStopWords(str) {
-    // Convert to lowercase and split into words
+    if (!str || typeof str !== 'string') {
+      return '';
+    }
     const words = str.toLowerCase().match(/\b(\w+)\b/g);
-
-    // Filter out stop words and join back into a string
     return words ? words.filter(word => !this.stopWords.has(word)).join(' ') : '';
   }
 
   normalizeText(text) {
+    if (!text || typeof text !== 'string') {
+      return '';
+    }
     return this.removeStopWords(text.toLowerCase().replace(/[^\w\s]/g, ''));
   }
 
