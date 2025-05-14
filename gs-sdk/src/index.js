@@ -7,6 +7,7 @@ import { bestProducts, byContext, openImpression as openImpressionForRecommendat
 import { executeActions } from './actions/addToCart';
 import { executeActions as executeSearchActions } from './actions/search';
 import { executeActions as executeSessionActions } from './actions/sessionAction';
+import { checkURLEvents } from './utils/ga';
 import { loadPlugin } from './api/plugins';
 import { getUrlParameter, removeParamFromUrl } from './utils/dom';
 import { getCurrentGeoIPLocation } from './api/geolocation';
@@ -70,6 +71,9 @@ function hasActions(option) {
   const urlParams = new URLSearchParams(window.location.search);
   for (const key of urlParams.keys()) {
     if (key.startsWith('_gs')) {
+      return true;
+    }
+    if (key == 'ev_name') {
       return true;
     }
   }
@@ -141,6 +145,7 @@ const GSSDK = async (clientId, options = {}) => {
 
   // check actions
   if (hasActions(options)) {
+    checkURLEvents();
     executeActions(options.provider);
     executeSearchActions(options.provider);
     executeSessionActions(options.provider);

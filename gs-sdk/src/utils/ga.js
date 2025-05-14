@@ -34,3 +34,52 @@ export const markSessionEvent = () => {
         return null;
     }
 };
+
+function getUrlParams() {
+    const params = {};
+    const queryString = window.location.search.substring(1);
+    const pairs = queryString.split('&');
+    
+    for (let i = 0; i < pairs.length; i++) {
+      const pair = pairs[i].split('=');
+      if (pair[0] && pair[1]) {
+        params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+      }
+    }
+    
+    return params;
+  }
+
+function sendGa4Event(eventName, eventParams) {
+    // Check if gtag is available
+    if (typeof gtag === 'function') {
+        gtag('event', eventName, eventParams);
+    } else {
+        console.error('gtag not available');
+    }
+}
+
+export const checkURLEvents = () => {
+    try {
+        const params = getUrlParams();
+  
+        // Check if this URL contains our event tracking parameters
+        if (params.ev_name) {
+            const eventName = params.ev_name;
+            const eventParams = {};
+            
+            // Extract all event parameters (those starting with ev_p_)
+            Object.keys(params).forEach(key => {
+            if (key.startsWith('ev_p_')) {
+                const paramName = key.substring(5); // Remove 'ev_p_' prefix
+                eventParams[paramName] = params[key];
+            }
+            });
+            
+            // Send the event to GA4
+            sendGa4Event(eventName, eventParams);
+        }
+    } catch (error) {
+        console.error('Error checking URL events:', error);
+    }
+}
