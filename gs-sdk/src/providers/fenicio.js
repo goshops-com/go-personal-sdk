@@ -39,6 +39,16 @@ export const installFenicio = async (options) => {
             }
         }
 
+        if (location.pathname === '/checkout/facturacion') {  
+            const userMail = document.querySelector('.email').innerHTML;
+            if (userMail && userMail.includes('@')) {
+                window.gsSDK.login(userMail, {
+                    email: userMail,
+                    param_updateCartFromCustomer: true
+                });  
+            }
+        }
+
     }catch(e){
         console.error('Error in tracking script:', e);
     }
