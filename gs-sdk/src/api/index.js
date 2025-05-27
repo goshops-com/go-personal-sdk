@@ -290,6 +290,11 @@ export const addInteraction = (interactionData) => {
     type
   });
 
+  const hasImpressionId = getParam('gsImpressionId');
+  if (interactionData.event == 'view' && hasImpressionId) {
+    interactionData.impressionId = hasImpressionId;
+  }
+
   return httpPost(`/interaction`, interactionData);
 };
 
