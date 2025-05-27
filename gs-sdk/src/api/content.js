@@ -339,7 +339,7 @@ function canShowContent(frequency, contentId) {
 
 export const openImpression = async (impressionId) => {
   try {
-    if (!impressionId || typeof impressionId !== 'string' || window.gsImpressionIds.includes(impressionId)) {
+    if (!impressionId || typeof impressionId !== 'string') {
       return;
     }
 
