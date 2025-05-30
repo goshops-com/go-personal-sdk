@@ -51,6 +51,8 @@ function getUrlParams() {
   }
 
 function sendGa4Event(eventName, eventParams) {
+    console.log('sending ga4 event', eventName, eventParams);
+    
     if (typeof gtag === 'function') {
         gtag('event', eventName, eventParams);
     } else {
