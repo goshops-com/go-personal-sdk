@@ -51,11 +51,21 @@ function getUrlParams() {
   }
 
 function sendGa4Event(eventName, eventParams) {
-    // Check if gtag is available
     if (typeof gtag === 'function') {
         gtag('event', eventName, eventParams);
     } else {
         console.error('gtag not available');
+    }
+    
+    try {
+        if (typeof window !== 'undefined' && window.dataLayer && Array.isArray(window.dataLayer)) {
+            window.dataLayer.push({
+                event: eventName,
+                ...eventParams
+            });
+        }
+    } catch (error) {
+        console.error('Error pushing to dataLayer:', error);
     }
 }
 
