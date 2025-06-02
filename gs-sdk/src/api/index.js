@@ -271,6 +271,10 @@ export const login = (id, data = {}) => {
   return httpPost(`/channel/login`, data);
 };
 
+export const setCustomerCookies = (status) => {
+  return httpPut(`/channel/cookies-status`, {status: status});
+};
+
 export const getCustomerSession = () => {
   return getSession();
 };
