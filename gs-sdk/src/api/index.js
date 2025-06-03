@@ -272,7 +272,7 @@ export const login = (id, data = {}) => {
 };
 
 export const setCustomerCookies = (status) => {
-  return httpPut(`/channel/cookies-status`, {status: status});
+  return httpPut('/channel/cookies-status', {status});
 };
 
 export const getCustomerSession = () => {
