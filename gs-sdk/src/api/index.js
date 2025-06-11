@@ -586,7 +586,7 @@ export const getAffinity = (params = {}) => {
 }
 
 export const getAffinityCustomer = (params = {}) => {
-  return httpGet(`/channel/whoiam?includeCustomer=true`);
+  return httpGet(`/channel/whoiam?includeCustomer=true`, params);
 }
 
 function generateUniqueId() {

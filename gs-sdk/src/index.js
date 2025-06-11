@@ -199,7 +199,7 @@ const GSSDK = async (clientId, options = {}) => {
       clearSharedSession: () => clearSharedSession(clientId),
       getState: (params = {}) => getState(params),
       getAffinity: () => getAffinity(),
-      getAffinityCustomer: () => getAffinityCustomer(),
+      getAffinityCustomer: (params = {}) => getAffinityCustomer(params),
       addBulkInteractions: (interactions) => addBulkInteractions(interactions),
       addFeedback: (feedbackData) => addFeedback(feedbackData),
       observeElementInView: (elementId, impressionId, cb) => observeElementInView(elementId, impressionId, cb),
