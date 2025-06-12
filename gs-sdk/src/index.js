@@ -1,6 +1,6 @@
 import {
   login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, findLastInteractions, reorderCategories, getItems, search, searchAnswer, searchRedirect, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
-  getRanking, reRank, setPreferences, updateState, getItemById, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch
+  getRanking, reRank, setPreferences, updateState, getItemById, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies
 } from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent, trackURLClicked, sendContentEvent } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
@@ -169,6 +169,7 @@ const GSSDK = async (clientId, options = {}) => {
       loginEmail: (email) => loginEmail(email),
       logout: () => logout(clientId),
       getSession: () => getCustomerSession(),
+      setCookies: (status) => setCustomerCookies(status),
       setPreferences: (params) => setPreferences(params),
       addInteraction: (interactionData) => addInteraction(interactionData),
       addInteractionState: (state, options = {}) => addInteractionState(state, options),
