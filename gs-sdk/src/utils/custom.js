@@ -1,5 +1,5 @@
 import { httpPost} from './http'
 
-export const sendEvent = async (key, value, customer) => {
-    await httpPost(`/personal/content-event`, { key, value });
+export const sendEvent = async (targetId, variantId, customer) => {
+    await httpPost(`/personal/content-event`, { key: targetId, value: variantId });
 };

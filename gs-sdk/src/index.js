@@ -6,7 +6,7 @@ import { getContent, getContentByContext, observeElementInView, openImpression a
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
 import { executeActions } from './actions/addToCart';
 import { executeActions as executeSearchActions } from './actions/search';
-import { executeActions as executeSessionActions } from './actions/sessionAction';
+import { executeActions as executeSessionActions, debugSession } from './actions/sessionAction';
 import { checkURLEvents } from './utils/ga';
 import { loadPlugin } from './api/plugins';
 import { getUrlParameter, removeParamFromUrl } from './utils/dom';
@@ -149,6 +149,7 @@ const GSSDK = async (clientId, options = {}) => {
     executeActions(options.provider);
     executeSearchActions(options.provider);
     executeSessionActions(options.provider);
+    debugSession();
     const trackURL = getUrlParameter('_gsTrackExecutionId');
     if (trackURL) {
       trackURLClicked(trackURL);
