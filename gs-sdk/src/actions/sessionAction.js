@@ -48,6 +48,10 @@ export const executeActions = (provider) => {
 
 export const debugSession = () => {
     const key = getUrlParameter('_gsDebugSession');
+    if (!key) {
+        return;
+    }
+
     setTimeout(async () => {
         const state = window.gsSDK.getState();
 
