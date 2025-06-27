@@ -48,7 +48,7 @@ export const executeActions = (provider) => {
 
 export const debugSession = () => {
     const key = getUrlParameter('_gsDebugSession');
-    if (!key) {
+    if (!key || key !== 'true') {
         return;
     }
 
