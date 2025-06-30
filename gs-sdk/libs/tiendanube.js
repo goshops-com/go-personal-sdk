@@ -48,7 +48,14 @@
         }, 1000);
       }
 
-      startCartMonitoring();
+      if (pageType === "thankyou" && LS.order) {
+        window.gsSDK.addInteractionState('cart', { 
+          "transactionId": LS.order.number + ""
+        });
+        console.log("Thank you page detected, order interaction sent:", LS.order.number);
+      } else {
+        startCartMonitoring();
+      }
     } catch (error) {
       console.error("Failed to initialize GSSDK:", error);
     }
