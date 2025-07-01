@@ -157,7 +157,8 @@
     try {
       const interaction = {
         event: change.type,
-        item: change.item.id + "",
+        preProcess: ["findItemByField:sku_list"],
+        fieldValue: change.item.id,
         quantity: change.type === 'cart' ? change.quantityAdded : change.quantityRemoved
       };
 
