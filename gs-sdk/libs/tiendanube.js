@@ -14,6 +14,70 @@
     }
   }
 
+  function getPageType(){
+    let pageType = "home";
+    let productId = LS.product?.id;
+    let categoryId = LS.category?.id;
+    if (LS.product && productId) {
+      pageType = "product_detail";
+    } else if (LS.category && categoryId) {
+      pageType = "category_detail";
+    } else if (LS.order) {
+      pageType = "thankyou";
+    }
+    return pageType;
+  }
+  async function refreshContent(){
+    let pageType = getPageType();
+    let productId = LS.product?.id;
+    window.gsSDK.getContentByContext(pageType, {product_id: productId + '' })
+  }
+
+  // Function to handle URL changes
+  function handleUrlChange() {
+    console.log("URL changed to:", window.location.href);
+    if (window.gsSDK) {
+      refreshContent();
+    } else {
+      console.log("GSSDK not initialized yet, will refresh content after initialization");
+    }
+  }
+
+  // Function to set up URL change detection
+  function setupUrlChangeDetection() {
+    let currentUrl = window.location.href;
+
+    // Listen for popstate events (back/forward button)
+    window.addEventListener('popstate', () => {
+      if (window.location.href !== currentUrl) {
+        currentUrl = window.location.href;
+        handleUrlChange();
+      }
+    });
+
+    // Override pushState to detect programmatic navigation
+    const originalPushState = history.pushState;
+    history.pushState = function(...args) {
+      originalPushState.apply(history, args);
+      if (window.location.href !== currentUrl) {
+        currentUrl = window.location.href;
+        handleUrlChange();
+      }
+    };
+
+    // Override replaceState to detect programmatic navigation
+    const originalReplaceState = history.replaceState;
+    history.replaceState = function(...args) {
+      originalReplaceState.apply(history, args);
+      if (window.location.href !== currentUrl) {
+        currentUrl = window.location.href;
+        handleUrlChange();
+      }
+    };
+
+    console.log("URL change detection initialized");
+  }
+
   // Function to initialize GSSDK
   async function initializeGSSDK() {
     try {
@@ -23,16 +87,9 @@
       }
       console.log("storeId", storeId);
 
-      let pageType = "home";
+      let pageType = getPageType();
       let productId = LS.product?.id;
       let categoryId = LS.category?.id;
-      if (LS.product && productId) {
-        pageType = "product_detail";
-      } else if (LS.category && categoryId) {
-        pageType = "category_detail";
-      } else if (LS.order) {
-        pageType = "thankyou";
-      }
 
       window.gsSDK = await new window.GSSDK.default("BR-TNSID_" + storeId, {
         provider: "TiendaNube",
@@ -198,5 +255,6 @@
   }
 
   // Start the initialization process
+  setupUrlChangeDetection();
   loadGSSDK();
 })();
