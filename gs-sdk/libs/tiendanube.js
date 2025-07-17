@@ -36,7 +36,7 @@
 
       window.gsSDK = await new window.GSSDK.default("BR-TNSID_" + storeId, {
         provider: "TiendaNube",
-        context: { pageType: pageType, product_id: productId },
+        context: { pageType: pageType, product_id: productId + '' },
       });
 
       if (pageType === "product_detail") {
