@@ -160,11 +160,11 @@
     const previousItemsMap = new Map();
 
     currentCart.items.forEach(item => {
-      currentItemsMap.set(item.id, item);
+      currentItemsMap.set(item.variant_id, item);
     });
 
     previousCart.items.forEach(item => {
-      previousItemsMap.set(item.id, item);
+      previousItemsMap.set(item.variant_id, item);
     });
 
     for (const [itemId, currentItem] of currentItemsMap) {
@@ -173,19 +173,19 @@
       if (!previousItem) {
         changes.push({
           type: 'cart',
-          item: currentItem,
+          item: currentItem + '',
           quantityAdded: currentItem.quantity
         });
       } else if (currentItem.quantity > previousItem.quantity) {
         changes.push({
           type: 'cart',
-          item: currentItem,
+          item: currentItem + '',
           quantityAdded: currentItem.quantity - previousItem.quantity
         });
       } else if (currentItem.quantity < previousItem.quantity) {
         changes.push({
           type: 'remove-cart',
-          item: currentItem,
+          item: currentItem + '',
           quantityRemoved: previousItem.quantity - currentItem.quantity
         });
       }
@@ -195,7 +195,7 @@
       if (!currentItemsMap.has(itemId)) {
         changes.push({
           type: 'remove-cart',
-          item: previousItem,
+          item: previousItem + '',
           quantityRemoved: previousItem.quantity
         });
       }
@@ -215,7 +215,7 @@
       const interaction = {
         event: change.type,
         preProcess: ["findItemByField:sku_list"],
-        fieldValue: change.item.id,
+        fieldValue: change.item.variant_id + '',
         quantity: change.type === 'cart' ? change.quantityAdded : change.quantityRemoved
       };
 
