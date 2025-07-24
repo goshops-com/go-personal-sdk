@@ -133,13 +133,27 @@
     try {
       const state = await window.gsSDK.getState();
       const cart = state.cart;
+      const itemsWithSkus = await Promise.all(
+        cart.products.map(async item => {
+          let skuList = [];
+          try {
+            const itemData = await window.gsSDK.getItemById(item.id + '');
+            if (itemData && Array.isArray(itemData.sku_list)) {
+              skuList = itemData.sku_list.map(Number);
+            }
+          } catch (e) {
+          }
+          return {
+            id: item.id,
+            name: item.name,
+            unit_price: item.price,
+            quantity: item.quantity,
+            sku_list: skuList
+          };
+        })
+      );
       return {
-        items: cart.products.map(item => ({
-          id: item.id,
-          name: item.name,
-          unit_price: item.price,
-          quantity: item.quantity
-        })),
+        items: itemsWithSkus,
         subtotal: cart.totalAmount || 0
       };
     } catch (error) {
@@ -186,10 +200,18 @@
     previousCart.items.forEach(item => {
       previousItemsMap.set(item.id, item);
     });
-
+    console.log(previousCart.items)
     for (const [itemId, currentItem] of currentItemsMap) {
-      const previousItem = previousItemsMap.get(itemId);
-      
+      let previousItem = previousItemsMap.get(itemId);
+      if (!previousItem) {
+        for (const prev of previousCart.items) {
+          if (prev.sku_list && Array.isArray(prev.sku_list) && prev.sku_list.includes(itemId)) {
+            previousItem = prev;
+            previousItem.id = itemId;
+            break;
+          }
+        }
+      }
       if (!previousItem) {
         changes.push({
           type: 'cart',
@@ -212,7 +234,14 @@
     }
 
     for (const [itemId, previousItem] of previousItemsMap) {
-      if (!currentItemsMap.has(itemId)) {
+      let exists = false;
+      if (previousItem.sku_list && Array.isArray(previousItem.sku_list)) {
+        exists = previousItem.sku_list.some(variantId => currentItemsMap.has(variantId));
+      } else {
+        exists = currentItemsMap.has(itemId);
+      }
+      if (!exists) {
+        previousItem.id = previousItem.sku_list[0];
         changes.push({
           type: 'remove-cart',
           item: previousItem,
@@ -245,7 +274,9 @@
   }
 
   // Function to monitor cart changes
-  function monitorCartChanges() {
+  async function monitorCartChanges() {
+    previousCartState = await getCurrentCartStateGSSDK();
+
     const currentCart = getCurrentCartState();
     const { hasChanges, changes } = detectCartChanges(currentCart, previousCartState);
 
@@ -258,13 +289,10 @@
           interactions.push(interaction);
         }
       });
-      console.log("Interactions:", interactions);
       for (const i of interactions) {
-        window.gsSDK.addBulkInteractions([i]);
+        await window.gsSDK.addBulkInteractions([i]);
       }
     }
-
-    previousCartState = JSON.parse(JSON.stringify(currentCart));
   }
 
   // Function to start cart monitoring
@@ -273,9 +301,7 @@
       clearInterval(cartMonitoringInterval);
     }
 
-    previousCartState = await getCurrentCartStateGSSDK();
-    console.log("Initial cart state:", previousCartState);
-    
+    monitorCartChanges();
     cartMonitoringInterval = setInterval(monitorCartChanges, 1000 * CART_MONITORING_INTERVAL);
     console.log("Cart monitoring started");
   }
