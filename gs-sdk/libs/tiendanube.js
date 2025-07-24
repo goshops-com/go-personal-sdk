@@ -128,6 +128,26 @@
     document.head.appendChild(gsSDKScript);
   }
 
+  // Function to get current cart state of GSSDK
+  async function getCurrentCartStateGSSDK() {
+    try {
+      const state = await window.gsSDK.getState();
+      const cart = state.cart;
+      return {
+        items: cart.products.map(item => ({
+          id: item.id,
+          name: item.name,
+          unit_price: item.price,
+          quantity: item.quantity
+        })),
+        subtotal: cart.totalAmount || 0
+      };
+    } catch (error) {
+      console.error("Error getting cart state:", error);
+      return { items: [], subtotal: 0 };
+    }
+  }
+
   // Function to get current cart state
   function getCurrentCartState() {
     try {
@@ -136,7 +156,7 @@
       }
       return {
         items: LS.cart.items.map(item => ({
-          id: item.id,
+          id: item.variant_id,
           name: item.name,
           unit_price: item.unit_price,
           quantity: item.quantity
@@ -160,11 +180,11 @@
     const previousItemsMap = new Map();
 
     currentCart.items.forEach(item => {
-      currentItemsMap.set(item.variant_id, item);
+      currentItemsMap.set(item.id, item);
     });
 
     previousCart.items.forEach(item => {
-      previousItemsMap.set(item.variant_id, item);
+      previousItemsMap.set(item.id, item);
     });
 
     for (const [itemId, currentItem] of currentItemsMap) {
@@ -173,19 +193,19 @@
       if (!previousItem) {
         changes.push({
           type: 'cart',
-          item: currentItem + '',
+          item: currentItem,
           quantityAdded: currentItem.quantity
         });
       } else if (currentItem.quantity > previousItem.quantity) {
         changes.push({
           type: 'cart',
-          item: currentItem + '',
+          item: currentItem,
           quantityAdded: currentItem.quantity - previousItem.quantity
         });
       } else if (currentItem.quantity < previousItem.quantity) {
         changes.push({
           type: 'remove-cart',
-          item: currentItem + '',
+          item: currentItem,
           quantityRemoved: previousItem.quantity - currentItem.quantity
         });
       }
@@ -195,7 +215,7 @@
       if (!currentItemsMap.has(itemId)) {
         changes.push({
           type: 'remove-cart',
-          item: previousItem + '',
+          item: previousItem,
           quantityRemoved: previousItem.quantity
         });
       }
@@ -205,22 +225,20 @@
   }
 
   // Function to send cart interactions
-  function sendCartInteraction(change) {
+  function getInteraction(change) {
     if (!window.gsSDK) {
       console.warn("GSSDK not initialized, cannot send cart interaction");
       return;
     }
-
     try {
       const interaction = {
         event: change.type,
         preProcess: ["findItemByField:sku_list"],
-        fieldValue: change.item.variant_id + '',
+        fieldValue: change.item.id + '',
         quantity: change.type === 'cart' ? change.quantityAdded : change.quantityRemoved
       };
 
-      console.log("Sending cart interaction:", interaction);
-      window.gsSDK.addInteraction(interaction);
+      return interaction;
     } catch (error) {
       console.error("Error sending cart interaction:", error);
     }
@@ -233,21 +251,29 @@
 
     if (hasChanges) {
       console.log("Cart changes detected:", changes);
+      const interactions = [];
       changes.forEach(change => {
-        sendCartInteraction(change);
+        const interaction = getInteraction(change);
+        if (interaction) {
+          interactions.push(interaction);
+        }
       });
+      console.log("Interactions:", interactions);
+      for (const i of interactions) {
+        window.gsSDK.addBulkInteractions([i]);
+      }
     }
 
     previousCartState = JSON.parse(JSON.stringify(currentCart));
   }
 
   // Function to start cart monitoring
-  function startCartMonitoring() {
+  async function startCartMonitoring() {
     if (cartMonitoringInterval) {
       clearInterval(cartMonitoringInterval);
     }
 
-    previousCartState = getCurrentCartState();
+    previousCartState = await getCurrentCartStateGSSDK();
     console.log("Initial cart state:", previousCartState);
     
     cartMonitoringInterval = setInterval(monitorCartChanges, 1000 * CART_MONITORING_INTERVAL);
