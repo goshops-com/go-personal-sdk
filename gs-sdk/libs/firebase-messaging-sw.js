@@ -16,6 +16,14 @@ async function onNotificationReceived(e) {
   const data = JSON.parse(JSON.stringify(e.data.json()));
   console.log('notification received data', data);
   
+  const gsCampaignId = data.data?.gsCampaignId;
+  if(gsCampaignId){
+    const gsCampaign = await getKey(gsCampaignId);
+    if(gsCampaign){
+      console.log('Already seen campaign', gsCampaign);
+      return;
+    }
+  }
   const options = {
     body: data.notification.body,
     icon: data.notification.image || "",
@@ -37,6 +45,10 @@ async function onNotificationReceived(e) {
   
   try {
     await self.registration.showNotification(data.notification.title, options);
+
+    if(gsCampaignId){
+      await setKey(gsCampaignId, {seen: true});
+    }
   }catch(ex){
     console.log('error notification received', ex);
   }
@@ -60,6 +72,83 @@ async function onNotificationClicked(i) {
       }
   }
 }
+
 async function onNotificationClosed(e) {
   console.log("notification closed", e);
+}
+
+const DB_NAME = 'gs_service_worker_db';
+const DB_VERSION = 1;
+const STORE_NAME = 'gs_key_value_store';
+
+async function openDB() {
+  try {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      
+      request.onerror = () => resolve(null);
+      
+      request.onsuccess = () => resolve(request.result);
+      
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      };
+    });
+  } catch (e){
+    console.log('error opening db', e);
+    return null;
+  }
+}
+
+async function setKey(key, value) {
+  try {
+    const db = await openDB();
+    if (!db) return false;
+    
+    return new Promise((resolve) => {
+      const transaction = db.transaction([STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.put(value, key);
+      
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => resolve(false);
+      
+      transaction.oncomplete = () => db.close();
+      transaction.onerror = () => {
+        db.close();
+        resolve(false);
+      };
+    });
+  } catch (e){
+    console.log('error setting key', e);
+    return false;
+  }
+}
+
+async function getKey(key) {
+  try {
+    const db = await openDB();
+    if (!db) return null;
+    
+    return new Promise((resolve) => {
+      const transaction = db.transaction([STORE_NAME], 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.get(key);
+      
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+      
+      transaction.oncomplete = () => db.close();
+      transaction.onerror = () => {
+        db.close();
+        resolve(null);
+      };
+    });
+  } catch (e){
+    console.log('error getting key', e);
+    return null;
+  }
 }
