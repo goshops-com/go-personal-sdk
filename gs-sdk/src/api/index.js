@@ -275,6 +275,10 @@ export const setCustomerCookies = (status) => {
   return httpPut('/channel/cookies-status', {status});
 };
 
+export const updateCustomerData = (data) => {
+  return httpPut('/channel/update-customer', data);
+};
+
 export const getCustomerSession = () => {
   return getSession();
 };
