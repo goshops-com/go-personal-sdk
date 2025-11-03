@@ -34,6 +34,7 @@ export const init = async (clientId, options) => {
   const sameClientId = checkSameClientId(clientId);
   const reset = getParam('gsReset');
   if (reset || !sameClientId) {
+    console.log('Resetting session because', sameClientId, 'or', reset);
     clearSession();
     setClientId(clientId);
   }
@@ -51,6 +52,8 @@ export const init = async (clientId, options) => {
     executeInitialLoad(clientId, session, options);
     subscribeQueue();
     return obj;
+  }else{
+    console.log('Token not valid, getting new one');
   }
 
   let q = '?';
@@ -69,7 +72,7 @@ export const init = async (clientId, options) => {
     setVUUID(vuuid);
   }
 
-  const gaId = getGAId();
+  const gaId = getGAId(); 
   const obj = await httpPost(`/channel/init${q}`, { clientId, externalSessionId, gsVUID: vuuid, firstURL: window.location.href, gaId: gaId });
   setSession(obj);
 
