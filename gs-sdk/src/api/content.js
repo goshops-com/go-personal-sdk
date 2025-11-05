@@ -64,8 +64,22 @@ export const getContentByContext = async (context, options) => {
     url += '&includeDraft=true';
   }
 
-  const payload = buildContextPayload(options);
-  const result = await obtainContentByContext(url, payload, context, includeDraftParam);
+  
+  const sessionObj = getSession();
+  if (!sessionObj || !sessionObj.project) {
+    console.log('No session or project found');
+    return;
+  }
+  
+  let result;
+  try {
+    result = await httpPublicGet(`public/cached-content/${sessionObj.project}/${context}`);
+  } catch (e) {
+    console.error('Error fetching cached content:', e);
+    const payload = buildContextPayload(options);
+    result = await obtainContentByContext(url, payload, context, includeDraftParam);
+  }
+
   const contents = result.loadNowContent;
 
   try {
