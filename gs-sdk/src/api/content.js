@@ -72,7 +72,7 @@ export const getContentByContext = async (context, options) => {
   }
   
   let result;
-  if (sessionObj.project === '661ef9b2e2e8dc1201433001') {
+  if (true) {
     try {
       let getURL = `/public/cached-content/${sessionObj.project}/?pageType=${context}`;
       if (includeDraftParam && includeDraftParam === 'true') {
