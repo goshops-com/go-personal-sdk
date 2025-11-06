@@ -72,14 +72,19 @@ export const getContentByContext = async (context, options) => {
   }
   
   let result;
-  try {
-    let getURL = `/public/cached-content/${sessionObj.project}/?pageType=${context}`;
-    if (includeDraftParam && includeDraftParam == 'true') {
-      getURL += '&includeDraft=true';
+  if (sessionObj.project === '661ef9b2e2e8dc1201433001') {
+    try {
+      let getURL = `/public/cached-content/${sessionObj.project}/?pageType=${context}`;
+      if (includeDraftParam && includeDraftParam === 'true') {
+        getURL += '&includeDraft=true';
+      }
+      result = await httpPublicGet(getURL);
+    } catch (e) {
+      console.error('Error fetching cached content:', e);
+      const payload = buildContextPayload(options);
+      result = await obtainContentByContext(url, payload, context, includeDraftParam);
     }
-    result = await httpPublicGet(getURL);
-  } catch (e) {
-    console.error('Error fetching cached content:', e);
+  } else {
     const payload = buildContextPayload(options);
     result = await obtainContentByContext(url, payload, context, includeDraftParam);
   }
