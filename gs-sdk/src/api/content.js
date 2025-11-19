@@ -49,7 +49,11 @@ async function obtainContentByContext(url, payload, context, includeDraft = fals
   return result;
 }
 
-export const getContentByContext = async (context, options) => {
+export const getContentByContext = async (context, options = {}) => {
+  const sessionObj = getSession();
+  if(!options.force && sessionObj?.project == "67374d510dfcc232a627662e"){ //BELCORP PROJECT ID
+    return;
+  }
 
   window.gsLog('getContentByContext', context, options)
   if (!options) {
@@ -65,7 +69,6 @@ export const getContentByContext = async (context, options) => {
   }
 
   
-  const sessionObj = getSession();
   if (!sessionObj || !sessionObj.project) {
     console.log('No session or project found');
     return;
