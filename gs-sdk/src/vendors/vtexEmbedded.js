@@ -25,27 +25,27 @@ function handleEvents(event = {}) {
   }
 
   switch (eventName) {
-    // case 'vtex:productView':
-    //   handleProductView(event);
-    //   break;
-    // case 'vtex:userData':
-    //   handleUserData(event);
-    //   break;
-    // case 'vtex:addToWishlist':
-    //   handleAddToWishlist(event);
-    //   break;
-    // case 'vtex:addToCart':
-    //   handleAddToCart(event);
-    //   break;
-    // case 'vtex:removeFromCart':
-    //   handleRemoveFromCart(event);
-    //   break;
-    // case 'vtex:cartChanged':
-    //   handleCartChanged(event);
-    //   break;
-    // case 'vtex:orderPlaced':
-    //   handleOrderPlaced(event);
-    //   break;
+    case 'vtex:productView':
+      handleProductView(event);
+      break;
+    case 'vtex:userData':
+      handleUserData(event);
+      break;
+    case 'vtex:addToWishlist':
+      handleAddToWishlist(event);
+      break;
+    case 'vtex:addToCart':
+      handleAddToCart(event);
+      break;
+    case 'vtex:removeFromCart':
+      handleRemoveFromCart(event);
+      break;
+    case 'vtex:cartChanged':
+      handleCartChanged(event);
+      break;
+    case 'vtex:orderPlaced':
+      handleOrderPlaced(event);
+      break;
     case 'vtex:pageView':
       handlePageView();
       break;
