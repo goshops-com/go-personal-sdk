@@ -14,6 +14,7 @@ import { getCurrentGeoIPLocation } from './api/geolocation';
 import { liveGetVideo, liveLikeVideo, liveUnlikeVideo, liveTrackVideoTime } from './api/live';
 import { installFenicio } from './providers/fenicio';
 import { setSharedToken, getSharedToken } from './utils/session';
+import { onVtexEmbeddedInit } from './vendors/vtexEmbedded';
 
 //plugins
 
@@ -162,6 +163,17 @@ const GSSDK = async (clientId, options = {}) => {
     setTimeout(() => {
       installFenicio(options);
     }, 100);
+  }
+
+  const sessionObj = getCustomerSession();
+  if (sessionObj?.project === "67374d510dfcc232a627662e") { //BELCORP PROJECT ID
+    queueMicrotask(() => {
+      try {
+        onVtexEmbeddedInit();
+      } catch (error) {
+        window.gsLog?.('Error executing onVtexEmbeddedInit', error);
+      }
+    });
   }
 
   if (options.provider)
