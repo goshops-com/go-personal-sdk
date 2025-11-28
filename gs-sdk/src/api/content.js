@@ -51,7 +51,7 @@ async function obtainContentByContext(url, payload, context, includeDraft = fals
 
 export const getContentByContext = async (context, options = {}) => {
   const sessionObj = getSession();
-  if(!options.force && sessionObj?.project == "67374d510dfcc232a627662e"){ //BELCORP PROJECT ID
+  if(!options.force && sessionObj?.project == "67374d510dfcc232a627662e"){
     return;
   }
 

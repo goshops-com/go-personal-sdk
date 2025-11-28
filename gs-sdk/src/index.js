@@ -166,7 +166,7 @@ const GSSDK = async (clientId, options = {}) => {
   }
 
   const sessionObj = getCustomerSession();
-  if (sessionObj?.project === "67374d510dfcc232a627662e") { //BELCORP PROJECT ID
+  if (sessionObj?.project === "67374d510dfcc232a627662e") {
     queueMicrotask(() => {
       try {
         onVtexEmbeddedInit();
