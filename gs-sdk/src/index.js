@@ -7,7 +7,7 @@ import { bestProducts, byContext, openImpression as openImpressionForRecommendat
 import { executeActions } from './actions/addToCart';
 import { executeActions as executeSearchActions } from './actions/search';
 import { executeActions as executeSessionActions, debugSession } from './actions/sessionAction';
-import { checkURLEvents } from './utils/ga';
+import { checkURLEvents, trackGopersonalProductImpression, trackGopersonalProductClick, trackGopersonalBannerImpression, trackGopersonalBannerClick } from './utils/ga';
 import { loadPlugin } from './api/plugins';
 import { getUrlParameter, removeParamFromUrl } from './utils/dom';
 import { getCurrentGeoIPLocation } from './api/geolocation';
@@ -236,7 +236,11 @@ const GSSDK = async (clientId, options = {}) => {
       liveTrackVideoTime: (videoId, time, videoViewId) => liveTrackVideoTime(videoId, time, videoViewId),
       setSharedToken: () => setSharedToken(),
       getSharedToken: () => getSharedToken(),
-      sendContentEvent: (key, value) => sendContentEvent(key, value)
+      sendContentEvent: (key, value) => sendContentEvent(key, value),
+      trackGopersonalProductImpression: (items, listName) => trackGopersonalProductImpression(items, listName),
+      trackGopersonalProductClick: (item, listName, index) => trackGopersonalProductClick(item, listName, index),
+      trackGopersonalBannerImpression: (promotions) => trackGopersonalBannerImpression(promotions),
+      trackGopersonalBannerClick: (promotion) => trackGopersonalBannerClick(promotion),
     };
     
 };
