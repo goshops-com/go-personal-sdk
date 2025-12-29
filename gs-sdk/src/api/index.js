@@ -7,7 +7,7 @@ import { getSharedToken, clearToken } from '../utils/session';
 import { initVendorFenicio } from '../vendors/fenicio';
 import { subscribeQueue } from '../utils/queue';
 import { addToQueue } from '../utils/queue';
-import { getGAId, markSessionEvent } from '../utils/ga';
+import { getGAId, markSessionEvent, trackGopersonalProductClickById } from '../utils/ga';
 window.gsStore = {
   interactionCount: 0
 };
