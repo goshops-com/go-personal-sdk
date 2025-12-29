@@ -113,7 +113,7 @@ function parseItemForGA4(item, index, listName) {
         price: item.price,
         item_category: item.category,
         item_brand: item.brand,
-        index: index + 1,
+        index: parseInt(index) + 1,
         item_list_name: listName,
         quantity: 1
     };
