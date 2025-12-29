@@ -305,8 +305,8 @@ export const addInteraction = (interactionData) => {
   if (interactionData.event == 'view' && hasImpressionId) {
     interactionData.impressionId = hasImpressionId;
     const itemId = interactionData.item;
-    const listName = getParam('gsListName');
-    const index = getParam('gsIndex');
+    const listName = getParam('gsListName') || 'gopersonal_list';
+    const index = getParam('gsIndex') || 0;
     if(itemId){
       try {
         trackGopersonalProductClickById(itemId, listName, index);
