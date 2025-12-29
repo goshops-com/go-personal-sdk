@@ -304,6 +304,16 @@ export const addInteraction = (interactionData) => {
   const hasImpressionId = getParam('gsImpressionId');
   if (interactionData.event == 'view' && hasImpressionId) {
     interactionData.impressionId = hasImpressionId;
+    const itemId = interactionData.item;
+    const listName = getParam('gsListName');
+    const index = getParam('gsIndex');
+    if(itemId){
+      try {
+        trackGopersonalProductClickById(itemId, listName, index);
+      } catch (error) {
+        console.error('Error tracking gopersonal product click:', error);
+      }
+    }
   }
 
   return httpPost(`/interaction`, interactionData);

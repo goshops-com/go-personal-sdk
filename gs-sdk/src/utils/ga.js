@@ -1,3 +1,5 @@
+import { getItemById } from '../api';
+
 export const getGAId = () => {
     try {
         if (window.ga && typeof window.ga.getAll === 'function') {
@@ -173,4 +175,14 @@ export const trackGopersonalBannerClick = (promotion) => {
     };
     
     gopersonalTrack('select_promotion', eventData);
+};
+
+export const trackGopersonalProductClickById = async (itemId, listName = 'gopersonal_list', index = 0) => {
+    const item = await getItemById(itemId);
+    const enhancedItem = parseItemForGA4(item, index, listName);
+    const eventData = {
+        item_list_name: listName,
+        items: [enhancedItem],
+    };
+    gopersonalTrack('select_item', eventData);
 };
