@@ -1,4 +1,5 @@
 import { getItemById } from '../api';
+import { getParam } from './urlParam';
 
 export const getGAId = () => {
     try {
@@ -120,7 +121,11 @@ function parseItemForGA4(item, index, listName) {
 }
 
 function gopersonalTrack(eventName, eventData) {
-    
+    // If the parameter gsIncludeDraft is true, don't track the event
+    if(getParam('gsIncludeDraft') == 'true') {
+        return;
+    }
+
     if (isgtagAvailable()) {
         gtag('event', eventName, eventData);
     } else if (typeof window !== 'undefined' && window.dataLayer && Array.isArray(window.dataLayer)) {
