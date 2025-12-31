@@ -1,26 +1,43 @@
-import { httpGet, httpPost, httpPut, httpPostFormData, configure, httpPatch, httpPublicGet } from '../utils/http';
-import { setSession, addDataToSession, clearSession, isTokenValid, getToken, checkSameClientId, setClientId, getSession, getVUUID, setVUUID } from '../utils/storage';
-import { jsonToQueryString, getParam } from '../utils/urlParam';
-import { setupContentSelector } from '../utils/configure';
-import { getContentByContext } from './content';
-import { getSharedToken, clearToken } from '../utils/session';
-import { initVendorFenicio } from '../vendors/fenicio';
-import { subscribeQueue } from '../utils/queue';
-import { addToQueue } from '../utils/queue';
-import { getGAId, markSessionEvent } from '../utils/ga';
+import {
+  httpGet,
+  httpPost,
+  httpPut,
+  httpPostFormData,
+  configure,
+  httpPatch,
+  httpPublicGet,
+} from "../utils/http";
+import {
+  setSession,
+  addDataToSession,
+  clearSession,
+  isTokenValid,
+  getToken,
+  checkSameClientId,
+  setClientId,
+  getSession,
+  getVUUID,
+  setVUUID,
+} from "../utils/storage";
+import { jsonToQueryString, getParam } from "../utils/urlParam";
+import { setupContentSelector } from "../utils/configure";
+import { getContentByContext } from "./content";
+import { getSharedToken, clearToken } from "../utils/session";
+import { initVendorFenicio } from "../vendors/fenicio";
+import { subscribeQueue } from "../utils/queue";
+import { addToQueue } from "../utils/queue";
+import { getGAId, markSessionEvent } from "../utils/ga";
 window.gsStore = {
-  interactionCount: 0
+  interactionCount: 0,
 };
 
-
 export const init = async (clientId, options) => {
-
   if (options.playgroundToken) {
     clearSession();
     clientId = configure(clientId);
     setClientId(clientId);
     setSession({
-      token: options.playgroundToken
+      token: options.playgroundToken,
     });
     return clientId;
   }
@@ -32,9 +49,9 @@ export const init = async (clientId, options) => {
   const clientOrigin = window.location.origin;
 
   const sameClientId = checkSameClientId(clientId);
-  const reset = getParam('gsReset');
+  const reset = getParam("gsReset");
   if (reset || !sameClientId) {
-    console.log('Resetting session because', sameClientId, 'or', reset);
+    console.log("Resetting session because", sameClientId, "or", reset);
     clearSession();
     setClientId(clientId);
   }
@@ -52,13 +69,13 @@ export const init = async (clientId, options) => {
     executeInitialLoad(clientId, session, options);
     subscribeQueue();
     return obj;
-  }else{
-    console.log('Token not valid, getting new one');
+  } else {
+    console.log("Token not valid, getting new one");
   }
 
-  let q = '?';
+  let q = "?";
   if (options.byPassCache) {
-    q += 'byPassCache=true';
+    q += "byPassCache=true";
   }
 
   let externalSessionId;
@@ -72,15 +89,21 @@ export const init = async (clientId, options) => {
     setVUUID(vuuid);
   }
 
-  const gaId = getGAId(); 
-  const obj = await httpPost(`/channel/init${q}`, { clientId, externalSessionId, gsVUID: vuuid, firstURL: window.location.href, gaId: gaId });
+  const gaId = getGAId();
+  const obj = await httpPost(`/channel/init${q}`, {
+    clientId,
+    externalSessionId,
+    gsVUID: vuuid,
+    firstURL: window.location.href,
+    gaId: gaId,
+  });
   setSession(obj);
 
-  if (obj.hasSessionSplitTraffic){
+  if (obj.hasSessionSplitTraffic) {
     markSessionEvent();
   }
-  const gsElementSelector = getParam('gsElementSelector');
-  const gsContentKey = getParam('gsContentKey');
+  const gsElementSelector = getParam("gsElementSelector");
+  const gsContentKey = getParam("gsContentKey");
 
   if (gsElementSelector != null && gsContentKey != null) {
     await setupContentSelector(gsContentKey);
@@ -96,10 +119,14 @@ function generateUUID() {
     try {
       return self.crypto.randomUUID();
     } catch (e) {
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+        /[xy]/g,
+        function (c) {
+          var r = (Math.random() * 16) | 0,
+            v = c === "x" ? r : (r & 0x3) | 0x8;
+          return v.toString(16);
+        },
+      );
     }
   }
 
@@ -121,36 +148,35 @@ async function executeInitialLoad(clientId, session, options) {
     return;
   }
 
-  if (options && options.provider == 'Magento_V2') {
+  if (options && options.provider == "Magento_V2") {
     try {
-      if (window.location.pathname.startsWith('/gpsearch')) {
+      if (window.location.pathname.startsWith("/gpsearch")) {
+        document
+          .querySelectorAll("a.product-item-photo")
+          .forEach(function (anchor) {
+            let href = anchor.getAttribute("href");
+            if (href) {
+              anchor.setAttribute("href", href.replace(/([^:]\/)\/+/g, "$1"));
+            }
+          });
 
-        document.querySelectorAll('a.product-item-photo').forEach(function (anchor) {
-          let href = anchor.getAttribute('href');
-          if (href) {
-            anchor.setAttribute('href', href.replace(/([^:]\/)\/+/g, "$1"));
-          }
-        });
-
-        document.querySelectorAll('a.product-item-link').forEach(element => {
+        document.querySelectorAll("a.product-item-link").forEach((element) => {
           // Get the current href attribute of the element
-          let url = element.getAttribute('href');
+          let url = element.getAttribute("href");
 
           // Replace double slashes with a single slash, excluding the protocol part (e.g., http:// or https://)
-          let updatedUrl = url.replace(/([^:])\/\//g, '$1/');
+          let updatedUrl = url.replace(/([^:])\/\//g, "$1/");
 
           // Update the href attribute with the corrected URL
-          element.setAttribute('href', updatedUrl);
+          element.setAttribute("href", updatedUrl);
         });
       }
-    } catch (e) {
-    }
+    } catch (e) {}
   }
-  if (options && options.provider && options.provider != 'Custom') {
-
-    if (options.provider.toUpperCase() == 'MAGENTO') {
+  if (options && options.provider && options.provider != "Custom") {
+    if (options.provider.toUpperCase() == "MAGENTO") {
       try {
-        require('../providers/magentoV2').install(options)
+        require("../providers/magentoV2").install(options);
       } catch (e) {
         window.gsLog("Error installing Provider", e);
       }
@@ -167,16 +193,20 @@ async function executeInitialLoad(clientId, session, options) {
       getContentByContext(pageType, contentWithoutPageType);
       return;
     }
-
   }
 
-  window.gsLog('session.channelConfig4', session.channelConfig);
+  window.gsLog("session.channelConfig4", session.channelConfig);
 
   if (session.channelConfig) {
-    const channelConfig = session.channelConfig.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+    const channelConfig = session.channelConfig
+      .replace(/\\n/g, "\n")
+      .replace(/\\t/g, "\t");
 
     // Extract the function body from the string
-    const functionBody = channelConfig.slice(channelConfig.indexOf("{") + 1, channelConfig.lastIndexOf("}"));
+    const functionBody = channelConfig.slice(
+      channelConfig.indexOf("{") + 1,
+      channelConfig.lastIndexOf("}"),
+    );
     // Create a new function using the extracted body
     const determinePageType = new Function(functionBody);
     // Call the function and get the result
@@ -192,11 +222,10 @@ async function executeInitialLoad(clientId, session, options) {
   } else {
     // assume context 'other'
     if (!options.noDefaultContext) {
-      const result = await getContentByContext('other', {});
+      const result = await getContentByContext("other", {});
     }
   }
-
-};
+}
 
 function getUrlFromState(event) {
   // Dynamically construct the base URL from the current location
@@ -205,16 +234,16 @@ function getUrlFromState(event) {
   const basePath = `${protocol}//${host}`;
 
   // Initialize default values
-  let path = '/';
-  let hash = '';
+  let path = "/";
+  let hash = "";
 
   // Check if the navigationRoute or similar property is available in the state
   const navigationRoute = event.state?.navigationRoute;
   if (navigationRoute) {
     // Assuming the path might sometimes include a hash
-    const pathAndHash = navigationRoute.path.split('#');
-    path = pathAndHash[0] || '/';
-    hash = pathAndHash[1] ? `#${pathAndHash[1]}` : '';
+    const pathAndHash = navigationRoute.path.split("#");
+    path = pathAndHash[0] || "/";
+    hash = pathAndHash[1] ? `#${pathAndHash[1]}` : "";
   }
 
   // Construct the full URL
@@ -224,15 +253,13 @@ function getUrlFromState(event) {
   return {
     url: fullUrl,
     path: path,
-    hash: hash
+    hash: hash,
   };
 }
 
-
 function getPageType(provider) {
-  if (provider && provider.toUpperCase() === 'VTEX') {
-
-    window.gsLog('Init Vendor VTEX');
+  if (provider && provider.toUpperCase() === "VTEX") {
+    window.gsLog("Init Vendor VTEX");
 
     let path = window.location.pathname;
     let hash = window.location.hash; // Added to consider the hash in the URL
@@ -241,16 +268,16 @@ function getPageType(provider) {
     // New regex pattern to match paths ending with "/p" before query parameters
     const productDetailRegex = /\/[^/]+\/p$/;
     if (productDetailRegex.test(path)) {
-      return { pageType: 'product_detail', url };
+      return { pageType: "product_detail", url };
     }
 
     // Adjusted to check for both the pathname and hash for the checkout page
-    if (path.startsWith('/checkout/') && hash.includes('#/cart')) {
-      return { pageType: 'checkout' }; // Changed 'cart' to 'checkout' to match your requirement
+    if (path.startsWith("/checkout/") && hash.includes("#/cart")) {
+      return { pageType: "checkout" }; // Changed 'cart' to 'checkout' to match your requirement
     }
 
     // Default case if none of the above conditions are met
-    return { pageType: 'unknown' };
+    return { pageType: "unknown" };
   }
 
   return undefined;
@@ -258,28 +285,28 @@ function getPageType(provider) {
 
 export const clearSharedSession = (clientId) => {
   clearToken(clientId);
-}
+};
 
 export const login = (id, data = {}) => {
-  addDataToSession('customer_id', id);
+  addDataToSession("customer_id", id);
   if (data.email) {
-    addDataToSession('customer_email', data.email);
+    addDataToSession("customer_email", data.email);
   }
   data.customerId = id;
   try {
     data.provider = window.gsConfig.options.provider.toLowerCase();
   } catch (error) {
-    console.error('Error setting provider:', error);
+    console.error("Error setting provider:", error);
   }
   return httpPost(`/channel/login`, data);
 };
 
 export const setCustomerCookies = (status) => {
-  return httpPut('/channel/cookies-status', {status});
+  return httpPut("/channel/cookies-status", { status });
 };
 
 export const updateCustomerData = (data) => {
-  return httpPut('/channel/update-customer', data);
+  return httpPut("/channel/update-customer", data);
 };
 
 export const getCustomerSession = () => {
@@ -295,14 +322,14 @@ export const addInteraction = (interactionData) => {
   // ev.emit('interaction', interactionData);
   const now = new Date().getTime();
   const expirationDate = now + 24 * 60 * 60 * 1000; // Add 24 hours
-  const type = 'interaction-' + interactionData.event;
+  const type = "interaction-" + interactionData.event;
   addToQueue({
     expirationDate,
-    type
+    type,
   });
 
-  const hasImpressionId = getParam('gsImpressionId');
-  if (interactionData.event == 'view' && hasImpressionId) {
+  const hasImpressionId = getParam("gsImpressionId");
+  if (interactionData.event == "view" && hasImpressionId) {
     interactionData.impressionId = hasImpressionId;
   }
 
@@ -311,16 +338,16 @@ export const addInteraction = (interactionData) => {
 
 export const addInteractionState = (state, options = {}) => {
   window.gsStore.interactionCount++;
-  let event = '';
-  if (state == 'cart') {
-    event = 'purchase';
+  let event = "";
+  if (state == "cart") {
+    event = "purchase";
   }
   const now = new Date().getTime();
   const expirationDate = now + 24 * 60 * 60 * 1000; // Add 24 hours
-  const type = 'interaction-' + event;
+  const type = "interaction-" + event;
   addToQueue({
     expirationDate,
-    type
+    type,
   });
 
   return httpPost(`/interaction/state/${state}`, options);
@@ -337,31 +364,34 @@ export const findLastInteractions = (limit = 10) => {
 export const reorderCategories = (interactions, categories) => {
   const categoryCounts = new Map();
 
-  interactions.forEach(interaction => {
+  interactions.forEach((interaction) => {
     // Check if data and itemData exist
     if (interaction.data && interaction.data.itemData) {
       const categoryIds = interaction.data.itemData.category_ids;
       // Check if category_ids exists and is a string
-      if (typeof categoryIds === 'string') {
-        categoryIds.split(',').forEach(categoryId => {
+      if (typeof categoryIds === "string") {
+        categoryIds.split(",").forEach((categoryId) => {
           const trimmedId = categoryId.trim();
           if (trimmedId) {
-            categoryCounts.set(trimmedId, (categoryCounts.get(trimmedId) || 0) + 1);
+            categoryCounts.set(
+              trimmedId,
+              (categoryCounts.get(trimmedId) || 0) + 1,
+            );
           }
         });
       }
     }
   });
 
-  const updatedCategories = categories.map(category => ({
+  const updatedCategories = categories.map((category) => ({
     ...category,
-    interactionCount: categoryCounts.get(String(category.id)) || 0
+    interactionCount: categoryCounts.get(String(category.id)) || 0,
   }));
 
   updatedCategories.sort((a, b) => b.interactionCount - a.interactionCount);
 
   return updatedCategories;
-}
+};
 
 export const updateState = (obj) => {
   return httpPut(`/channel/state`, obj);
@@ -376,15 +406,15 @@ export const addBulkInteractions = (interactions) => {
   const interactionData = interactions[0];
   const now = new Date().getTime();
   const expirationDate = now + 24 * 60 * 60 * 1000; // Add 24 hours
-  const type = 'interaction-' + interactionData.event;
+  const type = "interaction-" + interactionData.event;
   addToQueue({
     expirationDate,
-    type
+    type,
   });
 
   return httpPost(`/interaction/bulk`, {
     transactionId: id,
-    events: interactions
+    events: interactions,
   });
 };
 
@@ -400,7 +430,7 @@ export const triggerJourney = (data) => {
 
 export const logout = (clientId) => {
   const session = getSession();
-  if (session['customer_id']) {
+  if (session["customer_id"]) {
     clearSession();
     window.gsResetSession();
   } else {
@@ -431,28 +461,28 @@ export const downloadSearchAutocompleteIndex = async () => {
   const sessionObj = getSession();
   const project = sessionObj.project;
   return httpPublicGet(`/public/search-autocomplete/${project}`);
-}
+};
 
 export const searchChat = async (payload) => {
   return httpPost(`/item/search-chat`, payload);
-}
+};
 
 export const isSearch = async (payload) => {
   return httpPost(`/item/search-chat-is-search`, payload);
-}
+};
 
 export const searchAutoFilter = async (filters, input) => {
-  const endpoint = '/item/search-filter-builder';
+  const endpoint = "/item/search-filter-builder";
   const payload = {
     filters,
-    input
-  }
+    input,
+  };
   return httpPost(endpoint, payload);
-}
+};
 
 export const searchFilterFacelets = async (query = undefined) => {
-  const endpoint = '/item/search-filter-facelets';
-  const queryParam = query ? `?query=${encodeURIComponent(query)}` : '';
+  const endpoint = "/item/search-filter-facelets";
+  const queryParam = query ? `?query=${encodeURIComponent(query)}` : "";
   return httpGet(`${endpoint}${queryParam}`);
 };
 
@@ -470,7 +500,7 @@ export const search = async (input, params) => {
   }
 
   if (window.gsSearchOptions && window.gsSearchOptions.hasRetrievalQA) {
-    q += `&hasRetrievalQA=${window.gsSearchOptions.hasRetrievalQA}`
+    q += `&hasRetrievalQA=${window.gsSearchOptions.hasRetrievalQA}`;
   }
 
   if (params.ignoreMetrics) {
@@ -485,16 +515,30 @@ export const search = async (input, params) => {
     q += `&jsonFilter=${encodeURIComponent(JSON.stringify(params.filter))}`;
   }
 
-  return httpGet(`/item/search${q}`);
+  const maxRetries = 3;
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await httpGet(`/item/search${q}`);
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
+      }
+    }
+  }
+
+  throw lastError;
 };
 
 export const searchAnswer = async (input, params) => {
   const payload = {
     input: input,
-    ...params
-  }
+    ...params,
+  };
   return httpPost(`/item/search-answer`, payload);
-}
+};
 
 export const searchRedirect = async (input, params) => {
   let q = `?query=${input}`;
@@ -520,14 +564,13 @@ export const updateSearchResult = async (id, payload) => {
 };
 
 export const imageSearch = async (formData, params) => {
-
   let q = `?sdk=1`;
   if (params.text && params.text.length > 0) {
-    q = `&text=${params.text}`
+    q = `&text=${params.text}`;
   }
   if (window.gsSearchOptions && window.gsSearchOptions.hasMultimodal) {
-    q += `&hasMultimodal=${window.gsSearchOptions.hasMultimodal}`
-    q += `&ignoreRanking=${window.gsSearchOptions.hasMultimodal}`
+    q += `&hasMultimodal=${window.gsSearchOptions.hasMultimodal}`;
+    q += `&ignoreRanking=${window.gsSearchOptions.hasMultimodal}`;
   }
 
   if (params.ignoreMetrics) {
@@ -542,14 +585,13 @@ export const imageSearch = async (formData, params) => {
 };
 
 export const voiceSearch = async (formData, params) => {
-
   let q = `?sdk=1`;
   if (params.text && params.text.length > 0) {
-    q = `&text=${params.text}`
+    q = `&text=${params.text}`;
   }
   if (window.gsSearchOptions && window.gsSearchOptions.hasMultimodal) {
-    q += `&hasMultimodal=${window.gsSearchOptions.hasMultimodal}`
-    q += `&ignoreRanking=${window.gsSearchOptions.hasMultimodal}`
+    q += `&hasMultimodal=${window.gsSearchOptions.hasMultimodal}`;
+    q += `&ignoreRanking=${window.gsSearchOptions.hasMultimodal}`;
   }
   if (params.limit) {
     q += `&limit=${params.limit}`;
@@ -589,11 +631,13 @@ export const getRanking = async (ranking, params) => {
 export const reRank = async (ranking, params) => {
   const affinityField = params.affinityField;
   const items = params.items;
-  return httpPost(`/item/rerank/${ranking}/?affinityField=${affinityField}`, { items });
+  return httpPost(`/item/rerank/${ranking}/?affinityField=${affinityField}`, {
+    items,
+  });
 };
 
 export const getFieldValues = async (params) => {
-  const field = params.field || 'category';
+  const field = params.field || "category";
   return httpGet(`/item/custom-attributes/${field}`);
 };
 
@@ -603,24 +647,29 @@ export const setPreferences = (params) => {
 
 export const getState = (params = {}) => {
   return httpGet(`/channel/state`);
-}
+};
 
 export const getAffinity = (params = {}) => {
   return httpGet(`/channel/whoiam/affinity`);
-}
+};
 
 export const getAffinityCustomer = (params = {}) => {
   return httpGet(`/channel/whoiam?includeCustomer=true`);
-}
+};
 
 function generateUniqueId() {
   let array = new Uint8Array(16);
   window.crypto.getRandomValues(array);
   const time = new Date().getTime();
-  return time + Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+  return (
+    time +
+    Array.from(array)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+  );
 }
 
 export const getCurrentSession = () => {
   const session = getSession();
   return session;
-}
+};
