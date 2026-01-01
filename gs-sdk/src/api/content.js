@@ -409,3 +409,52 @@ export const sendContentEvent = (key, value) => {
   const sessionObj = getSession();
   sendEvent(key, value, sessionObj.sessionId);
 }
+
+export const initPreviewListener = () => {
+
+  window.addEventListener('message', (event) => {
+    if(event.origin !== 'https://admin.gopersonal.ai') return;
+    const msg = event.data;
+    
+    if (msg?.namespace !== 'gopersonal') return;
+    if (msg.source !== 'editor') return;
+
+    if (msg.type === 'update') {
+      renderContentPreview(msg.payload);
+    }
+  });
+}
+
+async function renderContentPreview(payload) {
+  try {
+    deleteGoPersonalElements();
+    
+    const css = payload.css;
+    const html = payload.html;
+    const js = payload.js;
+
+    injectCSS(css, 'gs-preview');
+
+    let selector = payload.previewObject.selector;
+    let selectorPosition = payload.previewObject.selectorPosition;
+    if (!selector) {
+      selector = 'body';
+      selectorPosition = 'after'
+    }
+
+    const isMobile = isMobileDevice();
+    const hasMobileSelector = isNotEmpty(payload.previewObject.mobileSelector);
+
+    if (isMobile && hasMobileSelector) {
+      selector = payload.previewObject.mobileSelector;
+    }
+
+    await addHTMLToDiv(html, selector, selectorPosition, {});
+
+    if (js) {
+      addJavaScriptToBody(js, 'gs-preview');
+    }
+  } catch (error) {
+    console.error('Error rendering content preview:', error);
+  }
+}
