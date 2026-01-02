@@ -2,18 +2,19 @@ import {
   login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, findLastInteractions, reorderCategories, getItems, search, searchAnswer, searchRedirect, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
   getRanking, reRank, setPreferences, updateState, getItemById, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData
 } from './api';
-import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent, trackURLClicked, sendContentEvent } from './api/content';
+import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent, trackURLClicked, sendContentEvent, initPreviewListener } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
 import { executeActions } from './actions/addToCart';
 import { executeActions as executeSearchActions } from './actions/search';
 import { executeActions as executeSessionActions, debugSession } from './actions/sessionAction';
-import { checkURLEvents } from './utils/ga';
+import { checkURLEvents, trackGopersonalProductImpression, trackGopersonalProductClick, trackGopersonalBannerImpression, trackGopersonalBannerClick } from './utils/ga';
 import { loadPlugin } from './api/plugins';
 import { getUrlParameter, removeParamFromUrl } from './utils/dom';
 import { getCurrentGeoIPLocation } from './api/geolocation';
 import { liveGetVideo, liveLikeVideo, liveUnlikeVideo, liveTrackVideoTime } from './api/live';
 import { installFenicio } from './providers/fenicio';
 import { setSharedToken, getSharedToken } from './utils/session';
+import { onVtexEmbeddedInit } from './vendors/vtexEmbedded';
 
 //plugins
 
@@ -164,6 +165,24 @@ const GSSDK = async (clientId, options = {}) => {
     }, 100);
   }
 
+  const sessionObj = getCustomerSession();
+  const onlyForcedProjects = ["67374d510dfcc232a627662e", "67374d2d0dfcc28c73276534", "67374d240dfcc2a4ff2764e8", "67374d1d0dfcc2ee482764c2"];
+  if (onlyForcedProjects.includes(sessionObj?.project)) {
+    queueMicrotask(() => {
+      try {
+        onVtexEmbeddedInit();
+      } catch (error) {
+        window.gsLog?.('Error executing onVtexEmbeddedInit', error);
+      }
+    });
+  }
+
+  const usePreview = getUrlParameter('gsPreview');
+
+  if (usePreview) {
+    initPreviewListener();
+  }
+
   if (options.provider)
     return {
       login: (username, data = {}) => login(username, data),
@@ -224,7 +243,11 @@ const GSSDK = async (clientId, options = {}) => {
       liveTrackVideoTime: (videoId, time, videoViewId) => liveTrackVideoTime(videoId, time, videoViewId),
       setSharedToken: () => setSharedToken(),
       getSharedToken: () => getSharedToken(),
-      sendContentEvent: (key, value) => sendContentEvent(key, value)
+      sendContentEvent: (key, value) => sendContentEvent(key, value),
+      trackGopersonalProductImpression: (items, listName) => trackGopersonalProductImpression(items, listName),
+      trackGopersonalProductClick: (item, listName, index) => trackGopersonalProductClick(item, listName, index),
+      trackGopersonalBannerImpression: (promotions) => trackGopersonalBannerImpression(promotions),
+      trackGopersonalBannerClick: (promotion) => trackGopersonalBannerClick(promotion),
     };
     
 };

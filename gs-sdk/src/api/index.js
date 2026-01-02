@@ -26,7 +26,11 @@ import { getSharedToken, clearToken } from "../utils/session";
 import { initVendorFenicio } from "../vendors/fenicio";
 import { subscribeQueue } from "../utils/queue";
 import { addToQueue } from "../utils/queue";
-import { getGAId, markSessionEvent } from "../utils/ga";
+import {
+  getGAId,
+  markSessionEvent,
+  trackGopersonalProductClickById,
+} from "../utils/ga";
 window.gsStore = {
   interactionCount: 0,
 };
@@ -331,6 +335,16 @@ export const addInteraction = (interactionData) => {
   const hasImpressionId = getParam("gsImpressionId");
   if (interactionData.event == "view" && hasImpressionId) {
     interactionData.impressionId = hasImpressionId;
+    const itemId = interactionData.item;
+    const listName = getParam("gsListName") || "gopersonal_list";
+    const index = getParam("gsIndex") || 0;
+    if (itemId) {
+      try {
+        trackGopersonalProductClickById(itemId, listName, index);
+      } catch (error) {
+        console.error("Error tracking gopersonal product click:", error);
+      }
+    }
   }
 
   return httpPost(`/interaction`, interactionData);

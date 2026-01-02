@@ -1,3 +1,6 @@
+import { getItemById } from '../api';
+import { getParam } from './urlParam';
+
 export const getGAId = () => {
     try {
         if (window.ga && typeof window.ga.getAll === 'function') {
@@ -95,3 +98,96 @@ export const checkURLEvents = () => {
         console.error('Error checking URL events:', error);
     }
 }
+
+
+/** New GA4 Implementation */
+
+/** Helpers */
+function isgtagAvailable() {
+    return typeof gtag === 'function';
+}
+
+function parseItemForGA4(item, index, listName) {
+    return {
+        item_id: item.id,
+        item_name: item.name,
+        price: item.price,
+        item_category: item.category,
+        item_brand: item.brand,
+        index: parseInt(index) + 1,
+        item_list_name: listName,
+        quantity: 1
+    };
+}
+
+function gopersonalTrack(eventName, eventData) {
+    // If the parameter gsIncludeDraft is true, don't track the event
+    if(getParam('gsIncludeDraft') == 'true') {
+        return;
+    }
+
+    if (isgtagAvailable()) {
+        gtag('event', eventName, eventData);
+    } else if (typeof window !== 'undefined' && window.dataLayer && Array.isArray(window.dataLayer)) {
+        window.dataLayer.push({
+            event: eventName,
+            ecommerce: eventData,
+            
+        });
+    } else {
+        console.error('gtag and dataLayer not available');
+    }
+}
+
+export const trackGopersonalProductImpression = (items, listName) => {
+    // Assign the listName and the index to each item
+    const enhancedItems = items.map((item, index) => parseItemForGA4(item, index, listName));
+    const eventData = {
+        item_list_name: listName,
+        items: enhancedItems,
+    };
+    gopersonalTrack('view_item_list', eventData);
+};
+
+export const trackGopersonalProductClick = (item, listName, index) => {
+    const enhancedItem = parseItemForGA4(item, index, listName)
+    const eventData = {
+        item_list_name: listName,
+        items: [enhancedItem], 
+    };
+    gopersonalTrack('select_item', eventData);
+}
+
+export const trackGopersonalBannerImpression = (promotions) => {
+    const enhancedPromotions = promotions.map(promo => ({
+        ...promo, // Must include promotion_id, promotion_name
+        creative_slot: promo.creative_slot || 'gopersonal_slot' // Slot por
+    }));
+    
+    const eventData = {
+        promotions: enhancedPromotions,
+    };
+    gopersonalTrack('view_promotion', eventData);
+};
+
+export const trackGopersonalBannerClick = (promotion) => {
+    const enhancedPromotion = {
+        ...promotion,
+        creative_slot: 'gopersonal_slot',
+    };
+    const eventData = {
+        promotions: [enhancedPromotion],
+    };
+    
+    gopersonalTrack('select_promotion', eventData);
+};
+
+export const trackGopersonalProductClickById = async (itemId, listName = 'gopersonal_list', index = 0) => {
+    const item = await getItemById(itemId);
+    const enhancedItem = parseItemForGA4(item, index, listName);
+    const eventData = {
+        item_list_name: listName,
+        items: [enhancedItem],
+    };
+    gopersonalTrack('select_item', eventData);
+};
