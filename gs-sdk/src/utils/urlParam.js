@@ -16,3 +16,10 @@ export const jsonToQueryString = (json) => {
   
     return '?' + queryString;
   }
+
+  export const isSearchReferral = () => {
+    if(!document.referrer) return false;
+    
+    const urlParams = new URLSearchParams(document.referrer);
+    return urlParams.get('_gsSearchId') !== null;
+  }
