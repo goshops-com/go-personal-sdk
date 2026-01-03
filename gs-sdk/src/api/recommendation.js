@@ -1,9 +1,9 @@
-import { httpGet, httpPost, httpPatch } from '../utils/http';
+import { httpGet, httpPost, httpPatch } from "../utils/http";
 
 export const bestProducts = async (options = {}) => {
-  let q = '';
-  if (options.includeImpressionId){
-    q += 'includeImpressionId=true';
+  let q = "";
+  if (options.includeImpressionId) {
+    q += "includeImpressionId=true";
   }
   return await httpGet(`/recommendations/best-products?${q}`);
 };
@@ -14,85 +14,109 @@ export const byContext = async (options = {}) => {
   const recoOptions = options.options;
 
   const currentPageContext = window.gsConfig.options.context || {};
-  if (currentPageContext.pageType == 'product_detail' && currentPageContext.product_id){
+  if (
+    currentPageContext.pageType == "product_detail" &&
+    currentPageContext.product_id
+  ) {
     context = {
-      "currentPage": {
-        "productId": currentPageContext.product_id + ''
-      }
-    }
+      currentPage: {
+        productId: currentPageContext.product_id + "",
+      },
+    };
   }
 
   let filterVariable;
   if (filter || recoOptions) {
-    const mergedFilter = filter ? {
-      "filter_string": filter,
-    } : {};
+    const mergedFilter = filter
+      ? {
+          filter_string: filter,
+        }
+      : {};
 
-    const mergedOptions = recoOptions ? {
-      "options": recoOptions,
-    } : {};
+    const mergedOptions = recoOptions
+      ? {
+          options: recoOptions,
+        }
+      : {};
 
     const mergedValue = {
       ...mergedOptions,
-      ...mergedFilter
-    }
+      ...mergedFilter,
+    };
 
     filterVariable = {
-      "type": {
-          "id": "recoOptions"
+      type: {
+        id: "recoOptions",
       },
-      "value": mergedValue
-    }
+      value: mergedValue,
+    };
   }
 
-  const strategy = options.strategy || 'similarity';
+  const strategy = options.strategy || "similarity";
   const count = options.count || 10;
 
-  let q = '';
-  if (options.includeImpressionId){
-    q += 'includeImpressionId=true';
+  let q = "";
+  if (options.includeImpressionId) {
+    q += "includeImpressionId=true";
   }
 
   const variables = [
     {
-        "type": {
-            "id": "gs_recoStrategy"
-        },
-        "value": {
-            "id": strategy
-        }
+      type: {
+        id: "gs_recoStrategy",
+      },
+      value: {
+        id: strategy,
+      },
     },
     {
-        "type": {
-            "id": "gs_recoCount"
-        },
-        "value": count + ''
-    }
-  ]
+      type: {
+        id: "gs_recoCount",
+      },
+      value: count + "",
+    },
+  ];
   if (filterVariable) {
     variables.push(filterVariable);
+  }
+
+  if (options.gs_recoStrategyCustom) {
+    variables.push({
+      type: {
+        id: "gs_recoStrategyCustom",
+      },
+      value: {
+        _id: options.gs_recoStrategyCustom,
+      },
+    });
   }
   try {
     return await httpPost(`/recommendations/by-context?${q}`, {
       context: context,
-      "variables": variables
+      variables: variables,
     });
   } catch (error) {
-    console.error('Error fetching recommendations by context:', error);
+    console.error("Error fetching recommendations by context:", error);
     return [];
   }
 };
 
 export const openImpression = async (impressionId) => {
   try {
-    if (!impressionId || typeof impressionId !== 'string' || window.gsImpressionIds.includes(impressionId)) {
+    if (
+      !impressionId ||
+      typeof impressionId !== "string" ||
+      window.gsImpressionIds.includes(impressionId)
+    ) {
       return;
     }
 
     window.gsImpressionIds.push(impressionId);
-    return await httpPatch(`/recommendations/impression/${impressionId}`, { status: 'opened' });
+    return await httpPatch(`/recommendations/impression/${impressionId}`, {
+      status: "opened",
+    });
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
     return;
   }
 };
