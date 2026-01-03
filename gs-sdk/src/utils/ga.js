@@ -218,14 +218,14 @@ export const trackGopersonalProductClickById = async (itemId, listName = 'gopers
     gopersonalTrack('select_item', eventData);
 };
 
-export const trackGopersonalSearch = async (query, resultsCount, searchType, searchId, occasionSearch, products) => {
+export const trackGopersonalSearch = async (query, resultsCount, searchType, searchId, occasionSearch) => {
     const eventData = {
         search_query: query,
         search_results_count: resultsCount,
         search_type: searchType,
         search_id: searchId,
-        occasion_search: occasionSearch,
-        products: products,
+        occasion_search: occasionSearch
+        
     };
     gopersonalTrack('search', eventData);
 };

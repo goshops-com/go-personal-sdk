@@ -248,7 +248,7 @@ const GSSDK = async (clientId, options = {}) => {
       trackGopersonalProductClick: (item, listName, index) => trackGopersonalProductClick(item, listName, index),
       trackGopersonalBannerImpression: (promotions) => trackGopersonalBannerImpression(promotions),
       trackGopersonalBannerClick: (promotion) => trackGopersonalBannerClick(promotion),
-      trackGopersonalSearch: (query, resultsCount, searchType, searchId, occasionSearch, products) => trackGopersonalSearch(query, resultsCount, searchType, searchId, occasionSearch, products),
+      trackGopersonalSearch: (query, resultsCount, searchType, searchId, occasionSearch) => trackGopersonalSearch(query, resultsCount, searchType, searchId, occasionSearch),
       trackGopersonalSearchResults: (products) => trackGopersonalSearchResults(products),
       trackGopersonalSearchResultClick: (product) => trackGopersonalSearchResultClick(product),
     };
