@@ -433,8 +433,10 @@ async function renderContentPreview(payload) {
     const html = payload.html;
     const js = payload.js;
 
-    injectCSS(css, 'gs-preview');
-
+    if(css){
+      injectCSS(css, 'gs-preview');
+    }
+    
     let selector = payload.previewObject.selector;
     let selectorPosition = payload.previewObject.selectorPosition;
     if (!selector) {
@@ -448,9 +450,9 @@ async function renderContentPreview(payload) {
     if (isMobile && hasMobileSelector) {
       selector = payload.previewObject.mobileSelector;
     }
-
-    await addHTMLToDiv(html, selector, selectorPosition, {});
-
+    if(html){
+      await addHTMLToDiv(html, selector, selectorPosition, {});
+    }
     if (js) {
       addJavaScriptToBody(js, 'gs-preview');
     }
