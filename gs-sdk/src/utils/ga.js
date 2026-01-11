@@ -218,7 +218,7 @@ export const trackGopersonalProductClickById = async (itemId, listName = 'gopers
     gopersonalTrack('select_item', eventData);
 };
 
-export const trackGopersonalSearch = async (query, resultsCount, searchType, searchId, occasionSearch) => {
+export const trackGopersonalSearch = (query, resultsCount, searchType, searchId, occasionSearch) => {
     const eventData = {
         search_query: query,
         search_results_count: resultsCount,
@@ -230,7 +230,7 @@ export const trackGopersonalSearch = async (query, resultsCount, searchType, sea
     gopersonalTrack('search', eventData);
 };
 
-export const trackGopersonalSearchResults = async (products) => {
+export const trackGopersonalSearchResults = (products) => {
     const enhancedItems = products.map((item, index) => parseItemForGA4(item, index, 'Gopersonal - Search Results')) || [];
     const eventData = {
         item_list_name: 'Gopersonal - Search Results',
@@ -239,7 +239,7 @@ export const trackGopersonalSearchResults = async (products) => {
     gopersonalTrack('view_item_list', eventData);
 };
 
-export const trackGopersonalSearchResultClick = async (product) => {
+export const trackGopersonalSearchResultClick = (product) => {
     const enhancedItem = parseItemForGA4(product, 0, 'Gopersonal - Search Results');
     const eventData = {
         item_list_name: 'Gopersonal - Search Results',
@@ -248,3 +248,16 @@ export const trackGopersonalSearchResultClick = async (product) => {
     gopersonalTrack('select_item', eventData);
 };
 
+export const trackGopersonalProductAddToCart = async (itemId, listName = 'gopersonal_list') => {
+    const item = await getItemById(itemId);
+    const enhancedItem = parseItemForGA4(item, 0, listName);
+    const eventData = {
+        item_list_name: listName,
+        items: [enhancedItem],
+    };
+    gopersonalTrack('add_to_cart', eventData);   
+};
+
+export const trackGopersonalCustomEvent = (event,params) => {
+    gopersonalTrack(event, params);    
+};
