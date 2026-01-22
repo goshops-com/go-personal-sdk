@@ -110,10 +110,10 @@ function isgtagAvailable() {
 function parseItemForGA4(item, index, listName) {
     return {
         item_id: item.id,
-        item_name: item.name,
+        item_name: item.name || '',
         price: item.price,
-        item_category: item.category,
-        item_brand: item.brand,
+        item_category: item.category || '',
+        item_brand: item.brand || '',
         index: parseInt(index) + 1,
         item_list_name: listName,
         quantity: 1
