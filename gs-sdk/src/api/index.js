@@ -99,7 +99,7 @@ export const init = async (clientId, options) => {
     externalSessionId,
     gsVUID: vuuid,
     firstURL: window.location.href,
-    gaId: gaId,
+    gaId: gaId || vuuid,
   });
   setSession(obj);
 
