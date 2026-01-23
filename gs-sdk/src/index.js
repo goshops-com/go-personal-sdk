@@ -7,7 +7,7 @@ import { bestProducts, byContext, openImpression as openImpressionForRecommendat
 import { executeActions } from './actions/addToCart';
 import { executeActions as executeSearchActions } from './actions/search';
 import { executeActions as executeSessionActions, debugSession } from './actions/sessionAction';
-import { checkURLEvents, trackGopersonalProductImpression, trackGopersonalProductClick, trackGopersonalBannerImpression, trackGopersonalBannerClick } from './utils/ga';
+import { checkURLEvents, trackGopersonalProductImpression, trackGopersonalProductClick, trackGopersonalBannerImpression, trackGopersonalBannerClick, trackGopersonalSearch, trackGopersonalSearchResults, trackGopersonalSearchResultClick, trackGopersonalProductAddToCart, trackGopersonalCustomEvent } from './utils/ga';
 import { loadPlugin } from './api/plugins';
 import { getUrlParameter, removeParamFromUrl } from './utils/dom';
 import { getCurrentGeoIPLocation } from './api/geolocation';
@@ -248,6 +248,11 @@ const GSSDK = async (clientId, options = {}) => {
       trackGopersonalProductClick: (item, listName, index) => trackGopersonalProductClick(item, listName, index),
       trackGopersonalBannerImpression: (promotions) => trackGopersonalBannerImpression(promotions),
       trackGopersonalBannerClick: (promotion) => trackGopersonalBannerClick(promotion),
+      trackGopersonalSearch: (query, resultsCount, searchType, searchId, occasionSearch) => trackGopersonalSearch(query, resultsCount, searchType, searchId, occasionSearch),
+      trackGopersonalSearchResults: (products) => trackGopersonalSearchResults(products),
+      trackGopersonalSearchResultClick: (product) => trackGopersonalSearchResultClick(product),
+      trackGopersonalProductAddToCart: (itemId, listName) => trackGopersonalProductAddToCart(itemId, listName),
+      trackGopersonalCustomEvent: (event, params) => trackGopersonalCustomEvent(event, params),
     };
     
 };
