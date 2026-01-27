@@ -14,10 +14,7 @@ export const byContext = async (options = {}) => {
   const recoOptions = options.options;
 
   const currentPageContext = window.gsConfig.options.context || {};
-  if (
-    currentPageContext.pageType == "product_detail" &&
-    currentPageContext.product_id
-  ) {
+  if (!options.forceContext && currentPageContext.pageType == 'product_detail' && currentPageContext.product_id){
     context = {
       currentPage: {
         productId: currentPageContext.product_id + "",
