@@ -147,6 +147,27 @@ function isEcommerceEvent(eventName) {
       ];
     return ecommerceEvents.includes(eventName);
 }
+
+function getGA4MeasurementId() {
+    // 1. Buscar en scripts
+    for (const s of document.scripts) {
+        if (s.src && s.src.includes('gtag/js?id=G-')) {
+        return new URL(s.src).searchParams.get('id');
+        }
+    }
+
+    // 2. Buscar en dataLayer
+    if (window.dataLayer) {
+        for (const item of window.dataLayer) {
+        if (item?.measurement_id) return item.measurement_id;
+        }
+    }
+
+    return null;
+}
+  
+  
+
 function gopersonalTrack(eventName, eventData) {
     // If the parameter gsIncludeDraft is true, don't track the event
     if(getParam('gsIncludeDraft') == 'true') {
@@ -154,6 +175,10 @@ function gopersonalTrack(eventName, eventData) {
     }
 
     if (isgtagAvailable()) {
+        const measurementId = getGA4MeasurementId();
+        if (measurementId) {
+            eventData.send_to = measurementId;
+        }
         gtag('event', eventName, eventData);
     } else if (typeof window !== 'undefined' && window.dataLayer && Array.isArray(window.dataLayer)) {
         window.dataLayer.push({
