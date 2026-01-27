@@ -19,7 +19,11 @@ import {
   getVUUID,
   setVUUID,
 } from "../utils/storage";
-import { jsonToQueryString, getParam, isSearchReferral } from "../utils/urlParam";
+import {
+  jsonToQueryString,
+  getParam,
+  isSearchReferral,
+} from "../utils/urlParam";
 import { setupContentSelector } from "../utils/configure";
 import { getContentByContext } from "./content";
 import { getSharedToken, clearToken } from "../utils/session";
@@ -99,7 +103,7 @@ export const init = async (clientId, options) => {
     externalSessionId,
     gsVUID: vuuid,
     firstURL: window.location.href,
-    gaId: gaId || vuuid,
+    gaId: vuuid,
   });
   setSession(obj);
 
@@ -333,7 +337,7 @@ export const addInteraction = (interactionData) => {
   });
 
   const hasImpressionId = getParam("gsImpressionId");
-  
+
   if (interactionData.event == "view" && hasImpressionId) {
     interactionData.impressionId = hasImpressionId;
     const itemId = interactionData.item;
@@ -346,10 +350,10 @@ export const addInteraction = (interactionData) => {
         console.error("Error tracking gopersonal product click:", error);
       }
     }
-  }else if(interactionData.event == "view" && isSearchReferral()) {
+  } else if (interactionData.event == "view" && isSearchReferral()) {
     const itemId = interactionData.item;
-    if(itemId) {
-      trackGopersonalProductClickById(itemId, 'Gopersonal - Search Results', 0);
+    if (itemId) {
+      trackGopersonalProductClickById(itemId, "Gopersonal - Search Results", 0);
     }
   }
 
