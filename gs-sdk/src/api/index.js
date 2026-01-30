@@ -97,6 +97,11 @@ export const init = async (clientId, options) => {
     setVUUID(vuuid);
   }
 
+  if (clientId == "Z4arNzD%2Bl30LntC%2B") {
+    console.log("sleep 1000");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
   const gaId = getGAId();
   const obj = await httpPost(`/channel/init${q}`, {
     clientId,
