@@ -166,7 +166,7 @@ const GSSDK = async (clientId, options = {}) => {
   }
 
   const sessionObj = getCustomerSession();
-  const onlyForcedProjects = ["67374d510dfcc232a627662e", "67374d2d0dfcc28c73276534", "67374d240dfcc2a4ff2764e8", "67374d1d0dfcc2ee482764c2"];
+  const onlyForcedProjects = ["67374d510dfcc232a627662e", "67374d2d0dfcc28c73276534", "67374d240dfcc2a4ff2764e8", "67374d1d0dfcc2ee482764c2", "671143e6fc0d0c3bb6ab89c5"];
   if (onlyForcedProjects.includes(sessionObj?.project)) {
     queueMicrotask(() => {
       try {
