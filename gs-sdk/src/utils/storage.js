@@ -1,5 +1,6 @@
-const key = 'gs-v-1';
-const GS_VUUID = 'gs_vuuid';
+const key = "gs-v-1";
+const GS_VUUID = "gs_vuuid";
+const GS_GAID = "gs_gaid";
 
 export const getToken = () => {
   const item = localStorage.getItem(key);
@@ -10,15 +11,15 @@ export const getToken = () => {
 };
 
 export const checkSameClientId = (clientId) => {
-  const item = localStorage.getItem(key + '-clientId');
+  const item = localStorage.getItem(key + "-clientId");
   if (!item) {
-    return false
+    return false;
   }
   return item == clientId;
 };
 
 export const setClientId = (clientId) => {
-  localStorage.setItem(key + '-clientId', clientId);
+  localStorage.setItem(key + "-clientId", clientId);
 };
 
 export const isTokenValid = () => {
@@ -33,7 +34,7 @@ export const isTokenValid = () => {
     oneDayAgo.setHours(oneDayAgo.getHours() - 24);
     return timestamp > oneDayAgo;
   } catch (e) {
-    console.log(e)
+    console.log(e);
     return false;
   }
 };
@@ -43,12 +44,12 @@ export const getSession = () => {
   if (item) {
     const session = JSON.parse(item);
     const vuuid = getVUUID();
-    session['vuuid'] = vuuid
+    session["vuuid"] = vuuid;
     return session;
   } else {
-    return {}
+    return {};
   }
-}
+};
 
 export const addDataToSession = (fieldKey, value) => {
   const item = localStorage.getItem(key);
@@ -57,9 +58,9 @@ export const addDataToSession = (fieldKey, value) => {
     session[fieldKey] = value;
     setSession(session);
   } else {
-    return {}
+    return {};
   }
-}
+};
 
 export const setSession = (data = {}) => {
   data.ts = new Date();
@@ -69,9 +70,8 @@ export const setSession = (data = {}) => {
 
 export const clearSession = () => {
   localStorage.removeItem(key);
-  localStorage.removeItem('gs_content_seen');
+  localStorage.removeItem("gs_content_seen");
 };
-
 
 export const setVUUID = (value) => {
   localStorage.setItem(GS_VUUID, value);
@@ -79,4 +79,12 @@ export const setVUUID = (value) => {
 export const getVUUID = () => {
   const item = localStorage.getItem(GS_VUUID);
   return item;
-}
+};
+
+export const setGAId = (value) => {
+  localStorage.setItem(GS_GAID, value);
+};
+export const getGAId = () => {
+  const item = localStorage.getItem(GS_GAID);
+  return item;
+};

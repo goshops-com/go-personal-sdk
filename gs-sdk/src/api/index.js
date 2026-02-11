@@ -18,6 +18,8 @@ import {
   getSession,
   getVUUID,
   setVUUID,
+  getGAId,
+  setGAId,
 } from "../utils/storage";
 import {
   jsonToQueryString,
@@ -97,33 +99,49 @@ export const init = async (clientId, options) => {
     setVUUID(vuuid);
   }
 
+  let hasGA4 = false;
   if (clientId == "Z4arNzD%2Bl30LntC%2B") {
+    hasGA4 = true;
     console.log("sleep 1000");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
   }
 
   const gaId = getGAId();
-  const obj = await httpPost(`/channel/init${q}`, {
-    clientId,
-    externalSessionId,
-    gsVUID: vuuid,
-    firstURL: window.location.href,
-    gaId: gaId,
-  });
-  setSession(obj);
 
-  if (obj.hasSessionSplitTraffic) {
-    markSessionEvent();
+  if (gaId && hasGA4) {
+    const usedGaId = getGAId(gaId);
+    if (usedGaId) {
+      return; // this gaId was already used for ab testing
+    }
   }
-  const gsElementSelector = getParam("gsElementSelector");
-  const gsContentKey = getParam("gsContentKey");
 
-  if (gsElementSelector != null && gsContentKey != null) {
-    await setupContentSelector(gsContentKey);
+  try {
+    const obj = await httpPost(`/channel/init${q}`, {
+      clientId,
+      externalSessionId,
+      gsVUID: vuuid,
+      firstURL: window.location.href,
+      gaId: gaId,
+    });
+    setSession(obj);
+
+    if (obj.hasSessionSplitTraffic) {
+      markSessionEvent();
+    }
+    const gsElementSelector = getParam("gsElementSelector");
+    const gsContentKey = getParam("gsContentKey");
+
+    if (gsElementSelector != null && gsContentKey != null) {
+      await setupContentSelector(gsContentKey);
+    }
+    executeInitialLoad(clientId, obj, options);
+    subscribeQueue();
+    return clientId;
+  } catch (e) {
+    if (hasGA4 && e.message && e.message.includes("400")) {
+      setGAId(gaId);
+    }
   }
-  executeInitialLoad(clientId, obj, options);
-  subscribeQueue();
-  return clientId;
 };
 
 function generateUUID() {
