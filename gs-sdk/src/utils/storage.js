@@ -81,10 +81,10 @@ export const getVUUID = () => {
   return item;
 };
 
-export const setGAId = (value) => {
+export const setUsedGAId = (value) => {
   localStorage.setItem(GS_GAID, value);
 };
-export const getGAId = () => {
+export const getUsedGAId = () => {
   const item = localStorage.getItem(GS_GAID);
   return item;
 };

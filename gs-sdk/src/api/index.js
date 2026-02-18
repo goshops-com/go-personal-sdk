@@ -18,8 +18,8 @@ import {
   getSession,
   getVUUID,
   setVUUID,
-  getGAId,
-  setGAId,
+  getUsedGAId,
+  setUsedGAId,
 } from "../utils/storage";
 import {
   jsonToQueryString,
@@ -117,8 +117,8 @@ export const init = async (clientId, options) => {
   const gaId = getGAId();
 
   if (gaId && hasGA4) {
-    const usedGaId = getGAId(gaId);
-    if (usedGaId) {
+    const usedGaId = getUsedGAId();
+    if (usedGaId && usedGaId === gaId) {
       return; // this gaId was already used for ab testing
     }
   }
@@ -147,7 +147,7 @@ export const init = async (clientId, options) => {
     return clientId;
   } catch (e) {
     if (hasGA4 && e.message && e.message.includes("400")) {
-      setGAId(gaId);
+      setUsedGAId(gaId);
     }
   }
 };
