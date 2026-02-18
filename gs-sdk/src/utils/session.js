@@ -18,7 +18,7 @@ export const getSharedToken = () => {
                 if (event.data.session) {
                     resolve(event.data.session);
                 } else {
-                    reject(new Error("Session not received"));
+                    resolve(null);
                 }
             }
         }

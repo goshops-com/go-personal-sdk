@@ -67,9 +67,13 @@ export const init = async (clientId, options) => {
   }
 
   if (options.readSharedSession) {
-    const sharedSession = await getSharedToken();
-    if (sharedSession) {
-      setSession(sharedSession);
+    try {
+      const sharedSession = await getSharedToken();
+      if (sharedSession) {
+        setSession(sharedSession);
+      }
+    } catch (error) {
+      console.warn('Could not get shared session, will create new one:', error);
     }
   }
 
@@ -90,7 +94,11 @@ export const init = async (clientId, options) => {
 
   let externalSessionId;
   if (options.multipleDomains) {
-    externalSessionId = await getSharedToken();
+    try {
+      externalSessionId = await getSharedToken();
+    } catch (error) {
+      console.warn('Could not get external session ID:', error);
+    }
   }
 
   let vuuid = getVUUID();
