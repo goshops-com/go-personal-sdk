@@ -71,6 +71,9 @@ export const init = async (clientId, options) => {
       const sharedSession = await getSharedToken();
       if (sharedSession) {
         setSession(sharedSession);
+        if (sharedSession.vuuid) {
+          setVUUID(sharedSession.vuuid);
+        }
       }
     } catch (error) {
       console.warn('Could not get shared session, will create new one:', error);
