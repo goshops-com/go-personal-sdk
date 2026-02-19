@@ -1,4 +1,5 @@
 import { addInteraction, addInteractionState, login, logout, updateState } from '../api';
+import { setSharedToken } from '../utils/session';
 import { getContentByContext } from '../api/content';
 
 const EMBEDDED_FLAG = '__gsIntegrationListener';
@@ -173,11 +174,15 @@ function retryLogin(maxTries, attempt, id, email, updateCartFromCustomer) {
   login(id, {
     email,
     param_updateCartFromCustomer: updateCartFromCustomer
-  }).catch(() => {
-    if (attempt + 1 < maxTries) {
-      setTimeout(() => retryLogin(maxTries, attempt + 1, id, email, updateCartFromCustomer), RETRY_DELAY);
-    }
-  });
+  })
+    .then(() => {
+      setSharedToken();
+    })
+    .catch(() => {
+      if (attempt + 1 < maxTries) {
+        setTimeout(() => retryLogin(maxTries, attempt + 1, id, email, updateCartFromCustomer), RETRY_DELAY);
+      }
+    });
 }
 
 function getAmountOfProducts(items = []) {
