@@ -70,7 +70,8 @@ export const init = async (clientId, options) => {
     try {
       const sharedSession = await getSharedToken();
       if (sharedSession) {
-        setSession(sharedSession);
+        const keepTs = true; // keep the timestamp of the shared session to refresh the session
+        setSession(sharedSession, keepTs);
         if (sharedSession.vuuid) {
           setVUUID(sharedSession.vuuid);
         }

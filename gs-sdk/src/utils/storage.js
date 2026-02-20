@@ -62,8 +62,10 @@ export const addDataToSession = (fieldKey, value) => {
   }
 };
 
-export const setSession = (data = {}) => {
-  data.ts = new Date();
+export const setSession = (data = {}, preserveTs = false) => {
+  if (!preserveTs) {
+    data.ts = new Date();
+  }
   localStorage.setItem(key, JSON.stringify(data));
   return data;
 };
