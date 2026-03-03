@@ -18,8 +18,10 @@ import {
   getSession,
   getVUUID,
   setVUUID,
-  getUsedGAId,
-  setUsedGAId,
+  getGAIdAccepted,
+  setGAIdAccepted,
+  getGAIdRejected,
+  setGAIdRejected,
 } from "../utils/storage";
 import {
   jsonToQueryString,
@@ -81,6 +83,31 @@ export const init = async (clientId, options) => {
     }
   }
 
+  let hasGA4 = false;
+  if (clientId == "Z4arNzD%2Bl30LntC%2B") {
+    hasGA4 = true;
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }
+
+  const gaId = getGAId();
+  const gaIdAccepted = getGAIdAccepted();
+  const gaIdRejected = getGAIdRejected();
+
+  if (gaId && hasGA4) {
+    // If current gaId matches the last rejected, reject immediately
+    if (gaIdRejected && gaId === gaIdRejected) {
+      console.log("GA4: gaId matches last rejected, skipping init");
+      return;
+    }
+
+    // If gaId changed (different from both accepted and rejected), clear token to force new init
+    const gaIdChanged = gaId !== gaIdAccepted && gaId !== gaIdRejected;
+    if (gaIdChanged) {
+      console.log("GA4: gaId changed, clearing session for fresh init");
+      clearSession();
+    }
+  }
+
   if (isTokenValid()) {
     const obj = getToken();
     const session = getSession();
@@ -111,22 +138,6 @@ export const init = async (clientId, options) => {
     setVUUID(vuuid);
   }
 
-  let hasGA4 = false;
-  if (clientId == "Z4arNzD%2Bl30LntC%2B") {
-    hasGA4 = true;
-    console.log("sleep 1000");
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-  }
-
-  const gaId = getGAId();
-
-  if (gaId && hasGA4) {
-    const usedGaId = getUsedGAId();
-    if (usedGaId && usedGaId === gaId) {
-      return; // this gaId was already used for ab testing
-    }
-  }
-
   try {
     const obj = await httpPost(`/channel/init${q}`, {
       clientId,
@@ -136,6 +147,11 @@ export const init = async (clientId, options) => {
       gaId: gaId,
     });
     setSession(obj);
+
+    // GA4: Save accepted gaId on successful init
+    if (hasGA4 && gaId) {
+      setGAIdAccepted(gaId);
+    }
 
     if (obj.hasSessionSplitTraffic) {
       markSessionEvent();
@@ -150,8 +166,9 @@ export const init = async (clientId, options) => {
     subscribeQueue();
     return clientId;
   } catch (e) {
-    if (hasGA4 && e.message && e.message.includes("400")) {
-      setUsedGAId(gaId);
+    // GA4: Save rejected gaId on error (400)
+    if (hasGA4 && gaId && e.message && e.message.includes("400")) {
+      setGAIdRejected(gaId);
     }
   }
 };

@@ -2,6 +2,12 @@ const key = "gs-v-1";
 const GS_VUUID = "gs_vuuid";
 const GS_GAID = "gs_gaid";
 
+
+// Keys for GA4 session sync in traffic split
+const GS_GAID_ACCEPTED = "gs_gaid_accepted";
+const GS_GAID_REJECTED = "gs_gaid_rejected";
+
+
 export const getToken = () => {
   const item = localStorage.getItem(key);
   if (!item) {
@@ -83,10 +89,18 @@ export const getVUUID = () => {
   return item;
 };
 
-export const setUsedGAId = (value) => {
-  localStorage.setItem(GS_GAID, value);
+// GA4 Accepted GA ID
+export const setGAIdAccepted = (gaId) => {
+  localStorage.setItem(GS_GAID_ACCEPTED, gaId);
 };
-export const getUsedGAId = () => {
-  const item = localStorage.getItem(GS_GAID);
-  return item;
+export const getGAIdAccepted = () => {
+  return localStorage.getItem(GS_GAID_ACCEPTED);
+};
+
+// GA4 Rejected GA ID
+export const setGAIdRejected = (gaId) => {
+  localStorage.setItem(GS_GAID_REJECTED, gaId);
+};
+export const getGAIdRejected = () => {
+  return localStorage.getItem(GS_GAID_REJECTED);
 };
