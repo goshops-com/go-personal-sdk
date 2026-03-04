@@ -3,23 +3,20 @@ import { getParam } from './urlParam';
 
 export const getGAId = () => {
     try {
-        if (window.ga && typeof window.ga.getAll === 'function') {
-            const tracker = window.ga.getAll()[0];
-            if (tracker) return tracker.get('clientId');
-        }
-        
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.startsWith('_ga=')) {
-                const parts = cookie.substring(4).split('.');
-                if (parts.length >= 3) {
-                    return parts.slice(-2).join('.');
-                }
-            }
-        }
-        
-        return null;
+        const cookies = document.cookie.split('; ');
+    
+        const gaSessionCookie = cookies.find(cookie =>
+            cookie.startsWith('_ga_') && !cookie.startsWith('_ga=')
+        );
+    
+        if (!gaSessionCookie) return null;
+    
+        const value = gaSessionCookie.split('=')[1];
+    
+        const match = value.match(/s(\d+)/);
+    
+        return match ? match[1] : null;
+    
     } catch (error) {
         return null;
     }
