@@ -6,7 +6,7 @@ import { getSession } from '../utils/storage';
 import { sendEvent } from '../utils/custom';
 import { renderTemplate, renderRaw } from '../utils/handlebars';
 
-const clientSideRenderProjects = ["661ef9b2e2e8dc1201433001", "690e308c21db483dd22ee32c"];
+const clientSideRenderProjects = ["661ef9b2e2e8dc1201433001", "690e308c21db483dd22ee32c", "667dce73108ea079321c61a0"];
 window.gsStore = {
   context: {
 

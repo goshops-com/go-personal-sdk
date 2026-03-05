@@ -30,7 +30,7 @@ export const httpGet = async (endpoint, params = {}, includeHeaders = false) => 
   const url = new URL(`${BASE_URL}${endpoint}`);
   Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
 
-  const response = await fetch(url, {
+  const response = await fetch(url.toString(), {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ export const httpPublicGet = async (endpoint, params = {}) => {
   const url = new URL(`${BASE_URL}${endpoint}`);
   Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
 
-  const response = await fetch(url, {
+  const response = await fetch(url.toString(), {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
