@@ -6,7 +6,7 @@ import { getSession } from '../utils/storage';
 import { sendEvent } from '../utils/custom';
 import { renderTemplate, renderRaw } from '../utils/handlebars';
 
-const clientSideRenderProjects = ["661ef9b2e2e8dc1201433001"];
+const clientSideRenderProjects = ["661ef9b2e2e8dc1201433001", "690e308c21db483dd22ee32c"];
 window.gsStore = {
   context: {
 
@@ -183,7 +183,7 @@ export const getContent = async (contentId, options) => {
 
         // Render templates with Handlebars
         const renderedHtml = templateValue.html ? renderTemplate(templateValue.html, variables, data) : '';
-        const renderedCss = templateValue.css ? renderRaw(templateValue.css, { gs_variantId: data.variantId }) : '';
+        const renderedCss = templateValue.css ? renderTemplate(templateValue.css, variables, data) : '';
         const renderedJs = templateValue.js ? renderTemplate(templateValue.js, variables, data) : '';
 
         content = {
