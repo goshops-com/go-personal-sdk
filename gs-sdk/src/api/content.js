@@ -178,6 +178,10 @@ export const getContent = async (contentId, options) => {
         const result = await httpPost(url, payload);
         const data = result.data;
 
+        if (!data?.variantId) {
+          return;
+        }
+
         // Get variant template
         const variantResponse = await httpPublicGet(`/public/cached-content/${sessionObj.project}/variant/${data.variantId}`);
         const templateValue = variantResponse.variant.templateValue;
