@@ -165,6 +165,7 @@ export function renderTemplate(template, variablesArray, data) {
   variablesObject['gs_recoImpressionId'] = data.recoImpressionId;
   variablesObject['gs_contentName'] = data.contentName || '';
   variablesObject['gs_contentId'] = data.contentId || '';
+  variablesObject['impressionId'] = data.impressionId || '';
 
   if (data.gs_recommendations) {
     variablesObject['gs_recommendations'] = data.gs_recommendations;

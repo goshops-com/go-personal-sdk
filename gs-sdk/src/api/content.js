@@ -79,17 +79,19 @@ export const getContentByContext = async (context, options = {}) => {
   }
   
   let result;
-  
-  try {
-    let getURL = `/public/cached-content/${sessionObj.project}/?pageType=${context}`;
-    if (includeDraftParam && includeDraftParam === 'true') {
-      getURL += '&includeDraft=true';
-    }
-    result = await httpPublicGet(getURL);
-  } catch (e) {
-    console.error('Error fetching cached content:', e);
+
+  if (includeDraft || (includeDraftParam && includeDraftParam == 'true')) {
     const payload = buildContextPayload(options);
     result = await obtainContentByContext(url, payload, context, includeDraftParam);
+  } else {
+    try {
+      let getURL = `/public/cached-content/${sessionObj.project}/?pageType=${context}`;
+      result = await httpPublicGet(getURL);
+    } catch (e) {
+      console.error('Error fetching cached content:', e);
+      const payload = buildContextPayload(options);
+      result = await obtainContentByContext(url, payload, context, includeDraftParam);
+    }
   }
   
   const contents = result.loadNowContent;
@@ -163,7 +165,7 @@ export const getContent = async (contentId, options) => {
         params.append('project', sessionObj.project);
       }
 
-      const useClientSideRender = clientSideRenderProjects.includes(sessionObj?.project);
+      const useClientSideRender = !includeDraft && clientSideRenderProjects.includes(sessionObj?.project);
       if (useClientSideRender) {
         params.append('onlyData', 'true');
       }
