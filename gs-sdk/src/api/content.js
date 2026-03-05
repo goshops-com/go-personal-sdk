@@ -4,6 +4,9 @@ import { previewVariant, getParam } from '../utils/urlParam';
 import { suscribe } from '../utils/trigger';
 import { getSession } from '../utils/storage';
 import { sendEvent } from '../utils/custom';
+import { renderTemplate, renderRaw } from '../utils/handlebars';
+
+const clientSideRenderProjects = ["661ef9b2e2e8dc1201433001"];
 window.gsStore = {
   context: {
 
@@ -146,7 +149,7 @@ export const getContent = async (contentId, options) => {
   }else{
     if (prevVarId === null) {
       const payload = buildContextPayload(options)
-  
+
       let url = `/personal/content/${contentId}`;
       const params = new URLSearchParams();
       if (includeDraft) {
@@ -155,16 +158,52 @@ export const getContent = async (contentId, options) => {
       if (options.impressionStatus) {
         params.append('impressionStatus', options.impressionStatus);
       }
-      
-      if (sessionObj &&sessionObj.project) {
+
+      if (sessionObj && sessionObj.project) {
         params.append('project', sessionObj.project);
       }
-      
+
+      const useClientSideRender = clientSideRenderProjects.includes(sessionObj?.project);
+      if (useClientSideRender) {
+        params.append('onlyData', 'true');
+      }
+
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
-      
-      content = await httpPost(url, payload);
+
+      if (useClientSideRender) {
+        const result = await httpPost(url, payload);
+        const data = result.data;
+
+        // Get variant template
+        const variantResponse = await httpPublicGet(`/public/cached-content/${sessionObj.project}/variant/${data.variantId}`);
+        const templateValue = variantResponse.variant.templateValue;
+        const variables = templateValue.variables || [];
+
+        // Render templates with Handlebars
+        const renderedHtml = templateValue.html ? renderTemplate(templateValue.html, variables, data) : '';
+        const renderedCss = templateValue.css ? renderRaw(templateValue.css, { gs_variantId: data.variantId }) : '';
+        const renderedJs = templateValue.js ? renderTemplate(templateValue.js, variables, data) : '';
+
+        content = {
+          key: variantResponse.contentKey || contentId,
+          contentValue: {
+            html: renderedHtml,
+            css: renderedCss,
+            js: renderedJs,
+          },
+          selector: variantResponse.selector,
+          selectorPosition: variantResponse.selectorPosition,
+          mobileSelector: variantResponse.mobileSelector,
+          type: variantResponse.type,
+          frequency: variantResponse.frequency,
+          notAutomatic: variantResponse.notAutomatic,
+          experienceId: variantResponse.experienceId,
+        };
+      } else {
+        content = await httpPost(url, payload);
+      }
     } else {
       content = await httpGet(`/personal/content/${contentId}/variant/${prevVarId}`);
     }
