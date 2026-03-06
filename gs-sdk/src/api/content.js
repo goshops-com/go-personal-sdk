@@ -1,99 +1,135 @@
-import { httpGet, httpPost, httpPatch, httpPublicGet } from '../utils/http';
-import { injectCSS, addHTMLToDiv, addHTMLToBody, addJavaScriptToBody, deleteGoPersonalElements } from '../utils/dom';
-import { previewVariant, getParam } from '../utils/urlParam';
-import { suscribe } from '../utils/trigger';
-import { getSession } from '../utils/storage';
-import { sendEvent } from '../utils/custom';
-import { renderTemplate, renderRaw } from '../utils/handlebars';
+import { httpGet, httpPost, httpPatch, httpPublicGet } from "../utils/http";
+import {
+  injectCSS,
+  addHTMLToDiv,
+  addHTMLToBody,
+  addJavaScriptToBody,
+  deleteGoPersonalElements,
+} from "../utils/dom";
+import { previewVariant, getParam } from "../utils/urlParam";
+import { suscribe } from "../utils/trigger";
+import { getSession } from "../utils/storage";
+import { sendEvent } from "../utils/custom";
+import { renderTemplate, renderRaw } from "../utils/handlebars";
 
-const clientSideRenderProjects = ["661ef9b2e2e8dc1201433001", "690e308c21db483dd22ee32c", "667dce73108ea079321c61a0"];
+const clientSideRenderProjects = [
+  "661ef9b2e2e8dc1201433001",
+  "690e308c21db483dd22ee32c",
+  "667dce73108ea079321c61a0",
+];
 window.gsStore = {
-  context: {
-
-  },
-  interactionCount: 0
+  context: {},
+  interactionCount: 0,
 };
 
-async function obtainContentByContext(url, payload, context, includeDraft = false) {
+async function obtainContentByContext(
+  url,
+  payload,
+  context,
+  includeDraft = false,
+) {
   const cacheKey = `gs_content_cache_${context}_${includeDraft}`;
   const now = Date.now();
   const CACHE_TTL = 5000;
-  
+
   let cachedData = localStorage.getItem(cacheKey);
-  
+
   if (cachedData) {
     cachedData = JSON.parse(cachedData);
-    
+
     if (now - cachedData.timestamp < CACHE_TTL) {
       return cachedData.data;
     }
-    
+
     const result = cachedData.data;
-    
-    httpPost(url, payload).then(freshData => {
-      localStorage.setItem(cacheKey, JSON.stringify({
-        data: freshData,
-        timestamp: Date.now()
-      }));
-    }).catch(error => {
-      console.error('Error updating cached content:', error);
-    });
-    
+
+    httpPost(url, payload)
+      .then((freshData) => {
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            data: freshData,
+            timestamp: Date.now(),
+          }),
+        );
+      })
+      .catch((error) => {
+        console.error("Error updating cached content:", error);
+      });
+
     return result;
   }
-  
+
   const result = await httpPost(url, payload);
-  
-  localStorage.setItem(cacheKey, JSON.stringify({
-    data: result,
-    timestamp: now
-  }));
-  
+
+  localStorage.setItem(
+    cacheKey,
+    JSON.stringify({
+      data: result,
+      timestamp: now,
+    }),
+  );
+
   return result;
 }
 
 export const getContentByContext = async (context, options = {}) => {
   const sessionObj = getSession();
-  const onlyForcedProjects = ["67374d510dfcc232a627662e", "67374d2d0dfcc28c73276534", "67374d240dfcc2a4ff2764e8", "67374d1d0dfcc2ee482764c2","671143e6fc0d0c3bb6ab89c5"];
-  if(!options.force && onlyForcedProjects.includes(sessionObj?.project)){
+  const onlyForcedProjects = [
+    "67374d510dfcc232a627662e",
+    "67374d2d0dfcc28c73276534",
+    "67374d240dfcc2a4ff2764e8",
+    "67374d1d0dfcc2ee482764c2",
+    "671143e6fc0d0c3bb6ab89c5",
+  ];
+  if (!options.force && onlyForcedProjects.includes(sessionObj?.project)) {
     return;
   }
 
-  window.gsLog('getContentByContext', context, options)
+  window.gsLog("getContentByContext", context, options);
   if (!options) {
-    options = {}
+    options = {};
   }
   options.type = context;
 
   const includeDraft = window.gsConfig.includeDraft;
-  const includeDraftParam = getParam('gsIncludeDraft');
+  const includeDraftParam = getParam("gsIncludeDraft");
   let url = `/personal/content-page?pageType=${context}`;
-  if (includeDraft || (includeDraftParam && includeDraftParam == 'true')) {
-    url += '&includeDraft=true';
+  if (includeDraft || (includeDraftParam && includeDraftParam == "true")) {
+    url += "&includeDraft=true";
   }
 
-  
   if (!sessionObj || !sessionObj.project) {
-    console.log('No session or project found');
+    console.log("No session or project found");
     return;
   }
-  
+
   let result;
 
-  if (includeDraft || (includeDraftParam && includeDraftParam == 'true')) {
+  if (includeDraft || (includeDraftParam && includeDraftParam == "true")) {
     const payload = buildContextPayload(options);
-    result = await obtainContentByContext(url, payload, context, includeDraftParam);
+    result = await obtainContentByContext(
+      url,
+      payload,
+      context,
+      includeDraftParam,
+    );
   } else {
     try {
       let getURL = `/public/cached-content/${sessionObj.project}/?pageType=${context}`;
       result = await httpPublicGet(getURL);
     } catch (e) {
-      console.error('Error fetching cached content:', e);
+      console.error("Error fetching cached content:", e);
       const payload = buildContextPayload(options);
-      result = await obtainContentByContext(url, payload, context, includeDraftParam);
+      result = await obtainContentByContext(
+        url,
+        payload,
+        context,
+        includeDraftParam,
+      );
     }
   }
-  
+
   const contents = result.loadNowContent;
 
   try {
@@ -105,69 +141,75 @@ export const getContentByContext = async (context, options = {}) => {
   }
 
   try {
-    window.gsLog('LoadNowContent ' + contents.length);
-    Promise.all(contents.map(content => addContentToWebsite(content, options)));
+    window.gsLog("LoadNowContent " + contents.length);
+    Promise.all(
+      contents.map((content) => addContentToWebsite(content, options)),
+    );
   } catch (e) {
     console.error(e);
   }
 
   try {
     const lazyLoadContent = result.lazyLoadContent;
-    window.gsLog('LazyLoadContent ' + lazyLoadContent.length);
-    await Promise.all(lazyLoadContent.map(content => getContent(content.key, { ...options, cache: content.cache || 0 })));
+    window.gsLog("LazyLoadContent " + lazyLoadContent.length);
+    await Promise.all(
+      lazyLoadContent.map((content) =>
+        getContent(content.key, { ...options, cache: content.cache || 0 }),
+      ),
+    );
   } catch (e) {
     console.error(e);
   }
-
-
 };
 
 export const getContent = async (contentId, options) => {
   if (!options) {
-    options = {}
+    options = {};
   }
   if (!options.type) {
-    options.type = "Home"
+    options.type = "Home";
   }
   let includeDraft = window.gsConfig.includeDraft;
-  const includeDraftParam = getParam('gsIncludeDraft');
-  if (includeDraftParam == 'true') {
+  const includeDraftParam = getParam("gsIncludeDraft");
+  if (includeDraftParam == "true") {
     includeDraft = true;
   }
-  const gsElementSelector = getParam('gsElementSelector');
+  const gsElementSelector = getParam("gsElementSelector");
   if (gsElementSelector != null) {
     return;
   }
 
-  // we need to check if we are on preview or not. 
+  // we need to check if we are on preview or not.
   const prevVarId = previewVariant();
 
   let content;
 
   const sessionObj = getSession();
 
-  if (options.cache && sessionObj.project){
-    content = await httpPublicGet(`/public/cached-content/${sessionObj.project}/${contentId}`);
-  }else{
+  if (options.cache && sessionObj.project) {
+    content = await httpPublicGet(
+      `/public/cached-content/${sessionObj.project}/${contentId}`,
+    );
+  } else {
     if (prevVarId === null) {
-      const payload = buildContextPayload(options)
+      const payload = buildContextPayload(options);
 
       let url = `/personal/content/${contentId}`;
       const params = new URLSearchParams();
       if (includeDraft) {
-        params.append('includeDraft', 'true');
+        params.append("includeDraft", "true");
       }
       if (options.impressionStatus) {
-        params.append('impressionStatus', options.impressionStatus);
+        params.append("impressionStatus", options.impressionStatus);
       }
 
       if (sessionObj && sessionObj.project) {
-        params.append('project', sessionObj.project);
+        params.append("project", sessionObj.project);
       }
 
-      const useClientSideRender = !includeDraft && clientSideRenderProjects.includes(sessionObj?.project);
+      const useClientSideRender = !includeDraft;
       if (useClientSideRender) {
-        params.append('onlyData', 'true');
+        params.append("onlyData", "true");
       }
 
       if (params.toString()) {
@@ -183,14 +225,22 @@ export const getContent = async (contentId, options) => {
         }
 
         // Get variant template
-        const variantResponse = await httpPublicGet(`/public/cached-content/${sessionObj.project}/variant/${data.variantId}`);
+        const variantResponse = await httpPublicGet(
+          `/public/cached-content/${sessionObj.project}/variant/${data.variantId}`,
+        );
         const templateValue = variantResponse.variant.templateValue;
         const variables = templateValue.variables || [];
 
         // Render templates with Handlebars
-        const renderedHtml = templateValue.html ? renderTemplate(templateValue.html, variables, data) : '';
-        const renderedCss = templateValue.css ? renderTemplate(templateValue.css, variables, data) : '';
-        const renderedJs = templateValue.js ? renderTemplate(templateValue.js, variables, data) : '';
+        const renderedHtml = templateValue.html
+          ? renderTemplate(templateValue.html, variables, data)
+          : "";
+        const renderedCss = templateValue.css
+          ? renderTemplate(templateValue.css, variables, data)
+          : "";
+        const renderedJs = templateValue.js
+          ? renderTemplate(templateValue.js, variables, data)
+          : "";
 
         content = {
           key: variantResponse.contentKey || contentId,
@@ -211,33 +261,32 @@ export const getContent = async (contentId, options) => {
         content = await httpPost(url, payload);
       }
     } else {
-      content = await httpGet(`/personal/content/${contentId}/variant/${prevVarId}`);
+      content = await httpGet(
+        `/personal/content/${contentId}/variant/${prevVarId}`,
+      );
     }
   }
 
   if (!content.key) {
     content.key = contentId;
   }
-  if (content.delay){
-    await new Promise(resolve => setTimeout(resolve, content.delay));
+  if (content.delay) {
+    await new Promise((resolve) => setTimeout(resolve, content.delay));
   }
   addContentToWebsite(content, options);
 
-  if (content.type == 'API'){
+  if (content.type == "API") {
     return content;
   }
 };
 
 function buildContextPayload(options) {
-
   let download;
   let effectiveType;
   try {
     download = navigator.connection.downlink;
     effectiveType = navigator.connection.effectiveType;
-  } catch (e) {
-
-  }
+  } catch (e) {}
   return {
     context: {
       network: {
@@ -245,8 +294,14 @@ function buildContextPayload(options) {
         effectiveType: effectiveType,
       },
       screen: {
-        width: window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth,
-        height: window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight,
+        width:
+          window.innerWidth ||
+          document.documentElement.clientWidth ||
+          document.body.clientWidth,
+        height:
+          window.innerHeight ||
+          document.documentElement.clientHeight ||
+          document.body.clientHeight,
       },
       settings: {
         locale: navigator.language || navigator.userLanguage,
@@ -256,19 +311,25 @@ function buildContextPayload(options) {
         ...options,
         provider: window?.gsConfig?.options?.provider || null,
         location: window.location.href,
-        referrer: typeof document !== 'undefined' ? document.referrer || '' : '',
+        referrer:
+          typeof document !== "undefined" ? document.referrer || "" : "",
       },
     },
   };
 }
 async function addContentToWebsite(content, options) {
-  window.gsLog('addContentToWebsite', content.key);
+  window.gsLog("addContentToWebsite", content.key);
 
-  
   if (content && content.contentValue) {
-
-    const skipKeys = Array.isArray(window.gsConfig?.options?.skipContents) ? window.gsConfig.options.skipContents : [];
-    if (skipKeys.length > 0 && content && typeof content.key === 'string' && skipKeys.includes(content.key)) {
+    const skipKeys = Array.isArray(window.gsConfig?.options?.skipContents)
+      ? window.gsConfig.options.skipContents
+      : [];
+    if (
+      skipKeys.length > 0 &&
+      content &&
+      typeof content.key === "string" &&
+      skipKeys.includes(content.key)
+    ) {
       // skip this content
       return;
     }
@@ -278,17 +339,16 @@ async function addContentToWebsite(content, options) {
     const notAutomatic = content.notAutomatic || false;
 
     if (!css && !html && !js) {
-      window.gsLog('skip')
+      window.gsLog("skip");
       return; //nothing to inyect
     }
 
     const proceed = async () => {
       injectCSS(css, content.key);
 
-      const types = ['custom_code', 'pop_up', 'notifications'];
+      const types = ["custom_code", "pop_up", "notifications"];
 
       if (types.includes(content.type)) {
-
         const canShow = canShowContent(content.frequency, content.experienceId);
 
         if (options.forceShow) {
@@ -299,7 +359,7 @@ async function addContentToWebsite(content, options) {
             suscribe(content, function (html, js) {
               addHTMLToBody(html);
               addJavaScriptToBody(js, content.key);
-            })
+            });
           }
         }
       } else {
@@ -307,10 +367,10 @@ async function addContentToWebsite(content, options) {
         let selector = content.selector;
         let selectorPosition = content.selectorPosition;
         if (!selector) {
-          selector = 'body';
-          selectorPosition = 'after'
+          selector = "body";
+          selectorPosition = "after";
         }
-        window.gsLog('adding to dom', selector)
+        window.gsLog("adding to dom", selector);
 
         const isMobile = isMobileDevice();
         const hasMobileSelector = isNotEmpty(content.mobileSelector);
@@ -327,26 +387,26 @@ async function addContentToWebsite(content, options) {
     };
 
     // Check if the DOM is ready
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', proceed); // Wait for DOM ready
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", proceed); // Wait for DOM ready
     } else {
       await proceed(); // Proceed immediately
     }
-
   }
 
-  window.gsLog('end addContentToWebsite', content.key);
+  window.gsLog("end addContentToWebsite", content.key);
 }
 
 function isMobileDevice() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent,
+  );
 }
 
 function isNotEmpty(str) {
   return str !== null && str !== "";
 }
 function canShowContent(frequency, contentId) {
-
   if (!frequency) {
     return true;
   }
@@ -362,30 +422,30 @@ function canShowContent(frequency, contentId) {
     const { lastSeen, period } = entry;
 
     switch (frequency) {
-      case 'once_page':
+      case "once_page":
         return true;
-      case 'once_sesion':
-        if (period !== 'once_sesion' || now - lastSeen > 24 * 3600 * 1000) {
+      case "once_sesion":
+        if (period !== "once_sesion" || now - lastSeen > 24 * 3600 * 1000) {
           nextTime = true;
         }
         break;
-      case 'once_day':
-        if (period !== 'once_day' || now - lastSeen > 24 * 3600 * 1000) {
+      case "once_day":
+        if (period !== "once_day" || now - lastSeen > 24 * 3600 * 1000) {
           nextTime = true;
         }
         break;
-      case 'once_week':
-        if (period !== 'once_week' || now - lastSeen > 7 * 24 * 3600 * 1000) {
+      case "once_week":
+        if (period !== "once_week" || now - lastSeen > 7 * 24 * 3600 * 1000) {
           nextTime = true;
         }
         break;
-      case 'once_month':
-        if (period !== 'once_month' || now - lastSeen > 30 * 24 * 3600 * 1000) {
+      case "once_month":
+        if (period !== "once_month" || now - lastSeen > 30 * 24 * 3600 * 1000) {
           nextTime = true;
         }
         break;
-      case 'once':
-        if (period !== 'once') {
+      case "once":
+        if (period !== "once") {
           nextTime = true;
         }
         break;
@@ -407,14 +467,16 @@ function canShowContent(frequency, contentId) {
 
 export const openImpression = async (impressionId) => {
   try {
-    if (!impressionId || typeof impressionId !== 'string') {
+    if (!impressionId || typeof impressionId !== "string") {
       return;
     }
 
     window.gsImpressionIds.push(impressionId);
-    return await httpPatch(`/personal/impression/${impressionId}`, { status: 'opened' });
+    return await httpPatch(`/personal/impression/${impressionId}`, {
+      status: "opened",
+    });
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
     return;
   }
 };
@@ -423,12 +485,10 @@ export const trackURLClicked = (executionId) => {
   return httpPatch(`/public/track`, { executionId: executionId });
 };
 
-
 export const observeElementInView = (elementId, impressionId, callback) => {
-
   // Function that will be called when the div is in the viewport
   function internalCallback(entries, observer) {
-    entries.forEach(entry => {
+    entries.forEach((entry) => {
       if (entry.isIntersecting) {
         // The div is now in the viewport
         callback(elementId, impressionId);
@@ -444,49 +504,48 @@ export const observeElementInView = (elementId, impressionId, callback) => {
 
   // Start observing the target element
   observer.observe(target);
-}
+};
 
 export const cleanContent = () => {
   deleteGoPersonalElements();
-}
+};
 
 export const sendContentEvent = (key, value) => {
   const sessionObj = getSession();
   sendEvent(key, value, sessionObj.sessionId);
-}
+};
 
 export const initPreviewListener = () => {
-
-  window.addEventListener('message', (event) => {
-    if(event.origin !== 'https://admin.gopersonal.ai') return;
+  window.addEventListener("message", (event) => {
+    if (event.origin !== "https://admin.gopersonal.ai") return;
     const msg = event.data;
-    
-    if (msg?.namespace !== 'gopersonal') return;
-    if (msg.source !== 'editor') return;
 
-    if (msg.type === 'update') {
+    if (msg?.namespace !== "gopersonal") return;
+    if (msg.source !== "editor") return;
+
+    if (msg.type === "update") {
       renderContentPreview(msg.payload);
     }
   });
-}
+};
 
 async function renderContentPreview(payload) {
   try {
     deleteGoPersonalElements();
-    
+
     const css = payload.css;
     const html = payload.html;
     const js = payload.js;
 
-    if(css){
-      injectCSS(css, 'gs-preview');
+    if (css) {
+      injectCSS(css, "gs-preview");
     }
-    
+
     let selector = payload.previewObject.selector;
     let selectorPosition = payload.previewObject.selectorPosition;
     if (!selector) {
-      selector = 'body';
-      selectorPosition = 'after'
+      selector = "body";
+      selectorPosition = "after";
     }
 
     const isMobile = isMobileDevice();
@@ -495,13 +554,13 @@ async function renderContentPreview(payload) {
     if (isMobile && hasMobileSelector) {
       selector = payload.previewObject.mobileSelector;
     }
-    if(html){
+    if (html) {
       await addHTMLToDiv(html, selector, selectorPosition, {});
     }
     if (js) {
-      addJavaScriptToBody(js, 'gs-preview');
+      addJavaScriptToBody(js, "gs-preview");
     }
   } catch (error) {
-    console.error('Error rendering content preview:', error);
+    console.error("Error rendering content preview:", error);
   }
 }
