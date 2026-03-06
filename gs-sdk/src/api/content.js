@@ -226,7 +226,7 @@ export const getContent = async (contentId, options) => {
 
         // Get variant template
         const variantResponse = await httpPublicGet(
-          `/public/cached-content/${sessionObj.project}/variant/${data.variantId}`,
+          `/public/cached-content/${data.project || sessionObj.project}/variant/${data.variantId}`,
         );
         const templateValue = variantResponse.variant.templateValue;
         const variables = templateValue.variables || [];
