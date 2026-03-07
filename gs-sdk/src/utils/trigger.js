@@ -6,6 +6,11 @@ export const suscribe = (content, cb) => {
     const js = content.contentValue.js;
     const contentKey = content.key;
 
+    if (!trigger || !trigger.id) {
+      cb(html, js);
+      return;
+    }
+
     if (trigger.id === 'wait') {
       const seconds = parseInt(trigger.value) || 0;
   

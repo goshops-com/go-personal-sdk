@@ -256,6 +256,7 @@ export const getContent = async (contentId, options) => {
           frequency: variantResponse.frequency,
           notAutomatic: variantResponse.notAutomatic,
           experienceId: variantResponse.experienceId,
+          trigger: variantResponse.trigger,
         };
       } else {
         content = await httpPost(url, payload);
