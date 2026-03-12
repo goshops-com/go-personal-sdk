@@ -12,6 +12,49 @@ function onServiceWorkerActivated(e) {
   e.waitUntil(self.clients.claim());
 }
 
+const MAX_ACTIONS = 2;
+const SAFE_ACTION_ID_REGEX = /^[a-zA-Z0-9_-]+$/;
+
+function buildNotificationActions(actions) {
+  if (!Array.isArray(actions) || actions.length === 0) {
+    return [];
+  }
+  const safe = actions
+    .slice(0, MAX_ACTIONS)
+    .filter((a) => a && typeof a.action === 'string' && typeof a.title === 'string')
+    .filter((a) => SAFE_ACTION_ID_REGEX.test(a.action))
+    .map((a) => ({
+      action: String(a.action),
+      title: String(a.title).slice(0, 32),
+      ...(a.icon && typeof a.icon === 'string' ? { icon: a.icon } : {}),
+    }));
+  return safe;
+}
+
+function buildNotificationData(payload) {
+  const dataPayload = payload.data || {};
+  const defaultUrl = dataPayload.defaultUrl || dataPayload.url || '';
+  const data = {
+    url: dataPayload.url || defaultUrl,
+    primaryUrl: dataPayload.url || defaultUrl,
+    secondaryUrl: '',
+    title: payload.notification?.title,
+    body: payload.notification?.body,
+    icon: payload.notification?.image || '',
+  };
+  if (defaultUrl) {
+    data.defaultUrl = defaultUrl;
+  }
+  Object.keys(dataPayload).forEach((key) => {
+    if (key === 'gsCampaignId' || key === 'banner' || key === 'url' || key === 'defaultUrl') return;
+    const val = dataPayload[key];
+    if (typeof val === 'string' && val.length > 0 && SAFE_ACTION_ID_REGEX.test(key)) {
+      data[key] = val;
+    }
+  });
+  return data;
+}
+
 async function onNotificationReceived(e) {
   const data = JSON.parse(JSON.stringify(e.data.json()));
   console.log('notification received data', data);
@@ -24,27 +67,31 @@ async function onNotificationReceived(e) {
       return;
     }
   }
-  const options = {
-    body: data.notification.body,
-    icon: data.notification.image || "",
-    actions: [],
-    data: {
-      url: data.data?.url || '',
-      primaryUrl: data.data?.url || '',
-      secondaryUrl: "",
-      actions: [],
-      title: data.notification.title,
-      body: data.notification.body,
-      icon: data.notification.image || "",
-    },
+
+  const rawActions = data.notification?.actions;
+  const actions = buildNotificationActions(rawActions);
+  const notificationData = buildNotificationData(data);
+
+  if (actions.length >= 1) {
+    notificationData.primaryUrl = notificationData[actions[0].action] || notificationData.url || '';
   }
+  if (actions.length >= 2) {
+    notificationData.secondaryUrl = notificationData[actions[1].action] || '';
+  }
+
+  const options = {
+    body: data.notification?.body ?? '',
+    icon: data.notification?.image || '',
+    actions,
+    data: notificationData,
+  };
 
   if (data.data?.banner) {
     options.image = data.data.banner;
   }
 
   try {
-    await self.registration.showNotification(data.notification.title, options);
+    await self.registration.showNotification(data.notification?.title ?? '', options);
 
     if (gsCampaignId) {
       await setKey(gsCampaignId, { seen: true });
@@ -54,23 +101,50 @@ async function onNotificationReceived(e) {
   }
 }
 
-async function onNotificationClicked(i) {
-  i.notification.close();
-  console.log("notification clicked", i);
-  if (i.notification.data && i.notification.data.url) {
-    let url = i.notification.data.url;
-    if (i.action === "gopersonal-primary-action") {
-      url = i.notification.data.primaryUrl;
-    } else if (i.action === "gopersonal-secondary-action") {
-      url = i.notification.data.secondaryUrl;
-    }
-    try {
-      return self.clients.openWindow(url);
-    } catch (e) {
-      console.log("error notification clicked");
-      return self.clients.openWindow(url);
-    }
+function isAllowedUrl(url) {
+  if (typeof url !== 'string' || url.length === 0) return false;
+  if (url.startsWith('/')) return true;
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:';
+  } catch (_) {
+    return false;
   }
+}
+
+async function onNotificationClicked(event) {
+  event.notification.close();
+  console.log('notification clicked', event);
+
+  const data = event.notification.data || {};
+  const action = typeof event.action === 'string' ? event.action : '';
+
+  let url = data.defaultUrl || data.url || '/';
+
+  if (action && data[action] && isAllowedUrl(data[action])) {
+    url = data[action];
+  } else if (action === 'gopersonal-primary-action' && isAllowedUrl(data.primaryUrl)) {
+    url = data.primaryUrl;
+  } else if (action === 'gopersonal-secondary-action' && isAllowedUrl(data.secondaryUrl)) {
+    url = data.secondaryUrl;
+  } else if (!isAllowedUrl(url)) {
+    return Promise.resolve();
+  }
+
+  const openOrFocus = self.clients
+    .matchAll({ type: 'window', includeUncontrolled: true })
+    .then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(url);
+      }
+    });
+  event.waitUntil(openOrFocus);
+  return openOrFocus;
 }
 
 async function onNotificationClosed(e) {
