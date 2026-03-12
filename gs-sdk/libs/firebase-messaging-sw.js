@@ -15,11 +15,11 @@ function onServiceWorkerActivated(e) {
 async function onNotificationReceived(e) {
   const data = JSON.parse(JSON.stringify(e.data.json()));
   console.log('notification received data', data);
-  
+
   const gsCampaignId = data.data?.gsCampaignId;
-  if(gsCampaignId){
+  if (gsCampaignId) {
     const gsCampaign = await getKey(gsCampaignId);
-    if(gsCampaign){
+    if (gsCampaign) {
       console.log('Already seen campaign', gsCampaign);
       return;
     }
@@ -29,27 +29,27 @@ async function onNotificationReceived(e) {
     icon: data.notification.image || "",
     actions: [],
     data: {
-        url: data.data?.url || '',
-        primaryUrl: data.data?.url || '',
-        secondaryUrl: "",
-        actions: [],
-        title: data.notification.title,
-        body: data.notification.body,
-        icon: data.notification.image || "",
+      url: data.data?.url || '',
+      primaryUrl: data.data?.url || '',
+      secondaryUrl: "",
+      actions: [],
+      title: data.notification.title,
+      body: data.notification.body,
+      icon: data.notification.image || "",
     },
   }
 
-  if(data.data?.banner){
+  if (data.data?.banner) {
     options.image = data.data.banner;
   }
-  
+
   try {
     await self.registration.showNotification(data.notification.title, options);
 
-    if(gsCampaignId){
-      await setKey(gsCampaignId, {seen: true});
+    if (gsCampaignId) {
+      await setKey(gsCampaignId, { seen: true });
     }
-  }catch(ex){
+  } catch (ex) {
     console.log('error notification received', ex);
   }
 }
@@ -58,18 +58,18 @@ async function onNotificationClicked(i) {
   i.notification.close();
   console.log("notification clicked", i);
   if (i.notification.data && i.notification.data.url) {
-      let url = i.notification.data.url;
-      if (i.action === "gopersonal-primary-action") {
-          url = i.notification.data.primaryUrl;
-      } else if (i.action === "gopersonal-secondary-action") {
-          url = i.notification.data.secondaryUrl;
-      }
-      try {
-          return self.clients.openWindow(url);
-      } catch (e) {
-          console.log("error notification clicked");
-          return self.clients.openWindow(url);
-      }
+    let url = i.notification.data.url;
+    if (i.action === "gopersonal-primary-action") {
+      url = i.notification.data.primaryUrl;
+    } else if (i.action === "gopersonal-secondary-action") {
+      url = i.notification.data.secondaryUrl;
+    }
+    try {
+      return self.clients.openWindow(url);
+    } catch (e) {
+      console.log("error notification clicked");
+      return self.clients.openWindow(url);
+    }
   }
 }
 
@@ -85,11 +85,11 @@ async function openDB() {
   try {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
-      
+
       request.onerror = () => resolve(null);
-      
+
       request.onsuccess = () => resolve(request.result);
-      
+
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
         if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -97,7 +97,7 @@ async function openDB() {
         }
       };
     });
-  } catch (e){
+  } catch (e) {
     console.log('error opening db', e);
     return null;
   }
@@ -107,22 +107,22 @@ async function setKey(key, value) {
   try {
     const db = await openDB();
     if (!db) return false;
-    
+
     return new Promise((resolve) => {
       const transaction = db.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
       const request = store.put(value, key);
-      
+
       request.onsuccess = () => resolve(true);
       request.onerror = () => resolve(false);
-      
+
       transaction.oncomplete = () => db.close();
       transaction.onerror = () => {
         db.close();
         resolve(false);
       };
     });
-  } catch (e){
+  } catch (e) {
     console.log('error setting key', e);
     return false;
   }
@@ -132,22 +132,22 @@ async function getKey(key) {
   try {
     const db = await openDB();
     if (!db) return null;
-    
+
     return new Promise((resolve) => {
       const transaction = db.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const request = store.get(key);
-      
+
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => resolve(null);
-      
+
       transaction.oncomplete = () => db.close();
       transaction.onerror = () => {
         db.close();
         resolve(null);
       };
     });
-  } catch (e){
+  } catch (e) {
     console.log('error getting key', e);
     return null;
   }
