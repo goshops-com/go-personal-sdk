@@ -147,9 +147,8 @@ function onNotificationClicked(event) {
   return openOrFocus;
 }
 
-function onNotificationClosed() {
+function onNotificationClosed(_event) {
   // Notification closed – no action needed
-  // Event is passed by the listener but not used
 }
 
 const DB_NAME = 'gs_service_worker_db';
