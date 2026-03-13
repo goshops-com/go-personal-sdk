@@ -57,13 +57,13 @@ function buildNotificationData(payload) {
 
 async function onNotificationReceived(e) {
   const data = JSON.parse(JSON.stringify(e.data.json()));
-  console.log('notification received data', data);
+  // console.log('notification received data', data);
 
   const gsCampaignId = data.data?.gsCampaignId;
   if (gsCampaignId) {
     const gsCampaign = await getKey(gsCampaignId);
     if (gsCampaign) {
-      console.log('Already seen campaign', gsCampaign);
+      // console.log('Already seen campaign', gsCampaign);
       return;
     }
   }
