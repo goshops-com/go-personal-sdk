@@ -96,8 +96,8 @@ async function onNotificationReceived(e) {
     if (gsCampaignId) {
       await setKey(gsCampaignId, { seen: true });
     }
-  } catch (ex) {
-    console.log('error notification received', ex);
+  } catch {
+    // Swallow notification error
   }
 }
 
@@ -105,16 +105,15 @@ function isAllowedUrl(url) {
   if (typeof url !== 'string' || url.length === 0) return false;
   if (url.startsWith('/')) return true;
   try {
-    const u = new URL(url);
-    return u.protocol === 'https:';
+    const parsedUrl = new URL(url);
+    return parsedUrl.protocol === 'https:';
   } catch (_) {
     return false;
   }
 }
 
-async function onNotificationClicked(event) {
+function onNotificationClicked(event) {
   event.notification.close();
-  console.log('notification clicked', event);
 
   const data = event.notification.data || {};
   const action = typeof event.action === 'string' ? event.action : '';
@@ -142,22 +141,24 @@ async function onNotificationClicked(event) {
       if (self.clients.openWindow) {
         return self.clients.openWindow(url);
       }
+      return undefined;
     });
   event.waitUntil(openOrFocus);
   return openOrFocus;
 }
 
-async function onNotificationClosed(e) {
-  console.log("notification closed", e);
+function onNotificationClosed() {
+  // Notification closed – no action needed
+  // Event is passed by the listener but not used
 }
 
 const DB_NAME = 'gs_service_worker_db';
 const DB_VERSION = 1;
 const STORE_NAME = 'gs_key_value_store';
 
-async function openDB() {
+function openDB() {
   try {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => resolve(null);
@@ -171,8 +172,7 @@ async function openDB() {
         }
       };
     });
-  } catch (e) {
-    console.log('error opening db', e);
+  } catch {
     return null;
   }
 }
@@ -196,8 +196,7 @@ async function setKey(key, value) {
         resolve(false);
       };
     });
-  } catch (e) {
-    console.log('error setting key', e);
+  } catch {
     return false;
   }
 }
@@ -221,8 +220,7 @@ async function getKey(key) {
         resolve(null);
       };
     });
-  } catch (e) {
-    console.log('error getting key', e);
+  } catch {
     return null;
   }
 }
