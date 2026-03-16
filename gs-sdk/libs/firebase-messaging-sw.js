@@ -40,7 +40,7 @@ function buildNotificationData(payload) {
     secondaryUrl: '',
     title: payload.notification?.title,
     body: payload.notification?.body,
-    icon: payload.notification?.image || '',
+    icon: payload.notification?.icon || payload.notification?.image || dataPayload.icon || '',
   };
   if (defaultUrl) {
     data.defaultUrl = defaultUrl;
@@ -71,6 +71,8 @@ async function onNotificationReceived(e) {
   const rawActions = data.notification?.actions;
   const actions = buildNotificationActions(rawActions);
   const notificationData = buildNotificationData(data);
+  const notificationIcon = data.notification?.icon || data.notification?.image || data.data?.icon || '';
+  const notificationImage = data.notification?.image || data.data?.banner || '';
 
   if (actions.length >= 1) {
     notificationData.primaryUrl = notificationData[actions[0].action] || notificationData.url || '';
@@ -81,13 +83,13 @@ async function onNotificationReceived(e) {
 
   const options = {
     body: data.notification?.body ?? '',
-    icon: data.notification?.image || '',
+    icon: notificationIcon,
     actions,
     data: notificationData,
   };
 
-  if (data.data?.banner) {
-    options.image = data.data.banner;
+  if (notificationImage) {
+    options.image = notificationImage;
   }
 
   try {
