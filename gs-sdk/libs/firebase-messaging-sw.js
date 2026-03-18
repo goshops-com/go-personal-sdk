@@ -57,6 +57,11 @@ function buildNotificationData(payload) {
 
 async function onNotificationReceived(e) {
   const data = JSON.parse(JSON.stringify(e.data.json()));
+  if (typeof data.notification === 'string') {
+    try {
+      data.notification = JSON.parse(data.notification);
+    } catch (_) {}
+  }
   // console.log('notification received data', data);
 
   const gsCampaignId = data.data?.gsCampaignId;
