@@ -94,6 +94,7 @@ export const getContentByContext = async (context, options = {}) => {
 
   const includeDraft = window.gsConfig.includeDraft;
   const includeDraftParam = getParam("gsIncludeDraft");
+  const gsDebug = getParam("gsDebug") == "true";
   let url = `/personal/content-page?pageType=${context}`;
   if (includeDraft || (includeDraftParam && includeDraftParam == "true")) {
     url += "&includeDraft=true";
@@ -106,7 +107,7 @@ export const getContentByContext = async (context, options = {}) => {
 
   let result;
 
-  if (includeDraft || (includeDraftParam && includeDraftParam == "true")) {
+  if (gsDebug || includeDraft || (includeDraftParam && includeDraftParam == "true")) {
     const payload = buildContextPayload(options);
     result = await obtainContentByContext(
       url,
@@ -171,6 +172,7 @@ export const getContent = async (contentId, options) => {
   }
   let includeDraft = window.gsConfig.includeDraft;
   const includeDraftParam = getParam("gsIncludeDraft");
+  const gsDebug = getParam("gsDebug") == "true";
   if (includeDraftParam == "true") {
     includeDraft = true;
   }
@@ -186,7 +188,7 @@ export const getContent = async (contentId, options) => {
 
   const sessionObj = getSession();
 
-  if (options.cache && sessionObj.project) {
+  if (options.cache && sessionObj.project && !gsDebug) {
     content = await httpPublicGet(
       `/public/cached-content/${sessionObj.project}/${contentId}`,
     );
@@ -207,7 +209,7 @@ export const getContent = async (contentId, options) => {
         params.append("project", sessionObj.project);
       }
 
-      const useClientSideRender = !includeDraft;
+      const useClientSideRender = !includeDraft && !gsDebug;
       if (useClientSideRender) {
         params.append("onlyData", "true");
       }
