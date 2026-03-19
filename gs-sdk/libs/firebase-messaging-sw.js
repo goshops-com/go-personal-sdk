@@ -62,7 +62,7 @@ async function onNotificationReceived(e) {
       data.notification = JSON.parse(data.notification);
     } catch (_) {}
   }
-  // console.log('notification received data', data);
+  console.log('notification received data', data);
 
   const gsCampaignId = data.data?.gsCampaignId;
   if (gsCampaignId) {
