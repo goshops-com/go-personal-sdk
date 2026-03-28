@@ -11,12 +11,15 @@ import { suscribe } from "../utils/trigger";
 import { getSession } from "../utils/storage";
 import { sendEvent } from "../utils/custom";
 import { renderTemplate, renderRaw } from "../utils/handlebars";
+import {
+  getCachedContent,
+  setCachedContent,
+  invalidateContentCache,
+  purgeContentCache,
+} from "../utils/contentCache";
 
-const clientSideRenderProjects = [
-  "661ef9b2e2e8dc1201433001",
-  "690e308c21db483dd22ee32c",
-  "667dce73108ea079321c61a0",
-];
+const ENABLE_CONTENT_POST_CACHE = true;
+
 window.gsStore = {
   context: {},
   interactionCount: 0,
@@ -219,8 +222,20 @@ export const getContent = async (contentId, options) => {
       }
 
       if (useClientSideRender) {
-        const result = await httpPost(url, payload);
-        const data = result.data;
+        let data;
+        const cached = ENABLE_CONTENT_POST_CACHE
+          ? getCachedContent(contentId, options)
+          : null;
+
+        if (cached) {
+          data = cached;
+        } else {
+          const result = await httpPost(url, payload);
+          data = result.data;
+          if (ENABLE_CONTENT_POST_CACHE && data?.variantId) {
+            setCachedContent(contentId, options, data);
+          }
+        }
 
         if (!data?.variantId) {
           return;
@@ -512,6 +527,8 @@ export const observeElementInView = (elementId, impressionId, callback) => {
 export const cleanContent = () => {
   deleteGoPersonalElements();
 };
+
+export { invalidateContentCache, purgeContentCache };
 
 export const sendContentEvent = (key, value) => {
   const sessionObj = getSession();

@@ -2,7 +2,7 @@ import {
   login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, findLastInteractions, reorderCategories, getItems, search, searchAnswer, searchRedirect, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
   getRanking, reRank, setPreferences, updateState, getItemById, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData
 } from './api';
-import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent, trackURLClicked, sendContentEvent, initPreviewListener } from './api/content';
+import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent, trackURLClicked, sendContentEvent, initPreviewListener, invalidateContentCache, purgeContentCache } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
 import { executeActions } from './actions/addToCart';
 import { executeActions as executeSearchActions } from './actions/search';
@@ -131,6 +131,7 @@ const GSSDK = async (clientId, options = {}) => {
 
   window.gsConfig.clientId = clientId;
   window.gsConfig.options = options;
+  purgeContentCache();
   window.gsLog('Calling Init:', options);
   if (!window.gsResetData) {
     window.gsResetData = { count: 0, timestamp: Date.now() };
@@ -253,6 +254,7 @@ const GSSDK = async (clientId, options = {}) => {
       trackGopersonalSearchResultClick: (product) => trackGopersonalSearchResultClick(product),
       trackGopersonalProductAddToCart: (itemId, listName) => trackGopersonalProductAddToCart(itemId, listName),
       trackGopersonalCustomEvent: (event, params) => trackGopersonalCustomEvent(event, params),
+      invalidateContentCache: () => invalidateContentCache(),
     };
     
 };

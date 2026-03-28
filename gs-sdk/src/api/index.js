@@ -29,7 +29,7 @@ import {
   isSearchReferral,
 } from "../utils/urlParam";
 import { setupContentSelector } from "../utils/configure";
-import { getContentByContext } from "./content";
+import { getContentByContext, invalidateContentCache } from "./content";
 import { getSharedToken, clearToken } from "../utils/session";
 import { initVendorFenicio } from "../vendors/fenicio";
 import { subscribeQueue } from "../utils/queue";
@@ -388,6 +388,11 @@ export const addInteraction = (interactionData) => {
     type,
   });
 
+  // Invalidate content cache on events that change recommendations context
+  if (interactionData.event === "cart" || interactionData.event === "purchase") {
+    invalidateContentCache();
+  }
+
   const hasImpressionId = getParam("gsImpressionId");
 
   if (interactionData.event == "view" && hasImpressionId) {
@@ -425,6 +430,9 @@ export const addInteractionState = (state, options = {}) => {
     expirationDate,
     type,
   });
+
+  // Cart/purchase changes should refresh recommendations
+  invalidateContentCache();
 
   return httpPost(`/interaction/state/${state}`, options);
 };
