@@ -31,6 +31,7 @@ function buildCacheKey(contentId, options) {
     page.type || "",
     page.category_id || "",
     page.product_id || "",
+    page.product_url || "",
   ];
   return parts.join("::");
 }
