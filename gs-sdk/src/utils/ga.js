@@ -1,4 +1,4 @@
-import { getItemById } from '../api';
+import { getItemById, getItems } from '../api';
 import { getParam } from './urlParam';
 
 export const getGAId = () => {
@@ -107,6 +107,9 @@ function isgtagAvailable() {
 function parseItemForGA4(item, index, listName) {
     return {
         item_id: item.id,
+        item_sku: item.sku || '',
+        item_sku_list: item.sku_list || [],
+        item_parent_id: item.parent_id || '',
         item_name: item.name || '',
         price: item.price,
         item_category: item.category || '',
@@ -232,6 +235,18 @@ export const trackGopersonalBannerClick = (promotion) => {
 
 export const trackGopersonalProductClickById = async (itemId, listName = 'gopersonal_list', index = 0) => {
     const item = await getItemById(itemId);
+    const enhancedItem = parseItemForGA4(item, index, listName);
+    const eventData = {
+        item_list_name: listName,
+        items: [enhancedItem],
+    };
+    gopersonalTrack('select_item', eventData);
+};
+
+export const trackGopersonalProductClickByField = async (field, value, listName = 'gopersonal_list', index = 0) => {
+    const result = await getItems({ where: { [field]: value }, limit: 1 });
+    const item = result?.resultData?.[0];
+    if (!item) return;
     const enhancedItem = parseItemForGA4(item, index, listName);
     const eventData = {
         item_list_name: listName,

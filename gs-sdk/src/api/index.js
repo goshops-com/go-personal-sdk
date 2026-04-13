@@ -38,6 +38,7 @@ import {
   getGAId,
   markSessionEvent,
   trackGopersonalProductClickById,
+  trackGopersonalProductClickByField,
 } from "../utils/ga";
 window.gsStore = {
   interactionCount: 0,
@@ -397,14 +398,28 @@ export const addInteraction = (interactionData) => {
 
   if (interactionData.event == "view" && hasImpressionId) {
     interactionData.impressionId = hasImpressionId;
-    const itemId = interactionData.item;
     const listName = getParam("gsListName") || "gopersonal_list";
     const index = getParam("gsIndex") || 0;
-    if (itemId) {
-      try {
-        trackGopersonalProductClickById(itemId, listName, index);
-      } catch (error) {
-        console.error("Error tracking gopersonal product click:", error);
+
+    if (Array.isArray(interactionData.preProcess)) {
+      for (const entry of interactionData.preProcess) {
+        const [action, field] = entry.split(":");
+        if (action === "findItemByField" && field) {
+          try {
+            trackGopersonalProductClickByField(field, interactionData.fieldValue, listName, index);
+          } catch (error) {
+            console.error("Error tracking gopersonal product click by field:", error);
+          }
+        }
+      }
+    } else {
+      const itemId = interactionData.item;
+      if (itemId) {
+        try {
+          trackGopersonalProductClickById(itemId, listName, index);
+        } catch (error) {
+          console.error("Error tracking gopersonal product click:", error);
+        }
       }
     }
   } else if (interactionData.event == "view" && isSearchReferral()) {
