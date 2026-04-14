@@ -194,7 +194,7 @@ export const trackGopersonalProductImpression = (items, listName) => {
     // Assign the listName and the index to each item
     const enhancedItems = items.map((item, index) => parseItemForGA4(item, index, listName));
     const eventData = {
-        item_list_name: listName,
+        item_list_name: `Gopersonal - ${listName}`,
         items: enhancedItems,
     };
     gopersonalTrack('view_item_list', eventData);
@@ -203,7 +203,7 @@ export const trackGopersonalProductImpression = (items, listName) => {
 export const trackGopersonalProductClick = (item, listName, index) => {
     const enhancedItem = parseItemForGA4(item, index, listName)
     const eventData = {
-        item_list_name: listName,
+        item_list_name: `Gopersonal - ${listName}`,
         items: [enhancedItem], 
     };
     gopersonalTrack('select_item', eventData);
@@ -237,7 +237,7 @@ export const trackGopersonalProductClickById = async (itemId, listName = 'gopers
     const item = await getItemById(itemId);
     const enhancedItem = parseItemForGA4(item, index, listName);
     const eventData = {
-        item_list_name: listName,
+        item_list_name: `Gopersonal - ${listName}`,
         items: [enhancedItem],
     };
     gopersonalTrack('select_item', eventData);
@@ -249,7 +249,7 @@ export const trackGopersonalProductClickByField = async (field, value, listName 
     if (!item) return;
     const enhancedItem = parseItemForGA4(item, index, listName);
     const eventData = {
-        item_list_name: listName,
+        item_list_name: `Gopersonal - ${listName}`,
         items: [enhancedItem],
     };
     gopersonalTrack('select_item', eventData);
@@ -289,7 +289,7 @@ export const trackGopersonalProductAddToCart = async (itemId, listName = 'gopers
     const item = await getItemById(itemId);
     const enhancedItem = parseItemForGA4(item, 0, listName);
     const eventData = {
-        item_list_name: listName,
+        item_list_name: `Gopersonal - ${listName}`,
         items: [enhancedItem],
     };
     gopersonalTrack('add_to_cart', eventData);   
