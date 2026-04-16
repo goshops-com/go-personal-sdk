@@ -120,6 +120,11 @@ function parseItemForGA4(item, index, listName) {
     };
 }
 
+export function parseItemsForGA4(items = [], listName) {
+    if (!Array.isArray(items)) return [];
+    return items.map((item, index) => parseItemForGA4(item, index, listName));
+}
+
 function isEcommerceEvent(eventName) {
     const ecommerceEvents = [
         // Productos
@@ -301,4 +306,12 @@ export const trackGopersonalProductAddToCart = async (itemId, listName = 'gopers
 
 export const trackGopersonalCustomEvent = (event,params) => {
     gopersonalTrack(event, params);    
+};
+
+export const trackGopersonalToDataLayer = (params) => {
+    if (typeof window !== 'undefined' && window.dataLayer && Array.isArray(window.dataLayer)) {
+        window.dataLayer.push(params);
+    } else {
+        console.error('dataLayer not available');
+    }
 };
