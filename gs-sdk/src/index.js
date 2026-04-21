@@ -232,7 +232,7 @@ const GSSDK = async (clientId, options = {}) => {
       addFeedback: (feedbackData) => addFeedback(feedbackData),
       observeElementInView: (elementId, impressionId, cb) => observeElementInView(elementId, impressionId, cb),
       openImpression: (impressionId) => openImpressionForRecommendation(impressionId),
-      openImpressionContent: (impressionId) => openImpressionForContent(impressionId),
+      openImpressionContent: (impressionId) => openImpressionForRecommendation(impressionId),
       getCurrentSession: () => getCurrentSession(),
       getCurrentGeoIPLocation: () => getCurrentGeoIPLocation(),
       trackError: (e) => console.log(e),
