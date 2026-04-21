@@ -184,14 +184,11 @@ function gopersonalTrack(eventName, eventData) {
         if (measurementId) {
             eventData.send_to = measurementId;
         }
-        if(eventData.item_list_name) {
-            eventData.widget_name = eventData.item_list_name;
-        }
+        
         gtag('event', eventName, eventData);
     } else if (typeof window !== 'undefined' && window.dataLayer && Array.isArray(window.dataLayer)) {
         window.dataLayer.push({
             event: eventName,
-            ...eventData.item_list_name && { widget_name: eventData.item_list_name },
             ...(isEcommerceEvent(eventName) ? { ecommerce: eventData } : eventData),
         });
     } else {
