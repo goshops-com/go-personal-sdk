@@ -510,6 +510,7 @@ export const observeElementInView = (elementId, impressionId, callback) => {
       if (entry.isIntersecting) {
         // The div is now in the viewport
         callback(elementId, impressionId);
+        observer?.disconnect();
       }
     });
   }
