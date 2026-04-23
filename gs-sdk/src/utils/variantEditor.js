@@ -2,12 +2,11 @@
  * GoPersonal variant editor (preview-only).
  *
  * Escucha el param `?gsPreviewVariant=<id>` y, únicamente cuando está presente,
- * monta un FAB sobre la página del shop con dos acciones:
- *   - Edit variant: abre un picker scopeado al contenedor [data-gopersonal="true"]
- *     (o [data-opersonal="true"]) + data-variant=<id> y permite editar textos.
- *     Al confirmar, envía todos los cambios acumulados al `window.opener` /
- *     `window.parent` mediante postMessage.
- *   - Edit with AI: abre un prompt y lo reenvía al padre por postMessage.
+ * monta un FAB sobre la página del shop con la acción "Edit variant": abre un
+ * picker scopeado al contenedor [data-gopersonal="true"] (o
+ * [data-opersonal="true"]) + data-variant=<id> y permite editar textos.
+ * Al confirmar, envía todos los cambios acumulados al `window.opener` /
+ * `window.parent` mediante postMessage.
  *
  * Todo el módulo es side-effect free en import: nada se ejecuta hasta que
  * `initVariantEditor()` se llama y, aun así, sale temprano si no hay variantId.
@@ -464,148 +463,15 @@ function postVariantEditsToParent() {
   }
 }
 
-function postAiPromptToParent(promptText) {
-  const payload = {
-    variantId: previewVariantId,
-    prompt: promptText,
-  };
-  const targetWindow = getParentWindow();
-  try {
-    if (targetWindow) {
-      targetWindow.postMessage(
-        {
-          namespace: "gopersonal",
-          source: "preview",
-          type: "variantAiPrompt",
-          payload,
-        },
-        "*",
-      );
-    }
-  } catch (e) {
-    console.warn("[gs-sdk][variantEditor] AI postMessage failed:", e);
-  }
-  try {
-    if (targetWindow && typeof targetWindow.focus === "function") {
-      targetWindow.focus();
-    }
-  } catch (_) {
-    /* some browsers restrict cross-window focus */
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Floating action bar (FAB)
 // ---------------------------------------------------------------------------
 
 const BAR_ID = "gopersonal-edit-variant-fab-bar";
 const BTN_PRIMARY_ID = "gopersonal-edit-variant-fab";
-const BTN_AI_ID = "gopersonal-edit-with-ai-fab";
 const FAB_STYLE_ID = "gopersonal-edit-variant-fab-styles";
-const AI_DRAWER_STYLE_ID = "gopersonal-ai-prompt-drawer-styles";
 const GP_PURPLE = "#5036a2";
 const GP_PURPLE_HOVER = "#402680";
-const GP_AI_GREEN = "#22c55e";
-const GP_AI_GREEN_HOVER = "#16a34a";
-
-let aiDrawerRoot = null;
-let aiDrawerEscapeHandler = null;
-
-function closeAiPromptDrawer() {
-  if (aiDrawerEscapeHandler) {
-    document.removeEventListener("keydown", aiDrawerEscapeHandler, true);
-    aiDrawerEscapeHandler = null;
-  }
-  if (aiDrawerRoot && aiDrawerRoot.parentNode) {
-    aiDrawerRoot.parentNode.removeChild(aiDrawerRoot);
-  }
-  aiDrawerRoot = null;
-}
-
-function injectAiDrawerStyles() {
-  if (document.getElementById(AI_DRAWER_STYLE_ID)) return;
-  const s = document.createElement("style");
-  s.id = AI_DRAWER_STYLE_ID;
-  s.textContent =
-    ".gp-ai-modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:2147483648;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}" +
-    ".gp-ai-modal{background:#fff;border-radius:12px;max-width:440px;width:100%;padding:20px 20px 16px;box-shadow:0 20px 50px rgba(15,23,42,.2);font-family:system-ui,-apple-system,sans-serif}" +
-    ".gp-ai-modal-title{font-size:16px;font-weight:700;color:#111827;margin:0 0 14px}" +
-    ".gp-ai-modal textarea{width:100%;box-sizing:border-box;min-height:120px;padding:12px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;line-height:1.45;resize:vertical;font:inherit}" +
-    ".gp-ai-modal textarea:focus{outline:none;border-color:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.2)}" +
-    ".gp-ai-modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}" +
-    ".gp-ai-modal-footer button{padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none}" +
-    ".gp-ai-btn-cancel{background:#fff;border:1px solid #d1d5db!important;color:#374151}" +
-    ".gp-ai-btn-cancel:hover{background:#f9fafb}" +
-    ".gp-ai-btn-generate{background:#86efac;color:#14532d;font-weight:700;display:inline-flex;align-items:center;gap:6px}" +
-    ".gp-ai-btn-generate:hover{filter:brightness(.95)}";
-  document.head.appendChild(s);
-}
-
-function openAiPromptDrawer() {
-  syncPreviewIdsFromUrl();
-  if (!previewVariantId) {
-    console.warn(
-      "[gs-sdk][variantEditor] No variant id — expected ?gsPreviewVariant=<id>.",
-    );
-    return;
-  }
-  closeAiPromptDrawer();
-  injectAiDrawerStyles();
-
-  const wrap = document.createElement("div");
-  wrap.className = "gp-ai-modal-backdrop";
-  wrap.setAttribute("role", "presentation");
-  wrap.innerHTML =
-    '<div class="gp-ai-modal" role="dialog" aria-modal="true" aria-labelledby="gp-ai-modal-title">' +
-    '<p id="gp-ai-modal-title" class="gp-ai-modal-title">Describe your change</p>' +
-    '<textarea id="gp-ai-prompt-field" spellcheck="true" placeholder="Describe what you want to change about this component..."></textarea>' +
-    '<div class="gp-ai-modal-footer">' +
-    '<button type="button" class="gp-ai-btn-cancel" data-ai-action="cancel">Cancel</button>' +
-    '<button type="button" class="gp-ai-btn-generate" data-ai-action="generate">\u2728 Generate</button>' +
-    "</div>" +
-    "</div>";
-
-  const textarea = wrap.querySelector("#gp-ai-prompt-field");
-
-  wrap.addEventListener("click", function (e) {
-    if (e.target === wrap) {
-      e.preventDefault();
-      closeAiPromptDrawer();
-    }
-  });
-
-  wrap.addEventListener("click", function (e) {
-    const btn = e.target && e.target.closest && e.target.closest("[data-ai-action]");
-    if (!btn) return;
-    const action = btn.getAttribute("data-ai-action");
-    if (action === "cancel") {
-      e.preventDefault();
-      closeAiPromptDrawer();
-      return;
-    }
-    if (action === "generate") {
-      e.preventDefault();
-      const prompt = (textarea && textarea.value) ? String(textarea.value).trim() : "";
-      postAiPromptToParent(prompt);
-      closeAiPromptDrawer();
-    }
-  });
-
-  document.body.appendChild(wrap);
-  aiDrawerRoot = wrap;
-
-  aiDrawerEscapeHandler = function (ev) {
-    if (ev.key === "Escape") {
-      ev.preventDefault();
-      closeAiPromptDrawer();
-    }
-  };
-  document.addEventListener("keydown", aiDrawerEscapeHandler, true);
-
-  requestAnimationFrame(function () {
-    if (textarea) textarea.focus();
-  });
-}
 
 function injectFabStyles() {
   if (document.getElementById(FAB_STYLE_ID)) return;
@@ -615,16 +481,6 @@ function injectFabStyles() {
     "#" +
     BAR_ID +
     "{position:fixed;bottom:24px;right:24px;z-index:2147483647;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:10px;max-width:calc(100vw - 32px)}" +
-    "#" +
-    BTN_AI_ID +
-    "{padding:12px 18px;font:700 14px system-ui,-apple-system,sans-serif;color:#fff;background:" +
-    GP_AI_GREEN +
-    ";border:none;border-radius:999px;cursor:pointer;box-shadow:0 4px 14px rgba(34,197,94,.4);transition:background .15s;display:inline-flex;align-items:center;gap:6px}" +
-    "#" +
-    BTN_AI_ID +
-    ":hover{background:" +
-    GP_AI_GREEN_HOVER +
-    "}" +
     "#" +
     BTN_PRIMARY_ID +
     "{padding:12px 22px;font:700 14px system-ui,-apple-system,sans-serif;color:#fff;background:" +
@@ -661,21 +517,11 @@ function mountFab() {
   const bar = document.createElement("div");
   bar.id = BAR_ID;
 
-  const aiBtn = document.createElement("button");
-  aiBtn.id = BTN_AI_ID;
-  aiBtn.type = "button";
-  aiBtn.textContent = "\u2728 Edit with AI";
-  aiBtn.title = "Edit with AI";
-
   const primaryBtn = document.createElement("button");
   primaryBtn.id = BTN_PRIMARY_ID;
   primaryBtn.type = "button";
   primaryBtn.textContent = "Edit variant";
   primaryBtn.dataset.mode = "edit";
-
-  aiBtn.addEventListener("click", function () {
-    openAiPromptDrawer();
-  });
 
   primaryBtn.addEventListener("click", function () {
     const mode = primaryBtn.dataset.mode;
@@ -696,7 +542,6 @@ function mountFab() {
     }
   });
 
-  bar.appendChild(aiBtn);
   bar.appendChild(primaryBtn);
   document.body.appendChild(bar);
 }
