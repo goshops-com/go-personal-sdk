@@ -15,6 +15,8 @@ import { liveGetVideo, liveLikeVideo, liveUnlikeVideo, liveTrackVideoTime } from
 import { installFenicio } from './providers/fenicio';
 import { setSharedToken, getSharedToken } from './utils/session';
 import { onVtexEmbeddedInit } from './vendors/vtexEmbedded';
+import { previewVariant } from './utils/urlParam';
+import { initVariantEditor } from './utils/variantEditor';
 
 //plugins
 
@@ -182,6 +184,14 @@ const GSSDK = async (clientId, options = {}) => {
 
   if (usePreview) {
     initPreviewListener();
+  }
+
+  try {
+    if (previewVariant()) {
+      initVariantEditor();
+    }
+  } catch (e) {
+    window.gsLog?.('Error initializing variant editor', e);
   }
 
   if (options.provider)
