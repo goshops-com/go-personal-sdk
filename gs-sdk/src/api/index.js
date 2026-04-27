@@ -389,10 +389,8 @@ export const addInteraction = (interactionData) => {
     type,
   });
 
-  // Invalidate content cache on events that change recommendations context
-  if (interactionData.event === "cart" || interactionData.event === "purchase") {
-    invalidateContentCache();
-  }
+  invalidateContentCache();
+  
 
   const hasImpressionId = getParam("gsImpressionId");
 
