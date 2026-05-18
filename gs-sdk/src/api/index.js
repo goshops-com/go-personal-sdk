@@ -22,6 +22,7 @@ import {
   setGAIdAccepted,
   getGAIdRejected,
   setGAIdRejected,
+  configureStorage,
 } from "../utils/storage";
 import {
   jsonToQueryString,
@@ -44,10 +45,13 @@ window.gsStore = {
   interactionCount: 0,
 };
 
+const COOKIE_FALLBACK_CLIENT_IDS = ["aPlEvUhcwYr76idR"];
+
 export const init = async (clientId, options) => {
   if (options.playgroundToken) {
     clearSession();
     clientId = configure(clientId);
+    configureStorage({ cookieFallback: COOKIE_FALLBACK_CLIENT_IDS.includes(clientId) });
     setClientId(clientId);
     setSession({
       token: options.playgroundToken,
@@ -59,6 +63,7 @@ export const init = async (clientId, options) => {
   window.gsConfig.includeDraft = options.includeDraft;
 
   clientId = configure(clientId);
+  configureStorage({ cookieFallback: COOKIE_FALLBACK_CLIENT_IDS.includes(clientId) });
   const clientOrigin = window.location.origin;
 
   const sameClientId = checkSameClientId(clientId);
