@@ -31,7 +31,9 @@ async function obtainContentByContext(
   context,
   includeDraft = false,
 ) {
-  const cacheKey = `gs_content_cache_${context}_${includeDraft}`;
+  const locationHref =
+    payload?.context?.currentPage?.location || window.location.href || "";
+  const cacheKey = `gs_content_cache_${context}_${includeDraft}_${encodeURIComponent(locationHref)}`;
   const now = Date.now();
   const CACHE_TTL = 5000;
 
@@ -39,7 +41,6 @@ async function obtainContentByContext(
 
   if (cachedData) {
     cachedData = JSON.parse(cachedData);
-
     if (now - cachedData.timestamp < CACHE_TTL) {
       return cachedData.data;
     }
