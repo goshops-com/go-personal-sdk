@@ -432,6 +432,16 @@ export const addInteraction = (interactionData) => {
     }
   }
 
+  //exlude Eramio
+  if (window.gsConfig?.options?.provider === "Luna" && getSession()?.project !== "672154a195567b6f32f56407" && interactionData.item) {
+    const { item, ...rest } = interactionData;
+    interactionData = {
+      ...rest,
+      preProcess: ["findItemByField:sku_list"],
+      fieldValue: item,
+    };
+  }
+
   return httpPost(`/interaction`, interactionData);
 };
 
