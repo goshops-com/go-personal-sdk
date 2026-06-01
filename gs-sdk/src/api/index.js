@@ -432,7 +432,7 @@ export const addInteraction = (interactionData) => {
     }
   }
 
-  //exlude Eramio
+  //exclude project with own sku resolution
   if (window.gsConfig?.options?.provider === "Luna" && getSession()?.project !== "672154a195567b6f32f56407" && interactionData.item) {
     const { item, ...rest } = interactionData;
     interactionData = {

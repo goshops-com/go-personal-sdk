@@ -313,7 +313,7 @@ function buildContextPayload(options) {
     referrer:
       typeof document !== "undefined" ? document.referrer || "" : "",
   };
-  //exclude Eramio - for Luna projects, use preProcess to resolve item by sku_list instead of product_id
+  //exclude project with own sku resolution - for Luna projects, use preProcess to resolve item by sku_list instead of product_id
   if (window.gsConfig?.options?.provider === "Luna" && getSession()?.project !== "672154a195567b6f32f56407" && currentPage.product_id) {
     const { product_id, ...rest } = currentPage;
     currentPage = { ...rest, preProcess: { field: "sku_list", fieldValue: product_id + "" } };
