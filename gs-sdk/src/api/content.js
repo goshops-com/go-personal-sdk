@@ -316,7 +316,7 @@ function buildContextPayload(options) {
   //exclude project with own sku resolution - for Luna projects, use preProcess to resolve item by sku_list instead of product_id
   if (window.gsConfig?.options?.provider === "Luna" && getSession()?.project !== "672154a195567b6f32f56407" && currentPage.product_id) {
     const { product_id, ...rest } = currentPage;
-    currentPage = { ...rest, preProcess: { field: "sku_list", fieldValue: product_id + "" } };
+    currentPage = { ...rest, preProcess: { field: "sku_list", fieldValue: String(product_id) } };
   }
   return {
     context: {

@@ -15,7 +15,7 @@ export const byContext = async (options = {}) => {
   const recoOptions = options.options;
 
   const currentPageContext = window.gsConfig.options.context || {};
-  if (!options.forceContext && currentPageContext.pageType == 'product_detail' && currentPageContext.product_id) {
+  if (!options.forceContext && currentPageContext.pageType === 'product_detail' && currentPageContext.product_id) {
     const id = String(currentPageContext.product_id);
     //exclude project with own sku resolution
     const isLunaNonExcluded = window.gsConfig?.options?.provider === "Luna" && getSession()?.project !== "672154a195567b6f32f56407";
