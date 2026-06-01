@@ -1,4 +1,5 @@
 import { httpGet, httpPost, httpPatch } from "../utils/http";
+import { getSession } from "../utils/storage";
 
 export const bestProducts = async (options = {}) => {
   let q = "";
@@ -14,11 +15,12 @@ export const byContext = async (options = {}) => {
   const recoOptions = options.options;
 
   const currentPageContext = window.gsConfig.options.context || {};
-  if (!options.forceContext && currentPageContext.pageType == 'product_detail' && currentPageContext.product_id){
+  if (!options.forceContext && currentPageContext.pageType == 'product_detail' && currentPageContext.product_id) {
+    const id = currentPageContext.product_id + "";
+    //exclude Eramio
+    const isLunaNonEramio = window.gsConfig?.options?.provider === "Luna" && getSession()?.project !== "672154a195567b6f32f56407";
     context = {
-      currentPage: {
-        productId: currentPageContext.product_id + "",
-      },
+      currentPage: isLunaNonEramio ? { preProcess: { field: "sku_list", fieldValue: id } } : { productId: id },
     };
   }
 
