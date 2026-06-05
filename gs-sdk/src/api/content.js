@@ -306,6 +306,18 @@ function buildContextPayload(options) {
     download = navigator.connection.downlink;
     effectiveType = navigator.connection.effectiveType;
   } catch (e) {}
+  let currentPage = {
+    ...options,
+    provider: window?.gsConfig?.options?.provider || null,
+    location: window.location.href,
+    referrer:
+      typeof document !== "undefined" ? document.referrer || "" : "",
+  };
+  //exclude project with own sku resolution - for Luna projects, use preProcess to resolve item by sku_list instead of product_id
+  if (window.gsConfig?.options?.provider === "Luna" && getSession()?.project !== "672154a195567b6f32f56407" && currentPage.product_id) {
+    const { product_id, ...rest } = currentPage;
+    currentPage = { ...rest, preProcess: { field: "sku_list", fieldValue: String(product_id) } };
+  }
   return {
     context: {
       network: {
@@ -326,13 +338,7 @@ function buildContextPayload(options) {
         locale: navigator.language || navigator.userLanguage,
         timezoneOffset: new Date().getTimezoneOffset(),
       },
-      currentPage: {
-        ...options,
-        provider: window?.gsConfig?.options?.provider || null,
-        location: window.location.href,
-        referrer:
-          typeof document !== "undefined" ? document.referrer || "" : "",
-      },
+      currentPage,
     },
   };
 }
