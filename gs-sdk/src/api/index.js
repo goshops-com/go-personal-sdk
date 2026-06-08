@@ -40,6 +40,7 @@ import {
 import {
   ensureVarify,
   getAppliedExperimentBySlug,
+  getAppliedExperiments,
 } from "../utils/varify";
 window.gsStore = {
   interactionCount: 0,
@@ -74,12 +75,29 @@ async function resolveTrafficSplitFlow(clientId) {
     appliedExperiment = getAppliedExperimentBySlug(rule.experimentSlug);
   }
 
+  const appliedExperiments = getAppliedExperiments();
+  window.gsLog("Varify traffic split state", {
+    experimentSlug: rule.experimentSlug,
+    experiments: appliedExperiments,
+    appliedExperiment,
+  });
+
   if (!appliedExperiment) {
     return false;
   }
 
   // Skip traffic when the applied variant is not in the allowed list for this client
-  return !rule.variationIds.includes(appliedExperiment.variationId);
+  const shouldSkipTraffic = !rule.variationIds.includes(appliedExperiment.variationId);
+
+  if (shouldSkipTraffic) {
+    window.gsLog("Varify traffic split status", {
+      status: "skip",
+      variationId: appliedExperiment.variationId,
+      allowedVariationIds: rule.variationIds,
+    });
+  }
+
+  return shouldSkipTraffic;
 }
 
 export const init = async (clientId, options) => {
