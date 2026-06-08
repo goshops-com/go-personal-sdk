@@ -37,6 +37,10 @@ import {
   trackGopersonalProductClickById,
   trackGopersonalProductClickByField,
 } from "../utils/ga";
+import {
+  ensureVarify,
+  getAppliedExperimentBySlug,
+} from "../utils/varify";
 window.gsStore = {
   interactionCount: 0,
 };
@@ -47,19 +51,11 @@ const COOKIE_FALLBACK_CLIENT_IDS = ["aPlEvUhcwYr76idR"];
 const CUSTOM_TRAFFIC_SPLIT_RULES = [
   {
     clientId: "Z4arNzD%2Bl30LntC%2B",
+    varifyIid: 5870,
     experimentSlug: "gp-traffic",
     variationIds: [54678],
   },
 ];
-
-function getAppliedExperimentBySlug(experimentSlug) {
-  const appliedExperiments = window?.varify?.debug?.appliedExperiments || {};
-
-  // Match the applied experiment using the configured slug
-  return Object.values(appliedExperiments).find(
-    (experiment) => experiment?.experimentSlug === experimentSlug,
-  );
-}
 
 async function resolveTrafficSplitFlow(clientId) {
   const rule = CUSTOM_TRAFFIC_SPLIT_RULES.find(
@@ -70,10 +66,11 @@ async function resolveTrafficSplitFlow(clientId) {
     return false;
   }
 
+  await ensureVarify(rule.varifyIid);
+
   let appliedExperiment = getAppliedExperimentBySlug(rule.experimentSlug);
-  if (!appliedExperiment && !window?.varify) {
-    // if the sdk is not ready yet, wait for 3 seconds and try again
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+  if (!appliedExperiment) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
     appliedExperiment = getAppliedExperimentBySlug(rule.experimentSlug);
   }
 
