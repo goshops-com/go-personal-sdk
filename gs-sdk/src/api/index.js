@@ -18,10 +18,6 @@ import {
   getSession,
   getVUUID,
   setVUUID,
-  getGAIdAccepted,
-  setGAIdAccepted,
-  getGAIdRejected,
-  setGAIdRejected,
   configureStorage,
 } from "../utils/storage";
 import {
@@ -46,6 +42,48 @@ window.gsStore = {
 };
 
 const COOKIE_FALLBACK_CLIENT_IDS = ["aPlEvUhcwYr76idR"];
+
+// variationIds lists the experiment variants allowed traffic
+const CUSTOM_TRAFFIC_SPLIT_RULES = [
+  {
+    clientId: "Z4arNzD%2Bl30LntC%2B",
+    experimentSlug: "gp-traffic",
+    variationIds: [54678],
+  },
+];
+
+function getAppliedExperimentBySlug(experimentSlug) {
+  const appliedExperiments = window?.varify?.debug?.appliedExperiments || {};
+
+  // Match the applied experiment using the configured slug
+  return Object.values(appliedExperiments).find(
+    (experiment) => experiment?.experimentSlug === experimentSlug,
+  );
+}
+
+async function resolveTrafficSplitFlow(clientId) {
+  const rule = CUSTOM_TRAFFIC_SPLIT_RULES.find(
+    (trafficSplitRule) => trafficSplitRule.clientId === clientId,
+  );
+
+  if (!rule) {
+    return false;
+  }
+
+  let appliedExperiment = getAppliedExperimentBySlug(rule.experimentSlug);
+  if (!appliedExperiment && !window?.varify) {
+    // if the sdk is not ready yet, wait for 3 seconds and try again
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    appliedExperiment = getAppliedExperimentBySlug(rule.experimentSlug);
+  }
+
+  if (!appliedExperiment) {
+    return false;
+  }
+
+  // Skip traffic when the applied variant is not in the allowed list for this client
+  return !rule.variationIds.includes(appliedExperiment.variationId);
+}
 
 export const init = async (clientId, options) => {
   if (options.playgroundToken) {
@@ -89,30 +127,12 @@ export const init = async (clientId, options) => {
     }
   }
 
-  let hasGA4 = false;
-  if (clientId == "Z4arNzD%2Bl30LntC%2B") {
-    hasGA4 = true;
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+  const customSkipTraffic = await resolveTrafficSplitFlow(clientId);
+  if (customSkipTraffic) {
+    return;
   }
 
   const gaId = getGAId();
-  const gaIdAccepted = getGAIdAccepted();
-  const gaIdRejected = getGAIdRejected();
-
-  if (gaId && hasGA4) {
-    // If current gaId matches the last rejected, reject immediately
-    if (gaIdRejected && gaId === gaIdRejected) {
-      console.log("GA4: gaId matches last rejected, skipping init");
-      return;
-    }
-
-    // If gaId changed (different from both accepted and rejected), clear token to force new init
-    const gaIdChanged = gaId !== gaIdAccepted && gaId !== gaIdRejected;
-    if (gaIdChanged) {
-      console.log("GA4: gaId changed, clearing session for fresh init");
-      clearSession();
-    }
-  }
 
   if (isTokenValid()) {
     const obj = getToken();
@@ -154,11 +174,6 @@ export const init = async (clientId, options) => {
     });
     setSession(obj);
 
-    // GA4: Save accepted gaId on successful init
-    if (hasGA4 && gaId) {
-      setGAIdAccepted(gaId);
-    }
-
     if (obj.hasSessionSplitTraffic) {
       markSessionEvent();
     }
@@ -172,10 +187,7 @@ export const init = async (clientId, options) => {
     subscribeQueue();
     return clientId;
   } catch (e) {
-    // GA4: Save rejected gaId on error (400)
-    if (hasGA4 && gaId && e.message && e.message.includes("400")) {
-      setGAIdRejected(gaId);
-    }
+    return;
   }
 };
 
