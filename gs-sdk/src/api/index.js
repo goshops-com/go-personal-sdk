@@ -144,6 +144,8 @@ export const init = async (clientId, options) => {
 
   const customSkipTraffic = await resolveTrafficSplitFlow(clientId);
   if (customSkipTraffic) {
+    //Clear session and token
+    clearSession();
     return;
   }
 
