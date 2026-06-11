@@ -51,10 +51,26 @@ const COOKIE_FALLBACK_CLIENT_IDS = ["aPlEvUhcwYr76idR"];
 // variationIds lists the experiment variants allowed traffic
 const CUSTOM_TRAFFIC_SPLIT_RULES = [
   {
-    clientId: "Z4arNzD%2Bl30LntC%2B",
+    clientId: "Z4arNzD%2Bl30LntC%2B", //TH CO
     varifyIid: 5870,
     experimentSlug: "gp-traffic",
     variationIds: [54678],
+  },
+  {
+    clientId: "Z9GXJWGNWhV3ZTMI", //CK AR
+    varifyIid: 6026,
+    experimentSlug: "gp-traffic",
+    variationIds: [],
+  },{
+    clientId: "Z%2Ban4pyN104uCc7a", //TH AR
+    varifyIid: 6028,
+    experimentSlug: "gp-traffic",
+    variationIds: [],
+  },{
+    clientId: "aExoXxtrCJ6I40ud", //CK CO
+    varifyIid: 6027,
+    experimentSlug: "gp-traffic",
+    variationIds: [],
   },
 ];
 
