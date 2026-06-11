@@ -60,17 +60,17 @@ const CUSTOM_TRAFFIC_SPLIT_RULES = [
     clientId: "Z9GXJWGNWhV3ZTMI", //CK AR
     varifyIid: 6026,
     experimentSlug: "gp-traffic",
-    variationIds: [],
+    variationIds: [56038],
   },{
     clientId: "Z%2Ban4pyN104uCc7a", //TH AR
     varifyIid: 6028,
     experimentSlug: "gp-traffic",
-    variationIds: [],
+    variationIds: [56040],
   },{
     clientId: "aExoXxtrCJ6I40ud", //CK CO
     varifyIid: 6027,
     experimentSlug: "gp-traffic",
-    variationIds: [],
+    variationIds: [56039],
   },
 ];
 
