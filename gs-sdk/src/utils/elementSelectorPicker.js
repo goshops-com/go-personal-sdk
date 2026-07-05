@@ -12,10 +12,12 @@ import { getParam } from "./urlParam";
 
 const STYLE_ID = "gopersonal-element-selector-picker-styles";
 const ROOT_CLASS = "gopersonal-element-selector-picker-root-active";
-const HIGHLIGHT_CLASS = "gopersonal-element-selector-picker-highlight";
+const HIGHLIGHT_BOX_CLASS = "gopersonal-element-selector-picker-highlight-box";
 
 let mounted = false;
 let activeRoot = null;
+let highlightBox = null;
+let highlightedTarget = null;
 let pickerCleanup = null;
 
 function getParentWindow() {
@@ -30,6 +32,13 @@ function getParentWindow() {
     /* ignore */
   }
   return null;
+}
+
+function elementClassName(el) {
+  if (!el || !el.className) return "";
+  if (typeof el.className === "string") return el.className;
+  if (typeof el.className.baseVal === "string") return el.className.baseVal;
+  return String(el.className);
 }
 
 function cssEscToken(s) {
@@ -50,10 +59,10 @@ function cssPathFromRoot(root, element) {
       segments.unshift(part);
       break;
     }
-    const classes = (el.className && typeof el.className === "string"
-      ? el.className.split(/\s+/).filter(Boolean)
-      : []
-    ).filter((c) => c !== HIGHLIGHT_CLASS && c !== ROOT_CLASS);
+    const classes = elementClassName(el)
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter((c) => c !== ROOT_CLASS && c !== HIGHLIGHT_BOX_CLASS);
     if (classes.length) {
       part += "." + classes.map((c) => cssEscToken(c)).join(".");
     }
@@ -75,18 +84,66 @@ function selectorFromBody(target) {
 }
 
 function elementPayload(target) {
+  const className = elementClassName(target)
+    .split(/\s+/)
+    .filter((c) => c && c !== ROOT_CLASS && c !== HIGHLIGHT_BOX_CLASS)
+    .join(" ");
+
   return {
     selector: selectorFromBody(target),
     tag: target.tagName,
     id: target.id || undefined,
-    className:
-      typeof target.className === "string"
-        ? target.className
-            .split(/\s+/)
-            .filter((c) => c && c !== HIGHLIGHT_CLASS && c !== ROOT_CLASS)
-            .join(" ")
-        : undefined,
+    className: className || undefined,
   };
+}
+
+function isPickableElement(el) {
+  if (!el || el.nodeType !== 1) return false;
+  if (!activeRoot || !activeRoot.contains(el)) return false;
+  if (el === activeRoot || el === document.documentElement) return false;
+  if (el.classList && el.classList.contains(HIGHLIGHT_BOX_CLASS)) return false;
+  return true;
+}
+
+function collectCandidates(x, y, extra) {
+  const candidates = [];
+  const seen = new Set();
+
+  function add(el) {
+    if (!isPickableElement(el) || seen.has(el)) return;
+    seen.add(el);
+    candidates.push(el);
+  }
+
+  if (typeof document.elementsFromPoint === "function") {
+    document.elementsFromPoint(x, y).forEach(add);
+  } else {
+    add(document.elementFromPoint(x, y));
+  }
+
+  if (extra) add(extra);
+
+  return candidates;
+}
+
+function pickTargetFromPoint(x, y, extra) {
+  const candidates = collectCandidates(x, y, extra);
+  let best = null;
+  let bestArea = Infinity;
+
+  for (let i = 0; i < candidates.length; i++) {
+    const el = candidates[i];
+    const rect = el.getBoundingClientRect();
+    const area = rect.width * rect.height;
+    if (area <= 0) continue;
+
+    if (area < bestArea) {
+      bestArea = area;
+      best = el;
+    }
+  }
+
+  return best;
 }
 
 function ensureStyles() {
@@ -96,33 +153,63 @@ function ensureStyles() {
   style.textContent =
     "." +
     ROOT_CLASS +
-    "{outline:3px solid rgba(59,130,246,.95);outline-offset:2px;position:relative;z-index:1}" +
+    "{outline:3px solid rgba(59,130,246,.95);outline-offset:2px}" +
     "." +
-    HIGHLIGHT_CLASS +
-    "{outline:2px dashed rgba(234,179,8,.95)!important;outline-offset:1px}";
+    HIGHLIGHT_BOX_CLASS +
+    "{position:fixed;pointer-events:none;box-sizing:border-box;border:2px dashed rgba(234,179,8,.95);background:rgba(234,179,8,.08);z-index:2147483646;display:none}";
   document.head.appendChild(style);
 }
 
+function ensureHighlightBox() {
+  if (highlightBox) return;
+  highlightBox = document.createElement("div");
+  highlightBox.className = HIGHLIGHT_BOX_CLASS;
+  document.documentElement.appendChild(highlightBox);
+}
+
+function updateHighlightBox(el) {
+  ensureHighlightBox();
+  highlightedTarget = el || null;
+  if (!el) {
+    highlightBox.style.display = "none";
+    return;
+  }
+
+  const rect = el.getBoundingClientRect();
+  highlightBox.style.display = "block";
+  highlightBox.style.top = rect.top + "px";
+  highlightBox.style.left = rect.left + "px";
+  highlightBox.style.width = rect.width + "px";
+  highlightBox.style.height = rect.height + "px";
+}
+
 function clearHighlight() {
-  if (!activeRoot) return;
-  const prev = activeRoot.querySelectorAll("." + HIGHLIGHT_CLASS);
-  prev.forEach((n) => n.classList.remove(HIGHLIGHT_CLASS));
+  updateHighlightBox(null);
+}
+
+function refreshHighlightBox() {
+  if (highlightedTarget && highlightedTarget.isConnected) {
+    updateHighlightBox(highlightedTarget);
+  } else {
+    clearHighlight();
+  }
 }
 
 function postElementToParent(target) {
   const payload = elementPayload(target);
+  const message = {
+    namespace: "gopersonal",
+    source: "preview",
+    type: "elementSelectorPicked",
+    payload,
+  };
   const targetWindow = getParentWindow();
   try {
+    console.log("[gs-sdk][elementSelectorPicker] postMessage to parent:", message);
     if (targetWindow) {
-      targetWindow.postMessage(
-        {
-          namespace: "gopersonal",
-          source: "preview",
-          type: "elementSelectorPicked",
-          payload,
-        },
-        "*",
-      );
+      targetWindow.postMessage(message, "*");
+    } else {
+      console.warn("[gs-sdk][elementSelectorPicker] No parent/opener window found");
     }
   } catch (e) {
     console.warn("[gs-sdk][elementSelectorPicker] postMessage failed:", e);
@@ -139,6 +226,10 @@ export function hideElementSelectorPicker() {
     activeRoot.classList.remove(ROOT_CLASS);
     activeRoot = null;
   }
+  if (highlightBox) {
+    highlightBox.remove();
+    highlightBox = null;
+  }
 }
 
 export function showElementSelectorPicker() {
@@ -150,35 +241,39 @@ export function showElementSelectorPicker() {
   activeRoot = document.body;
   activeRoot.classList.add(ROOT_CLASS);
 
-  function pickTargetFromEvent(e) {
-    const top = document.elementFromPoint(e.clientX, e.clientY);
-    if (!top || !activeRoot.contains(top)) return null;
-    return top;
-  }
-
   function onMove(e) {
     if (!activeRoot) return;
-    const target = pickTargetFromEvent(e);
-    clearHighlight();
-    if (!target) return;
-    target.classList.add(HIGHLIGHT_CLASS);
+    const target = pickTargetFromPoint(e.clientX, e.clientY);
+    if (!target) {
+      clearHighlight();
+      return;
+    }
+    updateHighlightBox(target);
   }
 
   function onClick(e) {
     if (!activeRoot) return;
-    const target = pickTargetFromEvent(e);
+    const target = pickTargetFromPoint(e.clientX, e.clientY, e.target);
     if (!target) return;
     e.preventDefault();
     e.stopPropagation();
     postElementToParent(target);
   }
 
+  function onViewportChange() {
+    refreshHighlightBox();
+  }
+
   document.addEventListener("mousemove", onMove, true);
   document.addEventListener("click", onClick, true);
+  window.addEventListener("scroll", onViewportChange, true);
+  window.addEventListener("resize", onViewportChange, true);
 
   pickerCleanup = function () {
     document.removeEventListener("mousemove", onMove, true);
     document.removeEventListener("click", onClick, true);
+    window.removeEventListener("scroll", onViewportChange, true);
+    window.removeEventListener("resize", onViewportChange, true);
     clearHighlight();
   };
 }
