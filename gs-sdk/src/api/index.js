@@ -18,10 +18,7 @@ import {
   getSession,
   getVUUID,
   setVUUID,
-  getGAIdAccepted,
-  setGAIdAccepted,
-  getGAIdRejected,
-  setGAIdRejected,
+  configureStorage,
 } from "../utils/storage";
 import {
   jsonToQueryString,
@@ -40,14 +37,90 @@ import {
   trackGopersonalProductClickById,
   trackGopersonalProductClickByField,
 } from "../utils/ga";
+import {
+  ensureVarify,
+  getAppliedExperimentBySlug,
+  getAppliedExperiments,
+} from "../utils/varify";
 window.gsStore = {
   interactionCount: 0,
 };
+
+const COOKIE_FALLBACK_CLIENT_IDS = ["aPlEvUhcwYr76idR"];
+
+// variationIds lists the experiment variants allowed traffic
+const CUSTOM_TRAFFIC_SPLIT_RULES = [
+  {
+    clientId: "Z4arNzD%2Bl30LntC%2B", //TH CO
+    varifyIid: 5870,
+    experimentSlug: "gp-traffic",
+    variationIds: [54678],
+  },
+  {
+    clientId: "Z9GXJWGNWhV3ZTMI", //CK AR
+    varifyIid: 6026,
+    experimentSlug: "gp-traffic",
+    variationIds: [56038],
+  },{
+    clientId: "Z%2Ban4pyN104uCc7a", //TH AR
+    varifyIid: 6028,
+    experimentSlug: "gp-traffic",
+    variationIds: [56040],
+  },{
+    clientId: "aExoXxtrCJ6I40ud", //CK CO
+    varifyIid: 6027,
+    experimentSlug: "gp-traffic",
+    variationIds: [56039],
+  },
+];
+
+async function resolveTrafficSplitFlow(clientId) {
+  const rule = CUSTOM_TRAFFIC_SPLIT_RULES.find(
+    (trafficSplitRule) => trafficSplitRule.clientId === clientId,
+  );
+
+  if (!rule) {
+    return false;
+  }
+
+  await ensureVarify(rule.varifyIid);
+
+  let appliedExperiment = getAppliedExperimentBySlug(rule.experimentSlug);
+  if (!appliedExperiment) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    appliedExperiment = getAppliedExperimentBySlug(rule.experimentSlug);
+  }
+
+  const appliedExperiments = getAppliedExperiments();
+  window.gsLog("Varify traffic split state", {
+    experimentSlug: rule.experimentSlug,
+    experiments: appliedExperiments,
+    appliedExperiment,
+  });
+
+  if (!appliedExperiment) {
+    return false;
+  }
+
+  // Skip traffic when the applied variant is not in the allowed list for this client
+  const shouldSkipTraffic = !rule.variationIds.includes(appliedExperiment.variationId);
+
+  if (shouldSkipTraffic) {
+    window.gsLog("Varify traffic split status", {
+      status: "skip",
+      variationId: appliedExperiment.variationId,
+      allowedVariationIds: rule.variationIds,
+    });
+  }
+
+  return shouldSkipTraffic;
+}
 
 export const init = async (clientId, options) => {
   if (options.playgroundToken) {
     clearSession();
     clientId = configure(clientId);
+    configureStorage({ cookieFallback: COOKIE_FALLBACK_CLIENT_IDS.includes(clientId) });
     setClientId(clientId);
     setSession({
       token: options.playgroundToken,
@@ -59,6 +132,7 @@ export const init = async (clientId, options) => {
   window.gsConfig.includeDraft = options.includeDraft;
 
   clientId = configure(clientId);
+  configureStorage({ cookieFallback: COOKIE_FALLBACK_CLIENT_IDS.includes(clientId) });
   const clientOrigin = window.location.origin;
 
   const sameClientId = checkSameClientId(clientId);
@@ -84,30 +158,14 @@ export const init = async (clientId, options) => {
     }
   }
 
-  let hasGA4 = false;
-  if (clientId == "Z4arNzD%2Bl30LntC%2B") {
-    hasGA4 = true;
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+  const customSkipTraffic = await resolveTrafficSplitFlow(clientId);
+  if (customSkipTraffic) {
+    //Clear session and token
+    clearSession();
+    return;
   }
 
   const gaId = getGAId();
-  const gaIdAccepted = getGAIdAccepted();
-  const gaIdRejected = getGAIdRejected();
-
-  if (gaId && hasGA4) {
-    // If current gaId matches the last rejected, reject immediately
-    if (gaIdRejected && gaId === gaIdRejected) {
-      console.log("GA4: gaId matches last rejected, skipping init");
-      return;
-    }
-
-    // If gaId changed (different from both accepted and rejected), clear token to force new init
-    const gaIdChanged = gaId !== gaIdAccepted && gaId !== gaIdRejected;
-    if (gaIdChanged) {
-      console.log("GA4: gaId changed, clearing session for fresh init");
-      clearSession();
-    }
-  }
 
   if (isTokenValid()) {
     const obj = getToken();
@@ -149,11 +207,6 @@ export const init = async (clientId, options) => {
     });
     setSession(obj);
 
-    // GA4: Save accepted gaId on successful init
-    if (hasGA4 && gaId) {
-      setGAIdAccepted(gaId);
-    }
-
     if (obj.hasSessionSplitTraffic) {
       markSessionEvent();
     }
@@ -167,10 +220,7 @@ export const init = async (clientId, options) => {
     subscribeQueue();
     return clientId;
   } catch (e) {
-    // GA4: Save rejected gaId on error (400)
-    if (hasGA4 && gaId && e.message && e.message.includes("400")) {
-      setGAIdRejected(gaId);
-    }
+    return;
   }
 };
 
@@ -389,10 +439,8 @@ export const addInteraction = (interactionData) => {
     type,
   });
 
-  // Invalidate content cache on events that change recommendations context
-  if (interactionData.event === "cart" || interactionData.event === "purchase") {
-    invalidateContentCache();
-  }
+  invalidateContentCache();
+  
 
   const hasImpressionId = getParam("gsImpressionId");
 
@@ -427,6 +475,16 @@ export const addInteraction = (interactionData) => {
     if (itemId) {
       trackGopersonalProductClickById(itemId, "Gopersonal - Search Results", 0);
     }
+  }
+
+  //exclude project with own sku resolution
+  if (window.gsConfig?.options?.provider === "Luna" && getSession()?.project !== "672154a195567b6f32f56407" && interactionData.item) {
+    const { item, ...rest } = interactionData;
+    interactionData = {
+      ...rest,
+      preProcess: ["findItemByField:sku_list"],
+      fieldValue: item,
+    };
   }
 
   return httpPost(`/interaction`, interactionData);
