@@ -15,7 +15,8 @@ import { liveGetVideo, liveLikeVideo, liveUnlikeVideo, liveTrackVideoTime } from
 import { installFenicio } from './providers/fenicio';
 import { setSharedToken, getSharedToken } from './utils/session';
 import { onVtexEmbeddedInit } from './vendors/vtexEmbedded';
-import { previewVariant } from './utils/urlParam';
+import { getParam, previewVariant } from './utils/urlParam';
+import { initElementSelectorPicker } from './utils/elementSelectorPicker';
 import { initVariantEditor } from './utils/variantEditor';
 
 //plugins
@@ -192,6 +193,14 @@ const GSSDK = async (clientId, options = {}) => {
     }
   } catch (e) {
     window.gsLog?.('Error initializing variant editor', e);
+  }
+
+  try {
+    if (getParam('gsSelectElementSelector') === 'true') {
+      initElementSelectorPicker();
+    }
+  } catch (e) {
+    window.gsLog?.('Error initializing element selector picker', e);
   }
 
   if (options.provider)
