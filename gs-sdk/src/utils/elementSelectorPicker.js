@@ -13,12 +13,20 @@ import { getParam } from "./urlParam";
 const STYLE_ID = "gopersonal-element-selector-picker-styles";
 const ROOT_CLASS = "gopersonal-element-selector-picker-root-active";
 const HIGHLIGHT_BOX_CLASS = "gopersonal-element-selector-picker-highlight-box";
+const PANEL_CLASS = "gopersonal-element-selector-picker-panel";
+const PANEL_BTN_CLASS = "gopersonal-element-selector-picker-panel-btn";
+const PANEL_BTN_ACTIVE_CLASS = "gopersonal-element-selector-picker-panel-btn-active";
+
+const MODE_SELECT = "select";
+const MODE_INTERACT = "interact";
 
 let mounted = false;
 let activeRoot = null;
 let highlightBox = null;
 let highlightedTarget = null;
 let pickerCleanup = null;
+let panel = null;
+let pickerMode = MODE_SELECT;
 
 function getParentWindow() {
   try {
@@ -97,8 +105,13 @@ function elementPayload(target) {
   };
 }
 
+function isInsidePanel(el) {
+  return !!(panel && el && (el === panel || panel.contains(el)));
+}
+
 function isPickableElement(el) {
   if (!el || el.nodeType !== 1) return false;
+  if (isInsidePanel(el)) return false;
   if (!activeRoot || !activeRoot.contains(el)) return false;
   if (el === activeRoot || el === document.documentElement) return false;
   if (el.classList && el.classList.contains(HIGHLIGHT_BOX_CLASS)) return false;
@@ -156,8 +169,64 @@ function ensureStyles() {
     "{outline:3px solid rgba(59,130,246,.95);outline-offset:2px}" +
     "." +
     HIGHLIGHT_BOX_CLASS +
-    "{position:fixed;pointer-events:none;box-sizing:border-box;border:2px dashed rgba(234,179,8,.95);background:rgba(234,179,8,.08);z-index:2147483646;display:none}";
+    "{position:fixed;pointer-events:none;box-sizing:border-box;border:2px dashed rgba(234,179,8,.95);background:rgba(234,179,8,.08);z-index:2147483646;display:none}" +
+    "." +
+    PANEL_CLASS +
+    "{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:2147483647;display:flex;gap:4px;padding:4px;background:#111827;border-radius:9999px;box-shadow:0 4px 16px rgba(0,0,0,.3);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;pointer-events:auto}" +
+    "." +
+    PANEL_BTN_CLASS +
+    "{appearance:none;-webkit-appearance:none;border:0;margin:0;cursor:pointer;padding:7px 16px;border-radius:9999px;font-size:13px;line-height:1;font-weight:600;color:#9ca3af;background:transparent;transition:color .12s,background .12s}" +
+    "." +
+    PANEL_BTN_ACTIVE_CLASS +
+    "{color:#fff;background:rgba(59,130,246,.95)}";
   document.head.appendChild(style);
+}
+
+function applyModeUi() {
+  if (activeRoot) {
+    activeRoot.classList.toggle(ROOT_CLASS, pickerMode === MODE_SELECT);
+  }
+  if (!panel) return;
+  const buttons = panel.querySelectorAll("." + PANEL_BTN_CLASS);
+  for (let i = 0; i < buttons.length; i++) {
+    const btn = buttons[i];
+    const active = btn.getAttribute("data-mode") === pickerMode;
+    btn.classList.toggle(PANEL_BTN_ACTIVE_CLASS, active);
+  }
+}
+
+function setPickerMode(mode) {
+  pickerMode = mode === MODE_INTERACT ? MODE_INTERACT : MODE_SELECT;
+  if (pickerMode !== MODE_SELECT) clearHighlight();
+  applyModeUi();
+}
+
+function ensurePanel() {
+  if (panel) return;
+  panel = document.createElement("div");
+  panel.className = PANEL_CLASS;
+  panel.setAttribute("data-gopersonal-picker-ui", "true");
+
+  const modes = [
+    { mode: MODE_SELECT, label: "Seleccionar" },
+    { mode: MODE_INTERACT, label: "Interactuar" },
+  ];
+
+  modes.forEach(function (item) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = PANEL_BTN_CLASS;
+    btn.setAttribute("data-mode", item.mode);
+    btn.textContent = item.label;
+    btn.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      setPickerMode(item.mode);
+    });
+    panel.appendChild(btn);
+  });
+
+  document.documentElement.appendChild(panel);
 }
 
 function ensureHighlightBox() {
@@ -230,6 +299,11 @@ export function hideElementSelectorPicker() {
     highlightBox.remove();
     highlightBox = null;
   }
+  if (panel) {
+    panel.remove();
+    panel = null;
+  }
+  pickerMode = MODE_SELECT;
 }
 
 export function showElementSelectorPicker() {
@@ -239,10 +313,16 @@ export function showElementSelectorPicker() {
 
   ensureStyles();
   activeRoot = document.body;
-  activeRoot.classList.add(ROOT_CLASS);
+  pickerMode = MODE_SELECT;
+  ensurePanel();
+  applyModeUi();
 
   function onMove(e) {
-    if (!activeRoot) return;
+    if (!activeRoot || pickerMode !== MODE_SELECT) return;
+    if (isInsidePanel(document.elementFromPoint(e.clientX, e.clientY))) {
+      clearHighlight();
+      return;
+    }
     const target = pickTargetFromPoint(e.clientX, e.clientY);
     if (!target) {
       clearHighlight();
@@ -253,6 +333,12 @@ export function showElementSelectorPicker() {
 
   function onClick(e) {
     if (!activeRoot) return;
+    // Never let the floating panel be treated as a selection; let its own
+    // click handlers run so the mode toggle works.
+    if (isInsidePanel(e.target)) return;
+    // Interaction mode: leave every click untouched so the page behaves
+    // normally (open/close popups, dropdowns, navigate, etc.).
+    if (pickerMode !== MODE_SELECT) return;
     const target = pickTargetFromPoint(e.clientX, e.clientY, e.target);
     if (!target) return;
     e.preventDefault();
