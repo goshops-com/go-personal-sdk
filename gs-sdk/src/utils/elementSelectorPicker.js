@@ -166,7 +166,7 @@ function ensureStyles() {
   style.textContent =
     "." +
     ROOT_CLASS +
-    "{outline:3px solid rgba(59,130,246,.95);outline-offset:2px}" +
+    "{outline:3px solid #5e40bf;outline-offset:2px}" +
     "." +
     HIGHLIGHT_BOX_CLASS +
     "{position:fixed;pointer-events:none;box-sizing:border-box;border:2px dashed rgba(234,179,8,.95);background:rgba(234,179,8,.08);z-index:2147483646;display:none}" +
@@ -178,7 +178,7 @@ function ensureStyles() {
     "{appearance:none;-webkit-appearance:none;border:0;margin:0;cursor:pointer;padding:7px 16px;border-radius:9999px;font-size:13px;line-height:1;font-weight:600;color:#9ca3af;background:transparent;transition:color .12s,background .12s}" +
     "." +
     PANEL_BTN_ACTIVE_CLASS +
-    "{color:#fff;background:rgba(59,130,246,.95)}";
+    "{color:#fff;background:#5e40bf}";
   document.head.appendChild(style);
 }
 
