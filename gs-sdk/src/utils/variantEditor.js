@@ -98,7 +98,7 @@ function getParentWindow() {
 
 function cssEscToken(s) {
   if (typeof CSS !== "undefined" && CSS.escape) return CSS.escape(s);
-  return String(s).replace(/([\0-\x1f!"#$%&'()*+,.\/:;<=>?@[\\\]^`{|}~])/g, "\\$1");
+  return String(s).replace(/([\u0000-\u001f!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
 }
 
 function cssPathFromRoot(root, element) {
