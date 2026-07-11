@@ -51,7 +51,18 @@ function elementClassName(el) {
 
 function cssEscToken(s) {
   if (typeof CSS !== "undefined" && CSS.escape) return CSS.escape(s);
-  return String(s).replace(/([\u0000-\u001f!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
+  const str = String(s);
+  let out = "";
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    const code = ch.charCodeAt(0);
+    if (code <= 0x1f || /[!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~]/u.test(ch)) {
+      out += "\\" + ch;
+    } else {
+      out += ch;
+    }
+  }
+  return out;
 }
 
 function cssPathFromRoot(root, element) {
