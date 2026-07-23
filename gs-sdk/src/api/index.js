@@ -580,6 +580,19 @@ export const addFeedback = (feedbackData) => {
   return httpPost(`/feedback`, feedbackData);
 };
 
+export const addItemFeedback = (feedbackData = {}) => {
+  const hasItemIdentity =
+    feedbackData.item != null ||
+    feedbackData.sku != null ||
+    feedbackData.fieldValue != null;
+
+  if (!hasItemIdentity || feedbackData.rate == null) {
+    return;
+  }
+
+  return httpPost(`/feedback/items`, feedbackData);
+};
+
 export const triggerJourney = (data) => {
   // Implementation of logout will depend on your specific API
   return httpPost(`/journey/trigger`, data);
