@@ -593,6 +593,14 @@ export const addItemFeedback = (feedbackData = {}) => {
   return httpPost(`/feedback/items`, feedbackData);
 };
 
+export const getItemFeedbackSummary = (item) => {
+  if (item == null) {
+    return;
+  }
+
+  return httpGet(`/feedback/items/summary?item=${encodeURIComponent(item)}`);
+};
+
 export const triggerJourney = (data) => {
   // Implementation of logout will depend on your specific API
   return httpPost(`/journey/trigger`, data);
