@@ -152,6 +152,14 @@ export function renderTemplate(template, variablesArray, data) {
     }
   }
 
+  if (Array.isArray(data.variables)) {
+    data.variables
+      .filter((variable) => variable?.type?.id === 'social_proof')
+      .forEach((variable) => {
+        variablesObject[variable.name] = variable.value;
+      });
+  }
+
   if (data.hasRecommendationsBlockFlag) {
     const itemsObj = addItemVariables(variablesArray, data.recommendations);
     variablesObject = Object.assign({}, variablesObject, itemsObj);
