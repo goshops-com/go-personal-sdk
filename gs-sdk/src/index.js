@@ -1,6 +1,6 @@
 import {
   login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, findLastInteractions, reorderCategories, getItems, search, searchAnswer, searchRedirect, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
-  getRanking, reRank, setPreferences, updateState, getItemById, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, addItemFeedback, getItemFeedbackSummary, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData
+  getRanking, reRank, setPreferences, updateState, getItemById, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, addItemFeedback, getItemFeedbackSummary, getItemFeedbackComments, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData
 } from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent, trackURLClicked, sendContentEvent, initPreviewListener, invalidateContentCache, purgeContentCache } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
@@ -251,6 +251,7 @@ const GSSDK = async (clientId, options = {}) => {
       addFeedback: (feedbackData) => addFeedback(feedbackData),
       addItemFeedback: (feedbackData) => addItemFeedback(feedbackData),
       getItemFeedbackSummary: (item) => getItemFeedbackSummary(item),
+      getItemFeedbackComments: (item, options = {}) => getItemFeedbackComments(item, options),
       observeElementInView: (elementId, impressionId, cb) => observeElementInView(elementId, impressionId, cb),
       openImpression: (impressionId) => openImpressionForRecommendation(impressionId),
       openImpressionContent: (impressionId) => openImpressionForRecommendation(impressionId),

@@ -601,6 +601,29 @@ export const getItemFeedbackSummary = (item) => {
   return httpGet(`/feedback/items/summary?item=${encodeURIComponent(item)}`);
 };
 
+export const getItemFeedbackComments = (item, options = {}) => {
+  if (item == null) {
+    return;
+  }
+
+  let limit = options.limit != null ? Number(options.limit) : 10;
+  if (isNaN(limit) || limit < 1) {
+    limit = 10;
+  }
+  if (limit > 100) {
+    limit = 100;
+  }
+
+  let skip = options.skip != null ? Number(options.skip) : 0;
+  if (isNaN(skip) || skip < 0) {
+    skip = 0;
+  }
+
+  return httpGet(
+    `/feedback/items/comments?item=${encodeURIComponent(item)}&limit=${limit}&skip=${skip}`,
+  );
+};
+
 export const triggerJourney = (data) => {
   // Implementation of logout will depend on your specific API
   return httpPost(`/journey/trigger`, data);
