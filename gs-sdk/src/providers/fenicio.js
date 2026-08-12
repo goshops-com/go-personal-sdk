@@ -6,8 +6,17 @@ export const installFenicioNavigationMonitor = () => {
 
     window.__gsFenicioNavigationMonitorInstalled = true;
 
-    const notifyNavigation = () => {
-        console.log('[Fenicio] navigation detected', window.location.href);
+    let lastUrl;
+
+    const notifyNavigation = (method) => {
+        const url = window.location.href;
+
+        if (url === lastUrl) {
+            return;
+        }
+
+        lastUrl = url;
+        console.log('[Fenicio] navigation detected', method, url);
     };
 
     ['pushState', 'replaceState'].forEach((method) => {
@@ -15,12 +24,12 @@ export const installFenicioNavigationMonitor = () => {
 
         window.history[method] = function (...args) {
             const result = originalMethod.apply(this, args);
-            notifyNavigation();
+            notifyNavigation(method);
             return result;
         };
     });
 
-    window.addEventListener('popstate', notifyNavigation);
+    window.addEventListener('popstate', () => notifyNavigation('popstate'));
 };
 
 export const installFenicio = async (options) => {
