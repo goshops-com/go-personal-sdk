@@ -12,7 +12,7 @@ import { loadPlugin } from './api/plugins';
 import { getUrlParameter, removeParamFromUrl } from './utils/dom';
 import { getCurrentGeoIPLocation } from './api/geolocation';
 import { liveGetVideo, liveLikeVideo, liveUnlikeVideo, liveTrackVideoTime } from './api/live';
-import { installFenicio } from './providers/fenicio';
+import { installFenicio, installFenicioNavigationMonitor } from './providers/fenicio';
 import { setSharedToken, getSharedToken } from './utils/session';
 import { onVtexEmbeddedInit } from './vendors/vtexEmbedded';
 import { getParam, previewVariant } from './utils/urlParam';
@@ -87,6 +87,7 @@ function hasActions(option) {
 const GSSDK = async (clientId, options = {}) => {
 
   if (options && options.provider == 'Fenicio') {
+    installFenicioNavigationMonitor();
     
     if (window.gsSDK != undefined) {
 
@@ -103,7 +104,6 @@ const GSSDK = async (clientId, options = {}) => {
           await window.gsSDK.getContentByContext('product_detail', {
               product_url: window.location.href
           });
-
         }
       }
 

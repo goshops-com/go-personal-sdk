@@ -1,4 +1,27 @@
 
+export const installFenicioNavigationMonitor = () => {
+    if (window.__gsFenicioNavigationMonitorInstalled) {
+        return;
+    }
+
+    window.__gsFenicioNavigationMonitorInstalled = true;
+
+    const notifyNavigation = () => {
+        console.log('[Fenicio] navigation detected', window.location.href);
+    };
+
+    ['pushState', 'replaceState'].forEach((method) => {
+        const originalMethod = window.history[method];
+
+        window.history[method] = function (...args) {
+            const result = originalMethod.apply(this, args);
+            notifyNavigation();
+            return result;
+        };
+    });
+
+    window.addEventListener('popstate', notifyNavigation);
+};
 
 export const installFenicio = async (options) => {
 
