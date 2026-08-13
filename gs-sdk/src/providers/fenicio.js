@@ -106,7 +106,7 @@ export const installFenicioNavigationMonitor = (initialContext) => {
         lastUrl = url;
         console.log('[Fenicio] navigation detected', method, url);
         clearTimeout(state.timer);
-        state.timer = setTimeout(() => processFenicioNavigation().catch(console.error), 2000);
+        state.timer = setTimeout(() => processFenicioNavigation().catch(console.error), 1000);
     };
 
     ['pushState', 'replaceState'].forEach((method) => {
