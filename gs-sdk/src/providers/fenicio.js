@@ -26,13 +26,12 @@ const getFenicioPageContext = (context) => {
     return { pageType: 'category' };
 };
 
-const getFenicioNavigationKey = (context) => {
-    const url = new URL(window.location.href);
-    ['_gsLog', 'gsImpressionId', 'gsListName', 'gsIndex'].forEach((param) => {
-        url.searchParams.delete(param);
-    });
+const getFenicioNavigationUrl = () => {
+    return window.location.pathname;
+};
 
-    return `${context.pageType}:${url.href}`;
+const getFenicioNavigationKey = (context) => {
+    return `${context.pageType}:${getFenicioNavigationUrl()}`;
 };
 
 export const processFenicioNavigation = async (context) => {
@@ -94,17 +93,17 @@ export const installFenicioNavigationMonitor = (initialContext) => {
         timer: null,
     };
 
-    let lastUrl = window.location.href;
+    let lastUrl = getFenicioNavigationUrl();
 
     const notifyNavigation = (method) => {
-        const url = window.location.href;
+        const url = getFenicioNavigationUrl();
 
         if (url === lastUrl) {
             return;
         }
 
         lastUrl = url;
-        console.log('[Fenicio] navigation detected', method, url);
+        console.log('[Fenicio] navigation detected', method, window.location.href);
         clearTimeout(state.timer);
         state.timer = setTimeout(() => processFenicioNavigation().catch(console.error), 1000);
     };
