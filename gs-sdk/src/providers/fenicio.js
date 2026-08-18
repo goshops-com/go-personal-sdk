@@ -6,7 +6,7 @@ const getFenicioPageContext = (context) => {
         return {
             ...context,
             ...(context.pageType === 'product_detail'
-                ? { product_url: url.href }
+                ? { product_url: context.product_url || url.href }
                 : {}),
         };
     }
@@ -31,7 +31,7 @@ const getFenicioNavigationUrl = () => {
 };
 
 const getFenicioNavigationKey = (context) => {
-    return `${context.pageType}:${getFenicioNavigationUrl()}`;
+    return getFenicioNavigationUrl();
 };
 
 export const processFenicioNavigation = async (context) => {
