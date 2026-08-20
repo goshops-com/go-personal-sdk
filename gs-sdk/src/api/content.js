@@ -91,6 +91,9 @@ export const getContentByContext = async (context, options = {}) => {
   }
 
   window.gsLog("getContentByContext", context, options);
+  try {
+    window.__gsLastContentContext = { context, ts: Date.now(), url: window.location.href };
+  } catch (e) { /* noop */ }
   if (!options) {
     options = {};
   }

@@ -15,6 +15,7 @@ import { liveGetVideo, liveLikeVideo, liveUnlikeVideo, liveTrackVideoTime } from
 import { installFenicio, installFenicioNavigationMonitor, processFenicioNavigation } from './providers/fenicio';
 import { setSharedToken, getSharedToken } from './utils/session';
 import { onVtexEmbeddedInit } from './vendors/vtexEmbedded';
+import { scheduleVtexPdpFallback } from './vendors/vtexPdpFallback';
 import { getParam, previewVariant } from './utils/urlParam';
 import { initElementSelectorPicker } from './utils/elementSelectorPicker';
 import { initVariantEditor } from './utils/variantEditor';
@@ -151,6 +152,10 @@ const GSSDK = async (clientId, options = {}) => {
     setTimeout(() => {
       installFenicio(options);
     }, 100);
+  }
+
+  if (options && String(options.provider || '').toUpperCase() === 'VTEX' && options.singlePage) {
+    try { scheduleVtexPdpFallback(); } catch (e) { window.gsLog?.('Error scheduling vtex pdp fallback', e); }
   }
 
   const sessionObj = getCustomerSession();
