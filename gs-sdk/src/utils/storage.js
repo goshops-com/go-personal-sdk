@@ -9,6 +9,10 @@ const COOKIE_ID_TTL_SECONDS = 365 * 24 * 60 * 60;
 // Keys for GA4 session sync in traffic split
 const GS_GAID_ACCEPTED = "gs_gaid_accepted";
 const GS_GAID_REJECTED = "gs_gaid_rejected";
+
+// Content impressions already sent on the current session
+const GS_CONTENT_IMPRESSIONS = "gs_content_impressions";
+const MAX_CONTENT_IMPRESSIONS = 200;
 const COOKIE_FALLBACK_KEYS = [key, `${key}-clientId`, GS_VUUID];
 
 let cookieFallbackEnabled = false;
@@ -171,6 +175,7 @@ export const setSession = (data = {}, preserveTs = false) => {
 export const clearSession = () => {
   removeStorageItem(key);
   localStorage.removeItem("gs_content_seen");
+  localStorage.removeItem(GS_CONTENT_IMPRESSIONS);
 };
 
 export const setVUUID = (value) => {
@@ -195,4 +200,56 @@ export const setGAIdRejected = (gaId) => {
 };
 export const getGAIdRejected = () => {
   return localStorage.getItem(GS_GAID_REJECTED);
+};
+
+// Content impressions: keeps the impressionIds already sent on the current
+// session, so the same impression is not created twice.
+const readContentImpressions = () => {
+  const sessionId = getSession().sessionId || null;
+
+  try {
+    const item = localStorage.getItem(GS_CONTENT_IMPRESSIONS);
+    if (!item) {
+      return { sessionId, ids: [] };
+    }
+
+    const stored = JSON.parse(item);
+    if (!stored || stored.sessionId !== sessionId || !Array.isArray(stored.ids)) {
+      // Session changed, start over
+      return { sessionId, ids: [] };
+    }
+
+    return { sessionId, ids: stored.ids };
+  } catch (e) {
+    return { sessionId, ids: [] };
+  }
+};
+
+export const hasContentImpression = (impressionId) => {
+  if (!impressionId) {
+    return false;
+  }
+  return readContentImpressions().ids.includes(impressionId);
+};
+
+export const addContentImpression = (impressionId) => {
+  if (!impressionId) {
+    return;
+  }
+
+  try {
+    const stored = readContentImpressions();
+    if (stored.ids.includes(impressionId)) {
+      return;
+    }
+
+    stored.ids.push(impressionId);
+    if (stored.ids.length > MAX_CONTENT_IMPRESSIONS) {
+      stored.ids = stored.ids.slice(-MAX_CONTENT_IMPRESSIONS);
+    }
+
+    localStorage.setItem(GS_CONTENT_IMPRESSIONS, JSON.stringify(stored));
+  } catch (e) {
+    console.error("Error storing content impression:", e);
+  }
 };

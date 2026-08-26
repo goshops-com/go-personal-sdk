@@ -8,7 +8,11 @@ import {
 } from "../utils/dom";
 import { previewVariant, getParam } from "../utils/urlParam";
 import { suscribe } from "../utils/trigger";
-import { getSession } from "../utils/storage";
+import {
+  getSession,
+  hasContentImpression,
+  addContentImpression,
+} from "../utils/storage";
 import { sendEvent } from "../utils/custom";
 import { renderTemplate, renderRaw } from "../utils/handlebars";
 import {
@@ -502,6 +506,76 @@ export const openImpression = async (impressionId) => {
     });
   } catch (error) {
     console.error("Error:", error);
+    return;
+  }
+};
+
+/**
+ * Creates a content impression (status "opened" by default).
+ * The impressionId is the one already resolved when the content was obtained.
+ * The session, customer and project are resolved server side from the token.
+ * Each impressionId is only sent once per session.
+ */
+export const createContentImpression = async (impressionId, impression = {}) => {
+  try {
+    if (!impressionId || typeof impressionId !== "string") {
+      return;
+    }
+
+    if (hasContentImpression(impressionId)) {
+      window.gsLog("Content impression already sent on this session", impressionId);
+      return;
+    }
+
+    const payload = {
+      impressionId,
+      content: impression.content,
+      target: impression.target,
+      variantId: impression.variantId,
+      status: impression.status || "opened",
+      tags: impression.tags,
+      date: impression.date,
+    };
+
+    Object.keys(payload).forEach((key) => {
+      if (payload[key] === undefined) {
+        delete payload[key];
+      }
+    });
+
+    addContentImpression(impressionId);
+
+    if (
+      Array.isArray(window.gsImpressionIds) &&
+      !window.gsImpressionIds.includes(impressionId)
+    ) {
+      window.gsImpressionIds.push(impressionId);
+    }
+
+    return await httpPost(`/personal/impression`, payload);
+  } catch (error) {
+    console.error("Error creating content impression:", error);
+    return;
+  }
+};
+
+/**
+ * Marks a content impression as clicked.
+ */
+export const clickContentImpression = async (impressionId, tags) => {
+  try {
+    if (!impressionId || typeof impressionId !== "string") {
+      return;
+    }
+
+    const payload = {};
+    if (tags !== undefined) {
+      payload.tags = tags;
+    }
+
+    return await httpPatch(`/personal/impression/${impressionId}`, payload);
+  } catch (error) {
+    console.error("Error clicking content impression:", error);
     return;
   }
 };
