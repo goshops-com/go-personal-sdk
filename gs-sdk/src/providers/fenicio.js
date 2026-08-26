@@ -1,4 +1,125 @@
 
+const getFenicioPageContext = (context) => {
+    const url = new URL(window.location.href);
+
+    if (context?.pageType) {
+        return {
+            ...context,
+            ...(context.pageType === 'product_detail'
+                ? { product_url: context.product_url || url.href }
+                : {}),
+        };
+    }
+
+    if (url.pathname === '/') {
+        return { pageType: 'home' };
+    }
+
+    if (url.pathname.startsWith('/catalogo/')) {
+        return { pageType: 'product_detail', product_url: url.href };
+    }
+
+    if (url.pathname.startsWith('/checkout')) {
+        return { pageType: 'checkout' };
+    }
+
+    return { pageType: 'category' };
+};
+
+const getFenicioNavigationUrl = () => {
+    return window.location.pathname;
+};
+
+const getFenicioNavigationKey = (context) => {
+    return getFenicioNavigationUrl();
+};
+
+export const processFenicioNavigation = async (context) => {
+    const nextContext = getFenicioPageContext(context);
+    const sdk = window.gsSDK;
+
+    if (!nextContext || !sdk?.getContentByContext) {
+        return;
+    }
+
+    const state = window.__gsFenicioNavigationState || {};
+    window.__gsFenicioNavigationState = state;
+
+    const key = getFenicioNavigationKey(nextContext);
+
+    if (state.lastKey === key) {
+        return;
+    }
+
+    if (state.inFlight && state.inFlight.key === key) {
+        return state.inFlight.promise;
+    }
+
+    if (window.gsConfig?.options) {
+        window.gsConfig.options.context = nextContext;
+    }
+
+    const request = sdk.getContentByContext(nextContext.pageType, {
+        ...nextContext,
+        singlePage: true,
+    });
+
+    state.inFlight = { key, promise: request };
+
+    try {
+        await request;
+        const currentContext = getFenicioPageContext();
+        if (currentContext && getFenicioNavigationKey(currentContext) === key) {
+            state.lastKey = key;
+        }
+    } finally {
+        if (state.inFlight?.key === key) {
+            state.inFlight = null;
+        }
+    }
+};
+
+export const installFenicioNavigationMonitor = (initialContext) => {
+    if (window.__gsFenicioNavigationMonitorInstalled) {
+        return;
+    }
+
+    window.__gsFenicioNavigationMonitorInstalled = true;
+    const context = getFenicioPageContext(initialContext);
+    const key = getFenicioNavigationKey(context);
+    const state = window.__gsFenicioNavigationState = {
+        lastKey: key,
+        inFlight: null,
+        timer: null,
+    };
+
+    let lastUrl = getFenicioNavigationUrl();
+
+    const notifyNavigation = (method) => {
+        const url = getFenicioNavigationUrl();
+
+        if (url === lastUrl) {
+            return;
+        }
+
+        lastUrl = url;
+        console.log('[Fenicio] navigation detected', method, window.location.href);
+        clearTimeout(state.timer);
+        state.timer = setTimeout(() => processFenicioNavigation().catch(console.error), 1000);
+    };
+
+    ['pushState', 'replaceState'].forEach((method) => {
+        const originalMethod = window.history[method];
+
+        window.history[method] = function (...args) {
+            const result = originalMethod.apply(this, args);
+            notifyNavigation(method);
+            return result;
+        };
+    });
+
+    window.addEventListener('popstate', () => notifyNavigation('popstate'));
+};
 
 export const installFenicio = async (options) => {
 

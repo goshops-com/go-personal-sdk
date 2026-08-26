@@ -12,9 +12,10 @@ import { loadPlugin } from './api/plugins';
 import { getUrlParameter, removeParamFromUrl } from './utils/dom';
 import { getCurrentGeoIPLocation } from './api/geolocation';
 import { liveGetVideo, liveLikeVideo, liveUnlikeVideo, liveTrackVideoTime } from './api/live';
-import { installFenicio } from './providers/fenicio';
+import { installFenicio, installFenicioNavigationMonitor, processFenicioNavigation } from './providers/fenicio';
 import { setSharedToken, getSharedToken } from './utils/session';
 import { onVtexEmbeddedInit } from './vendors/vtexEmbedded';
+import { scheduleVtexPdpFallback } from './vendors/vtexPdpFallback';
 import { getParam, previewVariant } from './utils/urlParam';
 import { initElementSelectorPicker } from './utils/elementSelectorPicker';
 import { initVariantEditor } from './utils/variantEditor';
@@ -87,26 +88,10 @@ function hasActions(option) {
 const GSSDK = async (clientId, options = {}) => {
 
   if (options && options.provider == 'Fenicio') {
-    
+    installFenicioNavigationMonitor(options?.context);
+
     if (window.gsSDK != undefined) {
-
-      if (options?.context?.pageType === window?.gsConfig?.options?.context?.pageType) {
-        return window.gsSDK;
-      }else{
-        if (options?.context?.pageType == 'product_detail'){
-
-          if (window.gsConfig?.options?.context) {
-            window.gsConfig.options.context.pageType = 'product_detail';
-            window.gsConfig.options.context.product_url = window.location.href;
-          }
-        
-          await window.gsSDK.getContentByContext('product_detail', {
-              product_url: window.location.href
-          });
-
-        }
-      }
-
+      await processFenicioNavigation(options?.context);
       return window.gsSDK;
     }
   }
@@ -167,6 +152,10 @@ const GSSDK = async (clientId, options = {}) => {
     setTimeout(() => {
       installFenicio(options);
     }, 100);
+  }
+
+  if (options && String(options.provider || '').toUpperCase() === 'VTEX' && options.singlePage) {
+    try { scheduleVtexPdpFallback(); } catch (e) { window.gsLog?.('Error scheduling vtex pdp fallback', e); }
   }
 
   const sessionObj = getCustomerSession();
