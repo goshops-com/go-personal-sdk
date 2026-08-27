@@ -582,17 +582,28 @@ export const getContentImpressionId = (content) => {
 
 /**
  * Marks a content impression as clicked.
+ *
+ * The content is sent along with the impressionId because only one impression
+ * exists per content and session, while the impressionId of the page changes on
+ * every content request: the server resolves the impression by
+ * project + session + content.
  */
-export const clickContentImpression = async (impressionId, tags) => {
+export const clickContentImpression = async (impressionId, impression = {}) => {
   try {
     if (!impressionId || typeof impressionId !== "string") {
       return;
     }
 
-    const payload = {};
-    if (tags !== undefined) {
-      payload.tags = tags;
-    }
+    const payload = {
+      content: impression.content,
+      tags: impression.tags,
+    };
+
+    Object.keys(payload).forEach((key) => {
+      if (payload[key] === undefined) {
+        delete payload[key];
+      }
+    });
 
     return await httpPatch(`/personal/impression/${impressionId}`, payload);
   } catch (error) {

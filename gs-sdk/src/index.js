@@ -245,7 +245,7 @@ const GSSDK = async (clientId, options = {}) => {
       openImpression: (impressionId) => openImpressionForRecommendation(impressionId),
       openImpressionContent: (impressionId) => openImpressionForRecommendation(impressionId),
       createContentImpression: (impressionId, impression = {}) => createContentImpression(impressionId, impression),
-      clickContentImpression: (impressionId, tags) => clickContentImpression(impressionId, tags),
+      clickContentImpression: (impressionId, impression = {}) => clickContentImpression(impressionId, impression),
       getContentImpressionId: (content) => getContentImpressionId(content),
       getCurrentSession: () => getCurrentSession(),
       getCurrentGeoIPLocation: () => getCurrentGeoIPLocation(),
