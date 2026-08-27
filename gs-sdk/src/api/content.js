@@ -10,8 +10,8 @@ import { previewVariant, getParam } from "../utils/urlParam";
 import { suscribe } from "../utils/trigger";
 import {
   getSession,
-  hasContentImpression,
-  addContentImpression,
+  getContentImpression,
+  setContentImpression,
 } from "../utils/storage";
 import { sendEvent } from "../utils/custom";
 import { renderTemplate, renderRaw } from "../utils/handlebars";
@@ -517,7 +517,10 @@ export const openImpression = async (impressionId) => {
  * Creates a content impression (status "opened" by default).
  * The impressionId is the one already resolved when the content was obtained.
  * The session, customer and project are resolved server side from the token.
- * Each impressionId is only sent once per session.
+ *
+ * Only one impression is created per content and session: the content gets a
+ * new impressionId on every request, so the first one is kept on storage and
+ * reused (and returned) for the rest of the session.
  */
 export const createContentImpression = async (impressionId, impression = {}) => {
   try {
@@ -525,9 +528,16 @@ export const createContentImpression = async (impressionId, impression = {}) => 
       return;
     }
 
-    if (hasContentImpression(impressionId)) {
-      window.gsLog("Content impression already sent on this session", impressionId);
-      return;
+    const contentKey = impression.content || impression.variantId || impressionId;
+
+    const sessionImpressionId = getContentImpression(contentKey);
+    if (sessionImpressionId) {
+      window.gsLog(
+        "Content impression already created on this session",
+        contentKey,
+        sessionImpressionId,
+      );
+      return { success: true, impressionId: sessionImpressionId, skipped: true };
     }
 
     const payload = {
@@ -546,7 +556,7 @@ export const createContentImpression = async (impressionId, impression = {}) => 
       }
     });
 
-    addContentImpression(impressionId);
+    setContentImpression(contentKey, impressionId);
 
     if (
       Array.isArray(window.gsImpressionIds) &&
@@ -560,6 +570,14 @@ export const createContentImpression = async (impressionId, impression = {}) => 
     console.error("Error creating content impression:", error);
     return;
   }
+};
+
+/**
+ * Returns the impressionId created for that content on the current session,
+ * which is the one the click has to be reported against.
+ */
+export const getContentImpressionId = (content) => {
+  return getContentImpression(content);
 };
 
 /**

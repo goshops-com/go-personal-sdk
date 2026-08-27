@@ -202,50 +202,70 @@ export const getGAIdRejected = () => {
   return localStorage.getItem(GS_GAID_REJECTED);
 };
 
-// Content impressions: keeps the impressionIds already sent on the current
-// session, so the same impression is not created twice.
+// Content impressions: keeps, per session, the impressionId already sent for
+// each content, so only one impression is created per content and session.
+// The impressionId itself changes on every content request, so it cannot be
+// used as the key: the content is the stable one.
 const readContentImpressions = () => {
   const sessionId = getSession().sessionId || null;
 
   try {
     const item = localStorage.getItem(GS_CONTENT_IMPRESSIONS);
     if (!item) {
-      return { sessionId, ids: [] };
+      return { sessionId, items: {} };
     }
 
     const stored = JSON.parse(item);
-    if (!stored || stored.sessionId !== sessionId || !Array.isArray(stored.ids)) {
-      // Session changed, start over
-      return { sessionId, ids: [] };
+    if (
+      !stored ||
+      stored.sessionId !== sessionId ||
+      !stored.items ||
+      typeof stored.items !== "object"
+    ) {
+      // Session changed (or the stored value is broken): drop just this key so
+      // the impressions of the previous session are not kept around.
+      // Skipped while there is no sessionId yet, to avoid clearing it on a read
+      // that happens before the session is initialized.
+      if (sessionId) {
+        localStorage.removeItem(GS_CONTENT_IMPRESSIONS);
+      }
+      return { sessionId, items: {} };
     }
 
-    return { sessionId, ids: stored.ids };
+    return { sessionId, items: stored.items };
   } catch (e) {
-    return { sessionId, ids: [] };
+    return { sessionId, items: {} };
   }
 };
 
-export const hasContentImpression = (impressionId) => {
-  if (!impressionId) {
-    return false;
+// Returns the impressionId already created for that content on this session
+export const getContentImpression = (contentKey) => {
+  if (!contentKey) {
+    return null;
   }
-  return readContentImpressions().ids.includes(impressionId);
+  return readContentImpressions().items[contentKey] || null;
 };
 
-export const addContentImpression = (impressionId) => {
-  if (!impressionId) {
+export const setContentImpression = (contentKey, impressionId) => {
+  if (!contentKey || !impressionId) {
     return;
   }
 
   try {
     const stored = readContentImpressions();
-    if (stored.ids.includes(impressionId)) {
+    if (stored.items[contentKey]) {
       return;
     }
 
-    stored.ids.push(impressionId);
-    if (stored.ids.length > MAX_CONTENT_IMPRESSIONS) {
-      stored.ids = stored.ids.slice(-MAX_CONTENT_IMPRESSIONS);
+    stored.items[contentKey] = impressionId;
+
+    const keys = Object.keys(stored.items);
+    if (keys.length > MAX_CONTENT_IMPRESSIONS) {
+      const kept = keys.slice(-MAX_CONTENT_IMPRESSIONS);
+      stored.items = kept.reduce((acc, contentId) => {
+        acc[contentId] = stored.items[contentId];
+        return acc;
+      }, {});
     }
 
     localStorage.setItem(GS_CONTENT_IMPRESSIONS, JSON.stringify(stored));
