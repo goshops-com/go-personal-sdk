@@ -161,8 +161,20 @@ export const getUrlParameter = (name) => {
     return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }
 
+/**
+ * Strips a query param from the current URL **keeping the state the host router
+ * put on the history entry**.
+ *
+ * `history.replaceState({}, ...)` overwrites that state. Host SPA routers keep
+ * their routing metadata in it and refuse to re-render on `popstate` when it is
+ * missing, which leaves the page frozen on Back: the URL changes but the view
+ * does not. VTEX IO is the case we reproduced (`{key, state: {renderRouting,
+ * navigationRoute}}`, and `RenderProvider` bails on `!state.renderRouting`), but
+ * Next.js and React Router behave the same way.
+ */
 export const removeParamFromUrl = (param) => {
     const url = new URL(window.location);
+    if (!url.searchParams.has(param)) return;
     url.searchParams.delete(param);
-    window.history.replaceState({}, document.title, url.toString());
+    window.history.replaceState(window.history.state, document.title, url.toString());
 }
