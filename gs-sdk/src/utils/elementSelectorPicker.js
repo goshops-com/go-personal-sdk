@@ -13,20 +13,35 @@ import { getParam } from "./urlParam";
 const STYLE_ID = "gopersonal-element-selector-picker-styles";
 const ROOT_CLASS = "gopersonal-element-selector-picker-root-active";
 const HIGHLIGHT_BOX_CLASS = "gopersonal-element-selector-picker-highlight-box";
+const HIGHLIGHT_LABEL_CLASS = "gopersonal-element-selector-picker-highlight-label";
 const PANEL_CLASS = "gopersonal-element-selector-picker-panel";
+const POSITION_PANEL_CLASS = "gopersonal-element-selector-picker-position-panel";
+const POSITION_PANEL_LABEL_CLASS = "gopersonal-element-selector-picker-position-panel-label";
 const PANEL_BTN_CLASS = "gopersonal-element-selector-picker-panel-btn";
 const PANEL_BTN_ACTIVE_CLASS = "gopersonal-element-selector-picker-panel-btn-active";
 
 const MODE_SELECT = "select";
 const MODE_INTERACT = "interact";
 
+const POSITION_REPLACE = "replace";
+const POSITION_AFTER = "after";
+const POSITION_BEFORE = "before";
+const POSITIONS = [
+  { position: POSITION_REPLACE, label: "Reemplazar" },
+  { position: POSITION_AFTER, label: "Despues" },
+  { position: POSITION_BEFORE, label: "Antes" },
+];
+
 let mounted = false;
 let activeRoot = null;
 let highlightBox = null;
+let highlightLabel = null;
 let highlightedTarget = null;
 let pickerCleanup = null;
 let panel = null;
+let positionPanel = null;
 let pickerMode = MODE_SELECT;
+let pickerPosition = POSITION_REPLACE;
 
 function getParentWindow() {
   try {
@@ -113,11 +128,25 @@ function elementPayload(target) {
     tag: target.tagName,
     id: target.id || undefined,
     className: className || undefined,
+    position: pickerPosition,
   };
 }
 
+/**
+ * Text shown on the highlight box: the element id when it has one, the css
+ * selector otherwise (same value the admin ends up storing).
+ */
+function elementLabelText(target) {
+  const id = target && target.id ? String(target.id).trim() : "";
+  if (id) return "#" + id;
+  return selectorFromBody(target);
+}
+
 function isInsidePanel(el) {
-  return !!(panel && el && (el === panel || panel.contains(el)));
+  if (!el) return false;
+  if (panel && (el === panel || panel.contains(el))) return true;
+  if (positionPanel && (el === positionPanel || positionPanel.contains(el))) return true;
+  return false;
 }
 
 function isPickableElement(el) {
@@ -125,7 +154,12 @@ function isPickableElement(el) {
   if (isInsidePanel(el)) return false;
   if (!activeRoot || !activeRoot.contains(el)) return false;
   if (el === activeRoot || el === document.documentElement) return false;
-  if (el.classList && el.classList.contains(HIGHLIGHT_BOX_CLASS)) return false;
+  if (
+    el.classList &&
+    (el.classList.contains(HIGHLIGHT_BOX_CLASS) ||
+      el.classList.contains(HIGHLIGHT_LABEL_CLASS))
+  )
+    return false;
   return true;
 }
 
@@ -182,6 +216,15 @@ function ensureStyles() {
     HIGHLIGHT_BOX_CLASS +
     "{position:fixed;pointer-events:none;box-sizing:border-box;border:2px dashed rgba(234,179,8,.95);background:rgba(234,179,8,.08);z-index:2147483646;display:none}" +
     "." +
+    HIGHLIGHT_LABEL_CLASS +
+    "{position:absolute;top:0;left:0;max-width:320px;box-sizing:border-box;padding:2px 6px;border-radius:3px;background:#5e40bf;color:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}" +
+    "." +
+    POSITION_PANEL_CLASS +
+    "{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:2147483647;display:flex;align-items:center;gap:4px;padding:4px 4px 4px 14px;background:#111827;border-radius:9999px;box-shadow:0 4px 16px rgba(0,0,0,.3);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;pointer-events:auto}" +
+    "." +
+    POSITION_PANEL_LABEL_CLASS +
+    "{color:#9ca3af;font-size:12px;line-height:1;font-weight:600;margin-right:6px;white-space:nowrap}" +
+    "." +
     PANEL_CLASS +
     "{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:2147483647;display:flex;gap:4px;padding:4px;background:#111827;border-radius:9999px;box-shadow:0 4px 16px rgba(0,0,0,.3);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;pointer-events:auto}" +
     "." +
@@ -210,6 +253,57 @@ function setPickerMode(mode) {
   pickerMode = mode === MODE_INTERACT ? MODE_INTERACT : MODE_SELECT;
   if (pickerMode !== MODE_SELECT) clearHighlight();
   applyModeUi();
+}
+
+function normalizePosition(value) {
+  const position = String(value || "").trim().toLowerCase();
+  if (position === POSITION_AFTER) return POSITION_AFTER;
+  if (position === POSITION_BEFORE) return POSITION_BEFORE;
+  if (position === POSITION_REPLACE) return POSITION_REPLACE;
+  return null;
+}
+
+function applyPositionUi() {
+  if (!positionPanel) return;
+  const buttons = positionPanel.querySelectorAll("." + PANEL_BTN_CLASS);
+  for (let i = 0; i < buttons.length; i++) {
+    const btn = buttons[i];
+    const active = btn.getAttribute("data-position") === pickerPosition;
+    btn.classList.toggle(PANEL_BTN_ACTIVE_CLASS, active);
+  }
+}
+
+function setPickerPosition(position) {
+  pickerPosition = normalizePosition(position) || POSITION_REPLACE;
+  applyPositionUi();
+}
+
+function ensurePositionPanel() {
+  if (positionPanel) return;
+  positionPanel = document.createElement("div");
+  positionPanel.className = POSITION_PANEL_CLASS;
+  positionPanel.setAttribute("data-gopersonal-picker-ui", "true");
+
+  const label = document.createElement("span");
+  label.className = POSITION_PANEL_LABEL_CLASS;
+  label.textContent = "Posicion";
+  positionPanel.appendChild(label);
+
+  POSITIONS.forEach(function (item) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = PANEL_BTN_CLASS;
+    btn.setAttribute("data-position", item.position);
+    btn.textContent = item.label;
+    btn.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      setPickerPosition(item.position);
+    });
+    positionPanel.appendChild(btn);
+  });
+
+  document.documentElement.appendChild(positionPanel);
 }
 
 function ensurePanel() {
@@ -244,6 +338,9 @@ function ensureHighlightBox() {
   if (highlightBox) return;
   highlightBox = document.createElement("div");
   highlightBox.className = HIGHLIGHT_BOX_CLASS;
+  highlightLabel = document.createElement("div");
+  highlightLabel.className = HIGHLIGHT_LABEL_CLASS;
+  highlightBox.appendChild(highlightLabel);
   document.documentElement.appendChild(highlightBox);
 }
 
@@ -261,6 +358,13 @@ function updateHighlightBox(el) {
   highlightBox.style.left = rect.left + "px";
   highlightBox.style.width = rect.width + "px";
   highlightBox.style.height = rect.height + "px";
+
+  if (highlightLabel) {
+    highlightLabel.textContent = elementLabelText(el);
+    // Sits just above the box when there is room, inside its top-left corner
+    // otherwise, so it is always visible.
+    highlightLabel.style.top = rect.top >= 20 ? "-18px" : "0px";
+  }
 }
 
 function clearHighlight() {
@@ -309,10 +413,15 @@ export function hideElementSelectorPicker() {
   if (highlightBox) {
     highlightBox.remove();
     highlightBox = null;
+    highlightLabel = null;
   }
   if (panel) {
     panel.remove();
     panel = null;
+  }
+  if (positionPanel) {
+    positionPanel.remove();
+    positionPanel = null;
   }
   pickerMode = MODE_SELECT;
 }
@@ -325,8 +434,10 @@ export function showElementSelectorPicker() {
   ensureStyles();
   activeRoot = document.body;
   pickerMode = MODE_SELECT;
+  ensurePositionPanel();
   ensurePanel();
   applyModeUi();
+  applyPositionUi();
 
   function onMove(e) {
     if (!activeRoot || pickerMode !== MODE_SELECT) return;
@@ -386,6 +497,9 @@ export function initElementSelectorPicker() {
     if (getParam("gsSelectElementSelector") !== "true") return;
 
     mounted = true;
+
+    // Position currently selected in the admin (replace | after | before).
+    pickerPosition = normalizePosition(getParam("gsSelectorPosition")) || POSITION_REPLACE;
 
     window.gsShowElementSelectorPicker = showElementSelectorPicker;
     window.gsHideElementSelectorPicker = hideElementSelectorPicker;
