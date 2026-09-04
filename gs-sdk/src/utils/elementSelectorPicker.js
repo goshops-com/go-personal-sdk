@@ -236,22 +236,28 @@ function ensureStyles() {
     "{position:absolute;left:0;max-width:100%;box-sizing:border-box;padding:2px 6px;background:rgba(17,24,39,.75);color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}" +
     "." +
     BAR_CLASS +
-    "{position:fixed;top:0;left:0;right:0;z-index:2147483647;box-sizing:border-box;display:flex;align-items:center;justify-content:center;min-height:68px;padding:12px 56px;background:#2b0d38;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.35);pointer-events:auto}" +
+    // The bar lives inside customer sites, so every rule that decides the
+    // layout is forced: their global `select{width:100%}` and friends would
+    // otherwise push the combo onto its own line.
+    "{position:fixed!important;top:0!important;left:0!important;right:0!important;z-index:2147483647!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;min-height:68px!important;margin:0!important;padding:12px 56px!important;background:#2b0d38!important;color:#fff!important;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif!important;box-shadow:0 2px 10px rgba(0,0,0,.35);pointer-events:auto}" +
     "." +
     BAR_TEXT_CLASS +
-    "{display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;gap:8px;text-align:center;font-size:15px;line-height:20px;font-weight:700;color:#fff}" +
+    "{display:flex!important;align-items:center!important;justify-content:center!important;flex-wrap:nowrap!important;gap:10px!important;max-width:100%!important;margin:0!important;padding:0!important;text-align:center;font-size:15px!important;line-height:20px!important;font-weight:700!important;color:#fff!important}" +
+    "." +
+    BAR_TEXT_CLASS +
+    " span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
     "." +
     BAR_SELECT_CLASS +
-    "{appearance:none;-webkit-appearance:none;border:0;border-bottom:1px solid rgba(255,255,255,.6);border-radius:0;background:transparent;color:#fff;font:inherit;font-weight:700;padding:0 16px 2px 2px;cursor:pointer;background-image:url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='white' d='M0 0h10L5 6z'/></svg>\");background-repeat:no-repeat;background-position:right 2px center}" +
+    "{appearance:none!important;-webkit-appearance:none!important;flex:0 0 auto!important;display:inline-block!important;box-sizing:content-box!important;width:auto!important;min-width:0!important;max-width:none!important;height:auto!important;min-height:0!important;margin:0!important;padding:0 18px 2px 2px!important;border:0!important;border-bottom:1px solid rgba(255,255,255,.6)!important;border-radius:0!important;box-shadow:none!important;background-color:transparent!important;color:#fff!important;font-family:inherit!important;font-size:15px!important;line-height:20px!important;font-weight:700!important;text-align:left;cursor:pointer;background-image:url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='white' d='M0 0h10L5 6z'/></svg>\")!important;background-repeat:no-repeat!important;background-position:right 2px center!important}" +
     "." +
     BAR_SELECT_CLASS +
     " option{color:#111827;background:#fff}" +
     "." +
     BAR_CLOSE_CLASS +
-    "{position:absolute;top:50%;right:16px;transform:translateY(-50%);display:flex}" +
+    "{position:absolute!important;top:50%!important;right:16px!important;left:auto!important;transform:translateY(-50%)!important;display:flex!important;margin:0!important;padding:0!important}" +
     "." +
     BAR_CLOSE_CLASS +
-    " button{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:#fff;cursor:pointer;font-size:22px;line-height:1;padding:4px 6px;opacity:.85}" +
+    " button{appearance:none!important;-webkit-appearance:none!important;width:auto!important;min-width:0!important;height:auto!important;border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important;padding:4px 6px!important;background:transparent!important;color:#fff!important;font-family:inherit!important;font-size:22px!important;line-height:1!important;cursor:pointer;opacity:.85}" +
     "." +
     BAR_CLOSE_CLASS +
     " button:hover{opacity:1}" +
@@ -337,7 +343,10 @@ function ensureBar() {
 
   const textWrapper = document.createElement("div");
   textWrapper.className = BAR_TEXT_CLASS;
-  textWrapper.appendChild(document.createTextNode(BAR_TEXT));
+
+  const sentence = document.createElement("span");
+  sentence.textContent = BAR_TEXT;
+  textWrapper.appendChild(sentence);
 
   barSelect = document.createElement("select");
   barSelect.className = BAR_SELECT_CLASS;
