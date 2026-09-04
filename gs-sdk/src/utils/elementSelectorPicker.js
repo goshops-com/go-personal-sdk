@@ -229,10 +229,11 @@ function ensureStyles() {
     "{outline:3px solid #5e40bf;outline-offset:2px}" +
     // Empty anchors (`<div id="gopersonal_home"></div>` and friends) are 0px
     // tall, so hit-testing can never reach them. While selecting, give them a
-    // minimum height and a dashed hint so they can be hovered and picked.
+    // minimum height so they can be hovered and picked; they stay invisible
+    // until hovered, like every other element.
     "." +
     ROOT_CLASS +
-    " [id]:empty{min-height:14px!important;outline:1px dashed rgba(94,64,191,.7);outline-offset:-1px}" +
+    " [id]:empty{min-height:14px!important}" +
     "." +
     HIGHLIGHT_BOX_CLASS +
     "{position:fixed;pointer-events:none;box-sizing:border-box;border:2px solid rgba(94,64,191,.95);background:rgba(148,110,235,.28);z-index:2147483646;display:none}" +
