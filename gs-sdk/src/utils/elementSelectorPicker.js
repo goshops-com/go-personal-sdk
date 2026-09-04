@@ -24,7 +24,9 @@ const PANEL_BTN_CLASS = "gopersonal-element-selector-picker-panel-btn";
 const PANEL_BTN_ACTIVE_CLASS = "gopersonal-element-selector-picker-panel-btn-active";
 const BAR_CLASS = "gopersonal-element-selector-picker-bar";
 const BAR_TEXT_CLASS = "gopersonal-element-selector-picker-bar-text";
+const BAR_COMBO_CLASS = "gopersonal-element-selector-picker-bar-combo";
 const BAR_SELECT_CLASS = "gopersonal-element-selector-picker-bar-select";
+const BAR_CARET_CLASS = "gopersonal-element-selector-picker-bar-caret";
 const BAR_CLOSE_CLASS = "gopersonal-element-selector-picker-bar-close";
 
 const MODE_SELECT = "select";
@@ -225,6 +227,12 @@ function ensureStyles() {
     "." +
     ROOT_CLASS +
     "{outline:3px solid #5e40bf;outline-offset:2px}" +
+    // Empty anchors (`<div id="gopersonal_home"></div>` and friends) are 0px
+    // tall, so hit-testing can never reach them. While selecting, give them a
+    // minimum height and a dashed hint so they can be hovered and picked.
+    "." +
+    ROOT_CLASS +
+    " [id]:empty{min-height:14px!important;outline:1px dashed rgba(94,64,191,.7);outline-offset:-1px}" +
     "." +
     HIGHLIGHT_BOX_CLASS +
     "{position:fixed;pointer-events:none;box-sizing:border-box;border:2px solid rgba(94,64,191,.95);background:rgba(148,110,235,.28);z-index:2147483646;display:none}" +
@@ -247,11 +255,20 @@ function ensureStyles() {
     BAR_TEXT_CLASS +
     " span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
     "." +
+    BAR_COMBO_CLASS +
+    "{display:inline-flex!important;align-items:center!important;flex:0 0 auto!important;gap:8px!important;margin:0!important;padding:0 4px 2px 2px!important;border-bottom:1px solid rgba(255,255,255,.6)!important;cursor:pointer}" +
+    "." +
     BAR_SELECT_CLASS +
-    "{appearance:none!important;-webkit-appearance:none!important;flex:0 0 auto!important;display:inline-block!important;box-sizing:content-box!important;width:auto!important;min-width:0!important;max-width:none!important;height:auto!important;min-height:0!important;margin:0!important;padding:0 18px 2px 2px!important;border:0!important;border-bottom:1px solid rgba(255,255,255,.6)!important;border-radius:0!important;box-shadow:none!important;background-color:transparent!important;color:#fff!important;font-family:inherit!important;font-size:15px!important;line-height:20px!important;font-weight:700!important;text-align:left;cursor:pointer;background-image:url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='white' d='M0 0h10L5 6z'/></svg>\")!important;background-repeat:no-repeat!important;background-position:right 2px center!important}" +
+    // The caret is a sibling element, never a background image: sites override
+    // `background`/`background-position` on selects and it ends up on top of
+    // the text.
+    "{appearance:none!important;-webkit-appearance:none!important;flex:0 0 auto!important;display:inline-block!important;box-sizing:content-box!important;width:auto!important;min-width:0!important;max-width:none!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;color:#fff!important;font-family:inherit!important;font-size:15px!important;line-height:20px!important;font-weight:700!important;text-align:left;text-indent:0!important;cursor:pointer}" +
     "." +
     BAR_SELECT_CLASS +
     " option{color:#111827;background:#fff}" +
+    "." +
+    BAR_CARET_CLASS +
+    "{flex:0 0 auto!important;display:block!important;width:0!important;height:0!important;margin:0!important;padding:0!important;border-left:5px solid transparent!important;border-right:5px solid transparent!important;border-top:5px solid #fff!important;border-bottom:0!important;background:none!important;pointer-events:none}" +
     "." +
     BAR_CLOSE_CLASS +
     "{position:absolute!important;top:50%!important;right:16px!important;left:auto!important;transform:translateY(-50%)!important;display:flex!important;margin:0!important;padding:0!important}" +
@@ -348,6 +365,9 @@ function ensureBar() {
   sentence.textContent = BAR_TEXT;
   textWrapper.appendChild(sentence);
 
+  const combo = document.createElement("span");
+  combo.className = BAR_COMBO_CLASS;
+
   barSelect = document.createElement("select");
   barSelect.className = BAR_SELECT_CLASS;
   POSITIONS.forEach(function (item) {
@@ -360,7 +380,26 @@ function ensureBar() {
     e.stopPropagation();
     setPickerPosition(barSelect.value);
   });
-  textWrapper.appendChild(barSelect);
+  combo.appendChild(barSelect);
+
+  const caret = document.createElement("span");
+  caret.className = BAR_CARET_CLASS;
+  combo.appendChild(caret);
+
+  // The caret is not clickable on its own, so clicking anywhere on the combo
+  // opens the native dropdown.
+  combo.addEventListener("click", function (e) {
+    if (e.target === barSelect) return;
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      barSelect.showPicker();
+    } catch (_) {
+      barSelect.focus();
+    }
+  });
+
+  textWrapper.appendChild(combo);
 
   bar.appendChild(textWrapper);
 
