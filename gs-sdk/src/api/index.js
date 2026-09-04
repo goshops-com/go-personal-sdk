@@ -130,6 +130,7 @@ export const init = async (clientId, options) => {
 
   // window.gsLog('Init Options', JSON.stringify(options));
   window.gsConfig.includeDraft = options.includeDraft;
+  window.gsConfig.draftContentId = options.draftContentId || null;
 
   clientId = configure(clientId);
   configureStorage({ cookieFallback: COOKIE_FALLBACK_CLIENT_IDS.includes(clientId) });

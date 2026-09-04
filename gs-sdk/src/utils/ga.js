@@ -179,6 +179,11 @@ function gopersonalTrack(eventName, eventData) {
         return;
     }
 
+    // Same for the single-content draft preview (gsDraftContentId)
+    if(getParam('gsDraftContentId')) {
+        return;
+    }
+
     if (isgtagAvailable()) {
         const measurementId = getGA4MeasurementId();
         if (measurementId) {

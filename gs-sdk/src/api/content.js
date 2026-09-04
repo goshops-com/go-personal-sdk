@@ -29,15 +29,26 @@ window.gsStore = {
   interactionCount: 0,
 };
 
+// Draft de un solo contenido: ?gsDraftContentId=<contentId> (o gsConfig.draftContentId).
+// Cuando viene, solo ese contenido se resuelve en draft y el resto queda publicado.
+// Si no viene, el comportamiento es el de siempre (gsIncludeDraft/includeDraft = todo en draft).
+function getDraftContentId() {
+  const param = getParam("gsDraftContentId");
+  if (param) {
+    return param;
+  }
+  return window.gsConfig?.draftContentId || null;
+}
+
 async function obtainContentByContext(
   url,
   payload,
   context,
-  includeDraft = false,
+  draftKey = false,
 ) {
   const locationHref =
     payload?.context?.currentPage?.location || window.location.href || "";
-  const cacheKey = `gs_content_cache_${context}_${includeDraft}_${encodeURIComponent(locationHref)}`;
+  const cacheKey = `gs_content_cache_${context}_${draftKey}_${encodeURIComponent(locationHref)}`;
   const now = Date.now();
   const CACHE_TTL = 5000;
 
@@ -106,9 +117,14 @@ export const getContentByContext = async (context, options = {}) => {
   const includeDraft = window.gsConfig.includeDraft;
   const includeDraftParam = getParam("gsIncludeDraft");
   const gsDebug = getParam("gsDebug") == "true";
+  const draftAll = includeDraft || includeDraftParam == "true";
+  const draftContentId = draftAll ? null : getDraftContentId();
+  const draftKey = draftAll ? "all" : draftContentId || false;
   let url = `/personal/content-page?pageType=${context}`;
-  if (includeDraft || (includeDraftParam && includeDraftParam == "true")) {
+  if (draftAll) {
     url += "&includeDraft=true";
+  } else if (draftContentId) {
+    url += `&draftContentId=${encodeURIComponent(draftContentId)}`;
   }
 
   if (!sessionObj || !sessionObj.project) {
@@ -118,14 +134,9 @@ export const getContentByContext = async (context, options = {}) => {
 
   let result;
 
-  if (gsDebug || includeDraft || (includeDraftParam && includeDraftParam == "true")) {
+  if (gsDebug || draftAll || draftContentId) {
     const payload = buildContextPayload(options);
-    result = await obtainContentByContext(
-      url,
-      payload,
-      context,
-      includeDraftParam,
-    );
+    result = await obtainContentByContext(url, payload, context, draftKey);
   } else {
     try {
       let getURL = `/public/cached-content/${sessionObj.project}/?pageType=${context}`;
@@ -133,12 +144,7 @@ export const getContentByContext = async (context, options = {}) => {
     } catch (e) {
       console.error("Error fetching cached content:", e);
       const payload = buildContextPayload(options);
-      result = await obtainContentByContext(
-        url,
-        payload,
-        context,
-        includeDraftParam,
-      );
+      result = await obtainContentByContext(url, payload, context, draftKey);
     }
   }
 
@@ -187,6 +193,15 @@ export const getContent = async (contentId, options) => {
   if (includeDraftParam == "true") {
     includeDraft = true;
   }
+  const draftContentId = getDraftContentId();
+  // Solo este contenido va en draft: el resto sigue el flujo publicado/cacheado.
+  const singleDraftContent =
+    !includeDraft &&
+    !!draftContentId &&
+    String(draftContentId) === String(contentId);
+  if (singleDraftContent) {
+    includeDraft = true;
+  }
   const gsElementSelector = getParam("gsElementSelector");
   if (gsElementSelector != null) {
     return;
@@ -199,7 +214,7 @@ export const getContent = async (contentId, options) => {
 
   const sessionObj = getSession();
 
-  if (options.cache && sessionObj.project && !gsDebug) {
+  if (options.cache && sessionObj.project && !gsDebug && !singleDraftContent) {
     content = await httpPublicGet(
       `/public/cached-content/${sessionObj.project}/${contentId}`,
     );

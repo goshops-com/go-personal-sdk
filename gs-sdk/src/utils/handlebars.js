@@ -129,6 +129,13 @@ function addItemVariables(variables, recommendations) {
   };
 }
 
+function isStrategyVariable(variable) {
+  const options = variable?.type?.options || variable?.options || [];
+  return Array.isArray(options) && options.some((option) =>
+    option?.type === 'strategy' || option?.type?.id === 'strategy'
+  );
+}
+
 export function renderTemplate(template, variablesArray, data) {
   if (!data) {
     data = {
@@ -154,7 +161,9 @@ export function renderTemplate(template, variablesArray, data) {
 
   if (Array.isArray(data.variables)) {
     data.variables
-      .filter((variable) => variable?.type?.id === 'social_proof')
+      .filter((variable) =>
+        variable?.type?.id === 'social_proof' || isStrategyVariable(variable)
+      )
       .forEach((variable) => {
         variablesObject[variable.name] = variable.value;
       });
