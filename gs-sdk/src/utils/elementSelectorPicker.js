@@ -5,6 +5,10 @@
  * on hover and, on click, sends the picked element metadata to the parent/opener
  * window via postMessage (same channel as the variant editor).
  *
+ * The top bar lets the user review/change where the content will be placed
+ * (replace / after / before); the choice travels back to the admin inside the
+ * same `elementSelectorPicked` message.
+ *
  * Side-effect free on import; call `initElementSelectorPicker()` to start.
  */
 
@@ -14,11 +18,14 @@ const STYLE_ID = "gopersonal-element-selector-picker-styles";
 const ROOT_CLASS = "gopersonal-element-selector-picker-root-active";
 const HIGHLIGHT_BOX_CLASS = "gopersonal-element-selector-picker-highlight-box";
 const HIGHLIGHT_LABEL_CLASS = "gopersonal-element-selector-picker-highlight-label";
+const PLACEMENT_LABEL_CLASS = "gopersonal-element-selector-picker-placement-label";
 const PANEL_CLASS = "gopersonal-element-selector-picker-panel";
-const POSITION_PANEL_CLASS = "gopersonal-element-selector-picker-position-panel";
-const POSITION_PANEL_LABEL_CLASS = "gopersonal-element-selector-picker-position-panel-label";
 const PANEL_BTN_CLASS = "gopersonal-element-selector-picker-panel-btn";
 const PANEL_BTN_ACTIVE_CLASS = "gopersonal-element-selector-picker-panel-btn-active";
+const BAR_CLASS = "gopersonal-element-selector-picker-bar";
+const BAR_TEXT_CLASS = "gopersonal-element-selector-picker-bar-text";
+const BAR_SELECT_CLASS = "gopersonal-element-selector-picker-bar-select";
+const BAR_CLOSE_CLASS = "gopersonal-element-selector-picker-bar-close";
 
 const MODE_SELECT = "select";
 const MODE_INTERACT = "interact";
@@ -26,20 +33,25 @@ const MODE_INTERACT = "interact";
 const POSITION_REPLACE = "replace";
 const POSITION_AFTER = "after";
 const POSITION_BEFORE = "before";
+
 const POSITIONS = [
-  { position: POSITION_REPLACE, label: "Reemplazar" },
-  { position: POSITION_AFTER, label: "Despues" },
-  { position: POSITION_BEFORE, label: "Antes" },
+  { position: POSITION_REPLACE, label: "reemplazarlo" },
+  { position: POSITION_AFTER, label: "ir después" },
+  { position: POSITION_BEFORE, label: "ir antes" },
 ];
+
+const BAR_TEXT = "Apuntá y hacé click en el elemento — el contenido va a";
 
 let mounted = false;
 let activeRoot = null;
 let highlightBox = null;
 let highlightLabel = null;
+let placementLabel = null;
 let highlightedTarget = null;
 let pickerCleanup = null;
 let panel = null;
-let positionPanel = null;
+let bar = null;
+let barSelect = null;
 let pickerMode = MODE_SELECT;
 let pickerPosition = POSITION_REPLACE;
 
@@ -134,7 +146,7 @@ function elementPayload(target) {
 
 /**
  * Text shown on the highlight box: the element id when it has one, the css
- * selector otherwise (same value the admin ends up storing).
+ * selector otherwise (the same value the admin ends up storing).
  */
 function elementLabelText(target) {
   const id = target && target.id ? String(target.id).trim() : "";
@@ -142,22 +154,23 @@ function elementLabelText(target) {
   return selectorFromBody(target);
 }
 
-function isInsidePanel(el) {
+function isInsidePicker(el) {
   if (!el) return false;
   if (panel && (el === panel || panel.contains(el))) return true;
-  if (positionPanel && (el === positionPanel || positionPanel.contains(el))) return true;
+  if (bar && (el === bar || bar.contains(el))) return true;
   return false;
 }
 
 function isPickableElement(el) {
   if (!el || el.nodeType !== 1) return false;
-  if (isInsidePanel(el)) return false;
+  if (isInsidePicker(el)) return false;
   if (!activeRoot || !activeRoot.contains(el)) return false;
   if (el === activeRoot || el === document.documentElement) return false;
   if (
     el.classList &&
     (el.classList.contains(HIGHLIGHT_BOX_CLASS) ||
-      el.classList.contains(HIGHLIGHT_LABEL_CLASS))
+      el.classList.contains(HIGHLIGHT_LABEL_CLASS) ||
+      el.classList.contains(PLACEMENT_LABEL_CLASS))
   )
     return false;
   return true;
@@ -214,16 +227,34 @@ function ensureStyles() {
     "{outline:3px solid #5e40bf;outline-offset:2px}" +
     "." +
     HIGHLIGHT_BOX_CLASS +
-    "{position:fixed;pointer-events:none;box-sizing:border-box;border:2px dashed rgba(234,179,8,.95);background:rgba(234,179,8,.08);z-index:2147483646;display:none}" +
+    "{position:fixed;pointer-events:none;box-sizing:border-box;border:2px solid rgba(94,64,191,.95);background:rgba(148,110,235,.28);z-index:2147483646;display:none}" +
     "." +
     HIGHLIGHT_LABEL_CLASS +
     "{position:absolute;top:0;left:0;max-width:320px;box-sizing:border-box;padding:2px 6px;border-radius:3px;background:#5e40bf;color:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}" +
     "." +
-    POSITION_PANEL_CLASS +
-    "{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:2147483647;display:flex;align-items:center;gap:4px;padding:4px 4px 4px 14px;background:#111827;border-radius:9999px;box-shadow:0 4px 16px rgba(0,0,0,.3);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;pointer-events:auto}" +
+    PLACEMENT_LABEL_CLASS +
+    "{position:absolute;left:0;max-width:100%;box-sizing:border-box;padding:2px 6px;background:rgba(17,24,39,.75);color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}" +
     "." +
-    POSITION_PANEL_LABEL_CLASS +
-    "{color:#9ca3af;font-size:12px;line-height:1;font-weight:600;margin-right:6px;white-space:nowrap}" +
+    BAR_CLASS +
+    "{position:fixed;top:0;left:0;right:0;z-index:2147483647;box-sizing:border-box;display:flex;align-items:center;justify-content:center;min-height:68px;padding:12px 56px;background:#2b0d38;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.35);pointer-events:auto}" +
+    "." +
+    BAR_TEXT_CLASS +
+    "{display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;gap:8px;text-align:center;font-size:15px;line-height:20px;font-weight:700;color:#fff}" +
+    "." +
+    BAR_SELECT_CLASS +
+    "{appearance:none;-webkit-appearance:none;border:0;border-bottom:1px solid rgba(255,255,255,.6);border-radius:0;background:transparent;color:#fff;font:inherit;font-weight:700;padding:0 16px 2px 2px;cursor:pointer;background-image:url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='white' d='M0 0h10L5 6z'/></svg>\");background-repeat:no-repeat;background-position:right 2px center}" +
+    "." +
+    BAR_SELECT_CLASS +
+    " option{color:#111827;background:#fff}" +
+    "." +
+    BAR_CLOSE_CLASS +
+    "{position:absolute;top:50%;right:16px;transform:translateY(-50%);display:flex}" +
+    "." +
+    BAR_CLOSE_CLASS +
+    " button{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:#fff;cursor:pointer;font-size:22px;line-height:1;padding:4px 6px;opacity:.85}" +
+    "." +
+    BAR_CLOSE_CLASS +
+    " button:hover{opacity:1}" +
     "." +
     PANEL_CLASS +
     "{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:2147483647;display:flex;gap:4px;padding:4px;background:#111827;border-radius:9999px;box-shadow:0 4px 16px rgba(0,0,0,.3);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;pointer-events:auto}" +
@@ -263,47 +294,87 @@ function normalizePosition(value) {
   return null;
 }
 
-function applyPositionUi() {
-  if (!positionPanel) return;
-  const buttons = positionPanel.querySelectorAll("." + PANEL_BTN_CLASS);
-  for (let i = 0; i < buttons.length; i++) {
-    const btn = buttons[i];
-    const active = btn.getAttribute("data-position") === pickerPosition;
-    btn.classList.toggle(PANEL_BTN_ACTIVE_CLASS, active);
+/** Text of the little label pinned to the highlighted element. */
+function placementLabelText() {
+  if (pickerPosition === POSITION_REPLACE) {
+    return "El contenido dinámico va a reemplazar este elemento";
+  }
+  return "El contenido dinámico se va a agregar acá";
+}
+
+function applyBarUi() {
+  if (barSelect) barSelect.value = pickerPosition;
+}
+
+function applyPlacementLabel() {
+  if (!placementLabel) return;
+  placementLabel.textContent = placementLabelText();
+  // Pinned where the content lands: under the element for "después", over it
+  // for "antes", inside it for "reemplazar".
+  if (pickerPosition === POSITION_AFTER) {
+    placementLabel.style.top = "100%";
+    placementLabel.style.bottom = "auto";
+  } else if (pickerPosition === POSITION_BEFORE) {
+    placementLabel.style.top = "-14px";
+    placementLabel.style.bottom = "auto";
+  } else {
+    placementLabel.style.top = "auto";
+    placementLabel.style.bottom = "0";
   }
 }
 
 function setPickerPosition(position) {
   pickerPosition = normalizePosition(position) || POSITION_REPLACE;
-  applyPositionUi();
+  applyBarUi();
+  applyPlacementLabel();
 }
 
-function ensurePositionPanel() {
-  if (positionPanel) return;
-  positionPanel = document.createElement("div");
-  positionPanel.className = POSITION_PANEL_CLASS;
-  positionPanel.setAttribute("data-gopersonal-picker-ui", "true");
+function ensureBar() {
+  if (bar) return;
+  bar = document.createElement("div");
+  bar.className = BAR_CLASS;
+  bar.setAttribute("data-gopersonal-picker-ui", "true");
 
-  const label = document.createElement("span");
-  label.className = POSITION_PANEL_LABEL_CLASS;
-  label.textContent = "Posicion";
-  positionPanel.appendChild(label);
+  const textWrapper = document.createElement("div");
+  textWrapper.className = BAR_TEXT_CLASS;
+  textWrapper.appendChild(document.createTextNode(BAR_TEXT));
 
+  barSelect = document.createElement("select");
+  barSelect.className = BAR_SELECT_CLASS;
   POSITIONS.forEach(function (item) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = PANEL_BTN_CLASS;
-    btn.setAttribute("data-position", item.position);
-    btn.textContent = item.label;
-    btn.addEventListener("click", function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      setPickerPosition(item.position);
-    });
-    positionPanel.appendChild(btn);
+    const option = document.createElement("option");
+    option.value = item.position;
+    option.textContent = item.label;
+    barSelect.appendChild(option);
   });
+  barSelect.addEventListener("change", function (e) {
+    e.stopPropagation();
+    setPickerPosition(barSelect.value);
+  });
+  textWrapper.appendChild(barSelect);
 
-  document.documentElement.appendChild(positionPanel);
+  bar.appendChild(textWrapper);
+
+  const closeWrapper = document.createElement("div");
+  closeWrapper.className = BAR_CLOSE_CLASS;
+  const closeBtn = document.createElement("button");
+  closeBtn.type = "button";
+  closeBtn.setAttribute("aria-label", "Cerrar");
+  closeBtn.textContent = "✕";
+  closeBtn.addEventListener("click", function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    hideElementSelectorPicker();
+    try {
+      window.close();
+    } catch (_) {
+      /* the window may not be script-closable */
+    }
+  });
+  closeWrapper.appendChild(closeBtn);
+  bar.appendChild(closeWrapper);
+
+  document.documentElement.appendChild(bar);
 }
 
 function ensurePanel() {
@@ -338,9 +409,16 @@ function ensureHighlightBox() {
   if (highlightBox) return;
   highlightBox = document.createElement("div");
   highlightBox.className = HIGHLIGHT_BOX_CLASS;
+
   highlightLabel = document.createElement("div");
   highlightLabel.className = HIGHLIGHT_LABEL_CLASS;
   highlightBox.appendChild(highlightLabel);
+
+  placementLabel = document.createElement("div");
+  placementLabel.className = PLACEMENT_LABEL_CLASS;
+  highlightBox.appendChild(placementLabel);
+
+  applyPlacementLabel();
   document.documentElement.appendChild(highlightBox);
 }
 
@@ -414,14 +492,16 @@ export function hideElementSelectorPicker() {
     highlightBox.remove();
     highlightBox = null;
     highlightLabel = null;
+    placementLabel = null;
   }
   if (panel) {
     panel.remove();
     panel = null;
   }
-  if (positionPanel) {
-    positionPanel.remove();
-    positionPanel = null;
+  if (bar) {
+    bar.remove();
+    bar = null;
+    barSelect = null;
   }
   pickerMode = MODE_SELECT;
 }
@@ -434,14 +514,14 @@ export function showElementSelectorPicker() {
   ensureStyles();
   activeRoot = document.body;
   pickerMode = MODE_SELECT;
-  ensurePositionPanel();
+  ensureBar();
   ensurePanel();
   applyModeUi();
-  applyPositionUi();
+  applyBarUi();
 
   function onMove(e) {
     if (!activeRoot || pickerMode !== MODE_SELECT) return;
-    if (isInsidePanel(document.elementFromPoint(e.clientX, e.clientY))) {
+    if (isInsidePicker(document.elementFromPoint(e.clientX, e.clientY))) {
       clearHighlight();
       return;
     }
@@ -455,9 +535,9 @@ export function showElementSelectorPicker() {
 
   function onClick(e) {
     if (!activeRoot) return;
-    // Never let the floating panel be treated as a selection; let its own
-    // click handlers run so the mode toggle works.
-    if (isInsidePanel(e.target)) return;
+    // Never let the picker UI be treated as a selection; let its own click
+    // handlers run so the mode toggle and the top bar work.
+    if (isInsidePicker(e.target)) return;
     // Interaction mode: leave every click untouched so the page behaves
     // normally (open/close popups, dropdowns, navigate, etc.).
     if (pickerMode !== MODE_SELECT) return;
