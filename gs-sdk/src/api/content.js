@@ -117,14 +117,16 @@ export const getContentByContext = async (context, options = {}) => {
   const includeDraft = window.gsConfig.includeDraft;
   const includeDraftParam = getParam("gsIncludeDraft");
   const gsDebug = getParam("gsDebug") == "true";
-  const draftAll = includeDraft || includeDraftParam == "true";
-  const draftContentId = draftAll ? null : getDraftContentId();
+  // gsDraftContentId gana sobre gsIncludeDraft: la URL de preview del admin manda
+  // los dos y el id es el que acota el draft a un solo contenido. En ese caso la
+  // pagina se pide publicada (asi no entra ningun otro draft) y el contenido
+  // elegido se resuelve aparte en su version draft.
+  const draftContentId = getDraftContentId();
+  const draftAll = !draftContentId && (includeDraft || includeDraftParam == "true");
   const draftKey = draftAll ? "all" : draftContentId || false;
   let url = `/personal/content-page?pageType=${context}`;
   if (draftAll) {
     url += "&includeDraft=true";
-  } else if (draftContentId) {
-    url += `&draftContentId=${encodeURIComponent(draftContentId)}`;
   }
 
   if (!sessionObj || !sessionObj.project) {
@@ -146,6 +148,10 @@ export const getContentByContext = async (context, options = {}) => {
       const payload = buildContextPayload(options);
       result = await obtainContentByContext(url, payload, context, draftKey);
     }
+  }
+
+  if (draftContentId) {
+    result = excludeContentFromResult(result, draftContentId);
   }
 
   const contents = result.loadNowContent;
@@ -178,7 +184,35 @@ export const getContentByContext = async (context, options = {}) => {
   } catch (e) {
     console.error(e);
   }
+
+  // El unico draft que se muestra: getContent lo resuelve con includeDraft
+  // porque coincide con gsDraftContentId.
+  if (draftContentId) {
+    try {
+      window.gsLog("DraftContent " + draftContentId);
+      await getContent(draftContentId, { ...options, cache: 0 });
+    } catch (e) {
+      console.error(e);
+    }
+  }
 };
+
+// Saca el contenido elegido de la pagina publicada: se agrega despues en draft.
+function excludeContentFromResult(result, draftContentId) {
+  const isDraftTarget = (content) =>
+    String(content?.key) === String(draftContentId) ||
+    String(content?.experienceId) === String(draftContentId);
+
+  return {
+    ...result,
+    loadNowContent: (result.loadNowContent || []).filter(
+      (content) => !isDraftTarget(content),
+    ),
+    lazyLoadContent: (result.lazyLoadContent || []).filter(
+      (content) => !isDraftTarget(content),
+    ),
+  };
+}
 
 export const getContent = async (contentId, options) => {
   if (!options) {
@@ -190,16 +224,14 @@ export const getContent = async (contentId, options) => {
   let includeDraft = window.gsConfig.includeDraft;
   const includeDraftParam = getParam("gsIncludeDraft");
   const gsDebug = getParam("gsDebug") == "true";
-  if (includeDraftParam == "true") {
-    includeDraft = true;
-  }
   const draftContentId = getDraftContentId();
-  // Solo este contenido va en draft: el resto sigue el flujo publicado/cacheado.
+  // gsDraftContentId gana sobre gsIncludeDraft: solo ese contenido va en draft
+  // y el resto sigue el flujo publicado/cacheado.
   const singleDraftContent =
-    !includeDraft &&
-    !!draftContentId &&
-    String(draftContentId) === String(contentId);
-  if (singleDraftContent) {
+    !!draftContentId && String(draftContentId) === String(contentId);
+  if (draftContentId) {
+    includeDraft = singleDraftContent;
+  } else if (includeDraftParam == "true") {
     includeDraft = true;
   }
   const gsElementSelector = getParam("gsElementSelector");
