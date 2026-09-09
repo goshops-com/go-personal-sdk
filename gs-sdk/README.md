@@ -77,3 +77,13 @@ Note: Replace 'your-client-id' with your actual client ID.
 Refer to the official API documentation for detailed information about these methods.
 
 
+
+# Content priority and "seen personalization" rule
+
+Each personalization can have an optional `priority` (integer, `1` loads first). It only changes the load when the page has **at least two different priority values**: personalizations with priority are then resolved one at a time, from lowest to highest (ties in parallel), while the ones without priority load in parallel as always. With no priority, or all the same, the load is exactly the usual one (everything in parallel).
+
+The SDK keeps, per session, the `_id` of every personalization it served (`gs_seen_contents` in localStorage, dropped when the session changes) and sends it on every content request as `context.seenContents`. The targeting rule "Seen personalization" (`seen_content`) reads that list, so a lower-priority personalization can say "show only if the visitor did not see personalization X" and it is evaluated with what the previous step of the chain actually served.
+
+```javascript
+gsSDK.getSeenContents(); // ['66a0...01', '66a0...02']
+```

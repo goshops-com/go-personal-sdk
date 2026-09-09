@@ -12,6 +12,8 @@ import {
   getSession,
   getContentImpression,
   setContentImpression,
+  getSeenContents,
+  addSeenContent,
 } from "../utils/storage";
 import { sendEvent } from "../utils/custom";
 import { renderTemplate, renderRaw } from "../utils/handlebars";
@@ -174,13 +176,9 @@ export const getContentByContext = async (context, options = {}) => {
   }
 
   try {
-    const lazyLoadContent = result.lazyLoadContent;
+    const lazyLoadContent = result.lazyLoadContent || [];
     window.gsLog("LazyLoadContent " + lazyLoadContent.length);
-    await Promise.all(
-      lazyLoadContent.map((content) =>
-        getContent(content.key, { ...options, cache: content.cache || 0 }),
-      ),
-    );
+    await loadLazyContents(lazyLoadContent, options);
   } catch (e) {
     console.error(e);
   }
@@ -196,6 +194,82 @@ export const getContentByContext = async (context, options = {}) => {
     }
   }
 };
+
+// Carga de los lazy. Sin prioridad, o con todas iguales, es el Promise.all de
+// siempre: todo en paralelo, sin ningun await extra. Solo cuando en la pagina
+// hay al menos dos valores distintos de `priority` se arma la cadena: los sin
+// prioridad salen en paralelo sin esperar, y los con prioridad van de a uno
+// (empates en paralelo) de menor a mayor, esperando a que el grupo anterior
+// termine de resolverse. Asi la regla `seen_content` de la siguiente ya ve lo
+// que se sirvio en el paso anterior.
+async function loadLazyContents(lazyLoadContent, options) {
+  const load = (content) =>
+    getContent(content.key, { ...options, cache: content.cache || 0 });
+
+  const priorityOf = (content) => {
+    const value = Number(content?.priority);
+    return content?.priority != null && Number.isFinite(value) ? value : null;
+  };
+
+  const distinct = new Set(
+    lazyLoadContent.map(priorityOf).filter((p) => p !== null),
+  );
+
+  if (distinct.size < 2) {
+    await Promise.all(lazyLoadContent.map(load));
+    return;
+  }
+
+  const withoutPriority = lazyLoadContent.filter((c) => priorityOf(c) === null);
+  const withPriority = lazyLoadContent
+    .filter((c) => priorityOf(c) !== null)
+    .sort((a, b) => priorityOf(a) - priorityOf(b));
+
+  const groups = [];
+  for (const content of withPriority) {
+    const last = groups[groups.length - 1];
+    if (last && priorityOf(last[0]) === priorityOf(content)) {
+      last.push(content);
+    } else {
+      groups.push([content]);
+    }
+  }
+  window.gsLog(
+    "Priority chain",
+    groups.map((g) => `${priorityOf(g[0])}:[${g.map((c) => c.key).join(",")}]`).join(" -> "),
+  );
+
+  const parallel = Promise.all(
+    withoutPriority.map((content) => load(content).catch((e) => console.error(e))),
+  );
+
+  for (const group of groups) {
+    // allSettled: un error en un contenido no corta la cadena ni adelanta el
+    // siguiente grupo antes de que terminen los demas del mismo grupo.
+    const settled = await Promise.allSettled(group.map(load));
+    settled
+      .filter((r) => r.status === "rejected")
+      .forEach((r) => console.error(r.reason));
+  }
+
+  await parallel;
+}
+
+// Marca el contenido como servido en esta sesion (por _id) y, si es nuevo,
+// invalida el cache de POSTs: las decisiones cacheadas se tomaron con una
+// lista de vistos que ya no es la actual.
+function markContentSeen(content) {
+  const id = content?.experienceId || content?.contentId;
+  if (!id) {
+    return;
+  }
+  if (addSeenContent(id)) {
+    window.gsLog("Seen content", content.key, String(id));
+    if (ENABLE_CONTENT_POST_CACHE) {
+      invalidateContentCache();
+    }
+  }
+}
 
 // Saca el contenido elegido de la pagina publicada: se agrega despues en draft.
 function excludeContentFromResult(result, draftContentId) {
@@ -393,6 +467,8 @@ function buildContextPayload(options) {
         timezoneOffset: new Date().getTimezoneOffset(),
       },
       currentPage,
+      // Contents ya servidos en la sesion: lo lee la regla `seen_content`.
+      seenContents: getSeenContents(),
     },
   };
 }
@@ -421,6 +497,10 @@ async function addContentToWebsite(content, options) {
       window.gsLog("skip");
       return; //nothing to inyect
     }
+
+    // "Visto" = el servidor devolvio una variante con algo para inyectar.
+    // No depende de que el template llame a createContentImpression.
+    markContentSeen(content);
 
     const proceed = async () => {
       injectCSS(css, content.key);
@@ -577,6 +657,12 @@ export const createContentImpression = async (impressionId, impression = {}) => 
 
     const contentKey = impression.content || impression.variantId || impressionId;
 
+    // impression.content es el _id del content: tambien cuenta como visto
+    // (cubre contenidos mostrados por fuera de addContentToWebsite).
+    if (impression.content) {
+      markContentSeen({ experienceId: impression.content, key: contentKey });
+    }
+
     const sessionImpressionId = getContentImpression(contentKey);
     if (sessionImpressionId) {
       window.gsLog(
@@ -689,7 +775,7 @@ export const cleanContent = () => {
   deleteGoPersonalElements();
 };
 
-export { invalidateContentCache, purgeContentCache };
+export { invalidateContentCache, purgeContentCache, getSeenContents };
 
 export const sendContentEvent = (key, value) => {
   const sessionObj = getSession();

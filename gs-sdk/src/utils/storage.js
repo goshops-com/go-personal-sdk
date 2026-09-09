@@ -13,6 +13,11 @@ const GS_GAID_REJECTED = "gs_gaid_rejected";
 // Content impressions already sent on the current session
 const GS_CONTENT_IMPRESSIONS = "gs_content_impressions";
 const MAX_CONTENT_IMPRESSIONS = 200;
+
+// Contents (personalizations) already served on the current session, by _id.
+// Sent to the server as context.seenContents for the `seen_content` target rule.
+const GS_SEEN_CONTENTS = "gs_seen_contents";
+const MAX_SEEN_CONTENTS = 100;
 const COOKIE_FALLBACK_KEYS = [key, `${key}-clientId`, GS_VUUID];
 
 let cookieFallbackEnabled = false;
@@ -176,6 +181,7 @@ export const clearSession = () => {
   removeStorageItem(key);
   localStorage.removeItem("gs_content_seen");
   localStorage.removeItem(GS_CONTENT_IMPRESSIONS);
+  localStorage.removeItem(GS_SEEN_CONTENTS);
 };
 
 export const setVUUID = (value) => {
@@ -271,5 +277,63 @@ export const setContentImpression = (contentKey, impressionId) => {
     localStorage.setItem(GS_CONTENT_IMPRESSIONS, JSON.stringify(stored));
   } catch (e) {
     console.error("Error storing content impression:", e);
+  }
+};
+
+// Seen contents: same shape and lifecycle as the content impressions above
+// ({ sessionId, items }), but items is an ordered array of unique content _ids.
+// localStorage (and not sessionStorage) because the GoPersonal session lasts
+// 24h and spans tabs; the list is dropped as soon as the sessionId changes.
+const readSeenContents = () => {
+  const sessionId = getSession().sessionId || null;
+
+  try {
+    const item = localStorage.getItem(GS_SEEN_CONTENTS);
+    if (!item) {
+      return { sessionId, items: [] };
+    }
+
+    const stored = JSON.parse(item);
+    if (!stored || stored.sessionId !== sessionId || !Array.isArray(stored.items)) {
+      if (sessionId) {
+        localStorage.removeItem(GS_SEEN_CONTENTS);
+      }
+      return { sessionId, items: [] };
+    }
+
+    return { sessionId, items: stored.items };
+  } catch (e) {
+    return { sessionId, items: [] };
+  }
+};
+
+// Array of content _ids served on this session, oldest first.
+export const getSeenContents = () => {
+  return readSeenContents().items.slice();
+};
+
+// Returns true only when the id was not on the list yet.
+export const addSeenContent = (contentId) => {
+  if (!contentId) {
+    return false;
+  }
+  const id = String(contentId);
+
+  try {
+    const stored = readSeenContents();
+    if (stored.items.includes(id)) {
+      return false;
+    }
+
+    stored.items.push(id);
+    if (stored.items.length > MAX_SEEN_CONTENTS) {
+      stored.items = stored.items.slice(-MAX_SEEN_CONTENTS);
+    }
+
+    localStorage.setItem(GS_SEEN_CONTENTS, JSON.stringify(stored));
+    return true;
+  } catch (e) {
+    console.error("Error storing seen content:", e);
+    return false;
   }
 };
