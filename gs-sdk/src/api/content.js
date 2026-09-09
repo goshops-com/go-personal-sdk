@@ -42,6 +42,32 @@ function getDraftContentId() {
   return window.gsConfig?.draftContentId || null;
 }
 
+// Publicacion programada: el content viene publicado (status 1) con
+// `publishAt` (ISO UTC). Solo si trae fecha se valida en local, contra el
+// reloj del navegador, antes de pedirlo o inyectarlo. Sin fecha (o fecha
+// invalida) se trata como publicado, igual que siempre.
+function isContentPublished(content) {
+  const publishAt = content?.publishAt;
+  if (!publishAt) {
+    return true;
+  }
+  const publishTime = new Date(publishAt).getTime();
+  if (!Number.isFinite(publishTime)) {
+    return true;
+  }
+  return publishTime <= Date.now();
+}
+
+function filterScheduledContents(contents) {
+  return (contents || []).filter((content) => {
+    if (isContentPublished(content)) {
+      return true;
+    }
+    window.gsLog("Scheduled content skipped", content?.key, content?.publishAt);
+    return false;
+  });
+}
+
 async function obtainContentByContext(
   url,
   payload,
@@ -156,7 +182,7 @@ export const getContentByContext = async (context, options = {}) => {
     result = excludeContentFromResult(result, draftContentId);
   }
 
-  const contents = result.loadNowContent;
+  const contents = filterScheduledContents(result.loadNowContent);
 
   try {
     if (options.singlePage) {
@@ -176,7 +202,7 @@ export const getContentByContext = async (context, options = {}) => {
   }
 
   try {
-    const lazyLoadContent = result.lazyLoadContent || [];
+    const lazyLoadContent = filterScheduledContents(result.lazyLoadContent);
     window.gsLog("LazyLoadContent " + lazyLoadContent.length);
     await loadLazyContents(lazyLoadContent, options);
   } catch (e) {
@@ -370,6 +396,11 @@ export const getContent = async (contentId, options) => {
           return;
         }
 
+        if (!isContentPublished(data)) {
+          window.gsLog("Scheduled content skipped", contentId, data.publishAt);
+          return;
+        }
+
         // Get variant template
         const variantResponse = await httpPublicGet(
           `/public/cached-content/${data.project || sessionObj.project}/variant/${data.variantId}`,
@@ -416,6 +447,10 @@ export const getContent = async (contentId, options) => {
 
   if (!content.key) {
     content.key = contentId;
+  }
+  if (!isContentPublished(content)) {
+    window.gsLog("Scheduled content skipped", content.key, content.publishAt);
+    return;
   }
   if (content.delay) {
     await new Promise((resolve) => setTimeout(resolve, content.delay));
