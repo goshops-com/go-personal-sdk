@@ -42,20 +42,30 @@ function getDraftContentId() {
   return window.gsConfig?.draftContentId || null;
 }
 
-// Publicacion programada: el content viene publicado (status 1) con
-// `publishAt` (ISO UTC). Solo si trae fecha se valida en local, contra el
-// reloj del navegador, antes de pedirlo o inyectarlo. Sin fecha (o fecha
-// invalida) se trata como publicado, igual que siempre.
+// Publicacion programada: el content viene publicado (status 1) con un rango
+// `publishAt` / `publishUntil` (ISO UTC, cualquiera puede ser null). Solo si
+// trae alguna fecha se valida en local, contra el reloj del navegador, antes
+// de pedirlo o inyectarlo. Sin fechas (o fechas invalidas) se trata como
+// publicado, igual que siempre.
+function parseScheduleDate(value) {
+  if (!value) {
+    return null;
+  }
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : null;
+}
+
 function isContentPublished(content) {
-  const publishAt = content?.publishAt;
-  if (!publishAt) {
-    return true;
+  const from = parseScheduleDate(content?.publishAt);
+  const until = parseScheduleDate(content?.publishUntil);
+  const now = Date.now();
+  if (from !== null && now < from) {
+    return false;
   }
-  const publishTime = new Date(publishAt).getTime();
-  if (!Number.isFinite(publishTime)) {
-    return true;
+  if (until !== null && now > until) {
+    return false;
   }
-  return publishTime <= Date.now();
+  return true;
 }
 
 function filterScheduledContents(contents) {
@@ -63,7 +73,7 @@ function filterScheduledContents(contents) {
     if (isContentPublished(content)) {
       return true;
     }
-    window.gsLog("Scheduled content skipped", content?.key, content?.publishAt);
+    window.gsLog("Scheduled content skipped", content?.key, content?.publishAt, content?.publishUntil);
     return false;
   });
 }
@@ -397,7 +407,7 @@ export const getContent = async (contentId, options) => {
         }
 
         if (!isContentPublished(data)) {
-          window.gsLog("Scheduled content skipped", contentId, data.publishAt);
+          window.gsLog("Scheduled content skipped", contentId, data.publishAt, data.publishUntil);
           return;
         }
 
@@ -449,7 +459,7 @@ export const getContent = async (contentId, options) => {
     content.key = contentId;
   }
   if (!isContentPublished(content)) {
-    window.gsLog("Scheduled content skipped", content.key, content.publishAt);
+    window.gsLog("Scheduled content skipped", content.key, content.publishAt, content.publishUntil);
     return;
   }
   if (content.delay) {
