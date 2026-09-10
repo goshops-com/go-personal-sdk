@@ -665,6 +665,18 @@ export const downloadSearchAutocompleteIndex = async () => {
   return httpPublicGet(`/public/search-autocomplete/${project}`);
 };
 
+export const getSearchHistory = async (options = {}) => {
+  let limit = options.limit != null ? Number(options.limit) : 10;
+  if (!Number.isInteger(limit) || limit < 1) {
+    limit = 10;
+  }
+  if (limit > 100) {
+    limit = 100;
+  }
+
+  return httpGet(`/channel/search-history?limit=${limit}`);
+};
+
 export const searchChat = async (payload) => {
   return httpPost(`/item/search-chat`, payload);
 };
