@@ -665,6 +665,20 @@ export const downloadSearchAutocompleteIndex = async () => {
   return httpPublicGet(`/public/search-autocomplete/${project}`);
 };
 
+export const getTopSearches = async (options = {}) => {
+  const sessionObj = getSession();
+  const project = sessionObj.project;
+  let limit = options.limit != null ? Number(options.limit) : 10;
+  if (!Number.isInteger(limit) || limit < 1) {
+    limit = 10;
+  }
+  if (limit > 100) {
+    limit = 100;
+  }
+
+  return httpPublicGet(`/public/top-searches/${project}`, { limit });
+};
+
 export const getSearchHistory = async (options = {}) => {
   let limit = options.limit != null ? Number(options.limit) : 10;
   if (!Number.isInteger(limit) || limit < 1) {

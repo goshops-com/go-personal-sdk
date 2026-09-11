@@ -1,6 +1,6 @@
 import {
   login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, findLastInteractions, reorderCategories, getItems, search, searchAnswer, searchRedirect, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
-  getRanking, reRank, setPreferences, updateState, getItemById, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, addItemFeedback, getItemFeedbackSummary, getItemFeedbackComments, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData, getSearchHistory
+  getRanking, reRank, setPreferences, updateState, getItemById, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, addItemFeedback, getItemFeedbackSummary, getItemFeedbackComments, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData, getSearchHistory, getTopSearches
 } from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent, createContentImpression, clickContentImpression, getContentImpressionId, trackURLClicked, sendContentEvent, initPreviewListener, invalidateContentCache, purgeContentCache, getSeenContents } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
@@ -216,6 +216,7 @@ const GSSDK = async (clientId, options = {}) => {
       searchBulk: (payload) => searchBulk(payload),
       searchAutoFilter: (filters, input) => searchAutoFilter(filters, input),
       getSearchHistory: (options = {}) => getSearchHistory(options),
+      getTopSearches: (options = {}) => getTopSearches(options),
       downloadSearchAutocompleteIndex: () => downloadSearchAutocompleteIndex(),
       searchFilterFacelets: (query = undefined) => searchFilterFacelets(query),
       imageSearch: (formData, params) => imageSearch(formData, params),
