@@ -165,7 +165,10 @@ export function renderTemplate(template, variablesArray, data) {
         variable?.type?.id === 'social_proof' || isStrategyVariable(variable)
       )
       .forEach((variable) => {
-        variablesObject[variable.name] = variable.value;
+        variablesObject[variable.name] =
+          variable?.type?.id === 'list'
+            ? JSON.stringify(variable.value)
+            : variable.value;
       });
   }
 
