@@ -34,9 +34,9 @@ const PURCHASE_SENT_KEY_PREFIX = "gs-ck-purchase-";
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 const PURCHASE_FLAG_TTL_SECONDS = 7 * 24 * 60 * 60;
 
-// `customer:update` fires on every keystroke. Identity changes go out at
-// once; a name or a phone being typed waits for this much silence first.
-const PROFILE_DEBOUNCE_MS = 1200;
+// `customer:update` fires on every keystroke. Wait for the customer to stop
+// typing before identifying them so partial emails never become customers.
+const CUSTOMER_DEBOUNCE_MS = 1200;
 
 // Query params that may carry the order id on the success page.
 const ORDER_ID_QUERY_KEYS = ["order", "order_id", "orderId", "id"];
@@ -273,29 +273,22 @@ class GopersonalClient {
 /**
  * Builds the /channel/login payload.
  *
- * A guest checkout gives us an email and no customer id. Sending the email
- * alone is not enough: the endpoint looks the customer up by email and
- * rejects the request when it does not exist yet, which is exactly the
- * first-contact case we care about. Sending the email *as* the customer id
- * skips that lookup and lets the upsert create the customer — the same
- * approach the API already takes for the fenicio provider.
- *
- * When Tiendanube does give us a real customer id we use it, so registered
- * shoppers keep their identity.
+ * Tiendanube emits partial customer state while an email is being typed. Only
+ * a complete email identifies a customer, and the API needs it in both fields:
+ * `customerId` selects/upserts the record and `email` persists the address.
  */
 function buildLoginPayload(customer) {
-  const customerId = customer?.id ?? null;
   const email = resolveEmail(customer);
 
-  if (!customerId && !email) {
+  if (!isValidEmail(email)) {
     return null;
   }
 
-  const payload = { provider: PROVIDER };
-  payload.customerId = `${customerId || email}`;
-  if (email) {
-    payload.email = email;
-  }
+  const payload = {
+    provider: PROVIDER,
+    customerId: email,
+    email,
+  };
 
   // Everything below is profile data: the endpoint persists any field it is
   // given, so an absent one must be omitted rather than sent empty.
@@ -340,6 +333,10 @@ function firstFilled(...values) {
  */
 function resolveEmail(customer) {
   return firstFilled(customer?.contact?.email, customer?.email);
+}
+
+function isValidEmail(email) {
+  return typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function addressName(address) {
@@ -472,8 +469,6 @@ class CheckoutApp {
 
     // Memoized bootstrap so concurrent handlers share a single session.
     this.sessionPromise = null;
-    // Last identity sent to /channel/login.
-    this.lastIdentity = null;
     // Full payload of the last login, so an enriched profile is resent.
     this.lastLoginSignature = null;
     // Pending debounced profile flush, if any.
@@ -635,6 +630,7 @@ class CheckoutApp {
   handleCustomer(state) {
     const payload = buildLoginPayload(state.customer);
     if (!payload) {
+      this.cancelProfileFlush();
       return;
     }
 
@@ -643,18 +639,8 @@ class CheckoutApp {
       return;
     }
 
-    // Who the shopper is drives everything else in the session, so identity
-    // goes out immediately. A name or a phone only enriches the record, and
-    // `customer:update` fires per keystroke, so those wait for a pause --
-    // otherwise typing a phone is one /channel/login per digit.
-    const identity = `${payload.customerId}|${payload.email ?? ""}`;
-    if (identity !== this.lastIdentity) {
-      this.lastIdentity = identity;
-      this.cancelProfileFlush();
-      this.sendLogin(state, payload, signature);
-      return;
-    }
-
+    // Email, name and phone all arrive one keystroke at a time. Debouncing the
+    // entire payload prevents partial values from creating customer records.
     this.scheduleProfileFlush(state, payload, signature);
   }
 
@@ -677,7 +663,7 @@ class CheckoutApp {
     this.profileTimer = setTimeout(() => {
       this.profileTimer = null;
       this.sendLogin(state, payload, signature);
-    }, PROFILE_DEBOUNCE_MS);
+    }, CUSTOMER_DEBOUNCE_MS);
   }
 
   async sendLogin(state, payload, signature) {
