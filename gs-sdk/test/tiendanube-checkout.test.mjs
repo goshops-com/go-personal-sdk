@@ -45,6 +45,30 @@ test("login payload uses a complete email as customerId and email", async () => 
   );
 });
 
+test("login payload includes profile data exposed by NubeSDK", async () => {
+  const { buildLoginPayload } = await loadCheckoutApp();
+
+  assert.deepEqual(
+    {
+      ...buildLoginPayload({
+        contact: { email: "micorreo@gmail.com" },
+        shipping_address: {
+          first_name: "Santiago",
+          last_name: "Cotto",
+          phone: "99 970 157",
+        },
+      }),
+    },
+    {
+      provider: "tiendanube",
+      customerId: "micorreo@gmail.com",
+      email: "micorreo@gmail.com",
+      name: "Santiago Cotto",
+      phone: "99 970 157",
+    }
+  );
+});
+
 test("customer updates wait for typing to stop", async () => {
   const { CheckoutApp, timers } = await loadCheckoutApp();
   const nube = {

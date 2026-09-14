@@ -109,7 +109,7 @@
       }
 
       if (pageType === "thankyou" && LS.order) {
-        window.gsSDK.addInteractionState('cart', { 
+        window.gsSDK.addInteractionState('cart', {
           "transactionId": LS.order.number + ""
         });
         console.log("Thank you page detected, order interaction sent:", LS.order.number);
@@ -133,18 +133,16 @@
 
   // --- customer identification ---------------------------------------------
   //
-  // `LS.customer` is only the customer id: the platform exposes no email, name
-  // or phone to a storefront script (the docs define it as "current customer
-  // id or null"). The account forms are the one place on the storefront where
-  // the shopper types them, and their field names are the platform's own POST
-  // contract, so they are read there and held until the reload that follows a
-  // successful login or registration finally reveals the id.
+  // `LS.customer` is only the customer id (the docs define it as "current
+  // customer id or null"). Account forms use the platform's own POST contract,
+  // so profile fields can be captured there without reading a password. After
+  // login, `/account/info` also exposes the authenticated customer's profile.
 
   const IDENTITY_KEY = "gs-tn-identity";
   const PENDING_ACCOUNT_KEY = "gs-tn-account-pending";
   const PENDING_ACCOUNT_TTL = 60 * 60 * 1000;
   const ACCOUNT_FORM_SELECTOR =
-    '[data-store="account-register"], [data-store="account-login"], #register-form, #login-form';
+    '[data-store="account-register"], [data-store="account-login"], #register-form, #login-form, #info-form';
   // The fields read off those forms. `password` is deliberately absent, and
   // adding it here would be a bug.
   const ACCOUNT_FIELDS = ["name", "email", "phone"];
@@ -183,6 +181,42 @@
     return pending.data || {};
   }
 
+  function readAccountFields(form) {
+    const data = {};
+    if (!form) {
+      return data;
+    }
+
+    ACCOUNT_FIELDS.forEach((field) => {
+      const input = form.querySelector('[name="' + field + '"]');
+      const value = input && typeof input.value === "string" ? input.value.trim() : "";
+      if (value) {
+        data[field] = value;
+      }
+    });
+    return data;
+  }
+
+  async function readAccountProfile() {
+    try {
+      let form = document.querySelector("#info-form");
+      if (!form) {
+        const response = await fetch("/account/info", { credentials: "same-origin" });
+        if (!response.ok) {
+          return {};
+        }
+        const accountDocument = new DOMParser().parseFromString(
+          await response.text(),
+          "text/html"
+        );
+        form = accountDocument.querySelector("#info-form");
+      }
+      return readAccountFields(form);
+    } catch (error) {
+      return {};
+    }
+  }
+
   // Captures what the shopper typed on the login or registration form.
   // Nothing is sent from here: the submission may still be rejected, so the
   // data only becomes an identity once a customer id shows up after the
@@ -201,15 +235,7 @@
             return;
           }
 
-          const data = {};
-          ACCOUNT_FIELDS.forEach((field) => {
-            const input = form.querySelector('[name="' + field + '"]');
-            const value =
-              input && typeof input.value === "string" ? input.value.trim() : "";
-            if (value) {
-              data[field] = value;
-            }
-          });
+          const data = readAccountFields(form);
 
           if (Object.keys(data).length) {
             writeStored(PENDING_ACCOUNT_KEY, { ts: Date.now(), data });
@@ -252,9 +278,14 @@
       }
 
       const pending = readPendingAccount();
+      const reported = readStored(IDENTITY_KEY) || {};
+      const profile =
+        reported.id === customer.id && reported.profile
+          ? reported.profile
+          : await readAccountProfile();
       const payload = { param_updateCartFromCustomer: true };
       ACCOUNT_FIELDS.forEach((field) => {
-        const value = pending[field] || customer.data[field];
+        const value = pending[field] || customer.data[field] || profile[field];
         if (value) {
           payload[field] = value;
         }
@@ -262,7 +293,6 @@
 
       const fields = ACCOUNT_FIELDS.map((field) => payload[field] || "").join("|");
       const hasProfile = fields.replace(/\|/g, "").length > 0;
-      const reported = readStored(IDENTITY_KEY) || {};
 
       // Resend only when the shopper changed, or when we now hold profile
       // fields we had not reported for them yet.
@@ -271,9 +301,19 @@
       }
 
       await window.gsSDK.login(customer.id, payload);
-      writeStored(IDENTITY_KEY, { id: customer.id, fields: hasProfile ? fields : "" });
+      const storedProfile = {};
+      ACCOUNT_FIELDS.forEach((field) => {
+        if (payload[field]) {
+          storedProfile[field] = payload[field];
+        }
+      });
+      writeStored(IDENTITY_KEY, {
+        id: customer.id,
+        fields: hasProfile ? fields : "",
+        profile: storedProfile,
+      });
       clearStored(PENDING_ACCOUNT_KEY);
-      console.log("Customer identified:", {
+      console.log("Customer identified:", payload, {
         id: customer.id,
         fields: ACCOUNT_FIELDS.filter((field) => payload[field]),
       });
