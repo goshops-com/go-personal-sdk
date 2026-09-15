@@ -76,7 +76,24 @@ function handleUserData(event) {
   const email = event?.data?.email;
   const userId = event?.data?.id;
   if (email) {
-    retryLogin(3, 0, userId, email, true);
+    const profile = {};
+    try {
+      const firstName = typeof event.data.firstName === 'string' ? event.data.firstName.trim() : '';
+      const lastName = typeof event.data.lastName === 'string' ? event.data.lastName.trim() : '';
+      const name = [firstName, lastName].filter(Boolean).join(' ');
+      const phone = typeof event.data.phone === 'string' ? event.data.phone.trim() : '';
+
+      if (name) {
+        profile.name = name;
+      }
+      if (phone) {
+        profile.phone = phone;
+      }
+    } catch (error) {
+      window.gsLog?.('Error extracting VTEX customer profile', error);
+    }
+
+    retryLogin(3, 0, userId, email, true, profile);
   } else {
     logoutCurrentClient();
   }
@@ -170,9 +187,10 @@ function retryContentByContext(maxTries, attempt, pageType, options) {
     });
 }
 
-function retryLogin(maxTries, attempt, id, email, updateCartFromCustomer) {
+function retryLogin(maxTries, attempt, id, email, updateCartFromCustomer, profile = {}) {
   login(id, {
     email,
+    ...profile,
     param_updateCartFromCustomer: updateCartFromCustomer
   })
     .then(() => {
@@ -180,7 +198,7 @@ function retryLogin(maxTries, attempt, id, email, updateCartFromCustomer) {
     })
     .catch(() => {
       if (attempt + 1 < maxTries) {
-        setTimeout(() => retryLogin(maxTries, attempt + 1, id, email, updateCartFromCustomer), RETRY_DELAY);
+        setTimeout(() => retryLogin(maxTries, attempt + 1, id, email, updateCartFromCustomer, profile), RETRY_DELAY);
       }
     });
 }
@@ -241,4 +259,3 @@ function logoutCurrentClient() {
     window.gsLog?.('Error logging out client', error);
   });
 }
-
