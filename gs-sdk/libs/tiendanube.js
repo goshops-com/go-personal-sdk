@@ -500,7 +500,73 @@
     console.log("Cart monitoring started");
   }
 
-  // Start the initialization process
+  // --- checkout shortcut ---------------------------------------------------
+  //
+  // Links can carry `?gsCheckout=1` to send the shopper straight to the
+  // checkout of the cart this browser already holds. The cart belongs to the
+  // store session cookie, so on another device there is nothing to check out
+  // and the shopper simply stays on the page.
+
+  const CHECKOUT_PARAM = "gsCheckout";
+
+  function hasCartItems() {
+    const cart = typeof LS !== "undefined" ? LS.cart : null;
+    if (!cart || !cart.id) {
+      return false;
+    }
+    return (cart.items || []).length + (cart.grouped_items || []).length > 0;
+  }
+
+  // Submits what the theme's "Iniciar compra" button submits, so the platform
+  // keeps building the checkout URL and running its own checks. The platform
+  // does not check for items itself: an empty session gets a fresh cart and
+  // is still sent to the checkout, hence `hasCartItems()` first.
+  function submitCheckoutForm() {
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = "/comprar/";
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "go_to_checkout";
+    input.value = "1";
+    form.appendChild(input);
+    (document.body || document.documentElement).appendChild(form);
+    form.submit();
+  }
+
+  // Returns true when the page is leaving for the checkout, so the bootstrap
+  // can skip loading the SDK.
+  function redirectToCheckoutIfRequested() {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get(CHECKOUT_PARAM) !== "1") {
+        return false;
+      }
+
+      // Drop the flag before leaving: going back from the checkout, or
+      // reloading after an ajax add to cart, must not bounce the shopper into
+      // the checkout again.
+      url.searchParams.delete(CHECKOUT_PARAM);
+      history.replaceState(history.state, "", url.toString());
+
+      if (!hasCartItems()) {
+        console.log("Checkout requested with an empty cart, staying on the page");
+        return false;
+      }
+
+      submitCheckoutForm();
+      return true;
+    } catch (error) {
+      console.error("Error redirecting to checkout:", error);
+      return false;
+    }
+  }
+
+  // Start the initialization process. The redirect runs first so the flag is
+  // removed before `setupUrlChangeDetection()` wraps `history.replaceState`.
+  if (redirectToCheckoutIfRequested()) {
+    return;
+  }
   setupUrlChangeDetection();
   captureAccountForms();
   loadGSSDK();
