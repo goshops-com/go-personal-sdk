@@ -743,7 +743,25 @@ export const createContentImpression = async (impressionId, impression = {}) => 
       window.gsImpressionIds.push(impressionId);
     }
 
-    return await httpPost(`/personal/impression`, payload);
+    const response = await httpPost(`/personal/impression`, payload);
+
+    // El server deriva el id de sesion + contenido, asi que no tiene por que
+    // coincidir con el que viajaba en la pagina (en un contenido con `cache` ese
+    // id es el mismo para todos los visitantes). Se guarda el que devolvio, que
+    // es el de la fila que quedo creada, para que el click la encuentre.
+    const createdImpressionId = response && response.impressionId;
+    if (createdImpressionId && createdImpressionId !== impressionId) {
+      setContentImpression(contentKey, createdImpressionId, true);
+
+      if (
+        Array.isArray(window.gsImpressionIds) &&
+        !window.gsImpressionIds.includes(createdImpressionId)
+      ) {
+        window.gsImpressionIds.push(createdImpressionId);
+      }
+    }
+
+    return response;
   } catch (error) {
     console.error("Error creating content impression:", error);
     return;

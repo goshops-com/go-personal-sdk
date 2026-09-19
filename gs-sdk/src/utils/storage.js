@@ -252,14 +252,17 @@ export const getContentImpression = (contentKey) => {
   return readContentImpressions().items[contentKey] || null;
 };
 
-export const setContentImpression = (contentKey, impressionId) => {
+// `overwrite` es para reemplazar el id provisorio por el que devuelve el server
+// una vez que la impresion se creo. Por defecto no pisa: el primer valor es el
+// que corta los reenvios de la sesion.
+export const setContentImpression = (contentKey, impressionId, overwrite = false) => {
   if (!contentKey || !impressionId) {
     return;
   }
 
   try {
     const stored = readContentImpressions();
-    if (stored.items[contentKey]) {
+    if (stored.items[contentKey] && !overwrite) {
       return;
     }
 
