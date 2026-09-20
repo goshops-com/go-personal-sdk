@@ -653,6 +653,8 @@ function canShowContent(frequency, contentId) {
           nextTime = true;
         }
         break;
+      case "always":
+        return true;
       default:
         return false;
     }

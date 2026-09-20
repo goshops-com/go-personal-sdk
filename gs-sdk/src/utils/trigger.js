@@ -42,6 +42,21 @@ export const suscribe = (content, cb) => {
             cb(html, js); // Call the callback function when the mouse is moved over the element
           });
         }
+    }else if (trigger.id === 'scroll') {
+        const threshold = parseInt(trigger.value) || 50;
+        let fired = false;
+        const onScroll = () => {
+          if (fired) return;
+          const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+          const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+          if (docHeight > 0 && (scrollTop / docHeight) * 100 >= threshold) {
+            fired = true;
+            window.removeEventListener('scroll', onScroll);
+            cb(html, js);
+          }
+        };
+        window.addEventListener('scroll', onScroll);
+        onScroll();
     }else if (trigger.id === 'page_load'){
         console.log('page_load');
         cb(html, js);
