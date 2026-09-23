@@ -1,5 +1,54 @@
 import { subscribeToTask } from './queue'
 
+// A page that opens with the cursor already outside (or on the tab strip) would
+// otherwise fire on load.
+export const EXIT_INTENT_ARM_DELAY_MS = 1000;
+
+/**
+ * "Al intentar irse". Until 2026-09 this set a `beforeunload` returnValue: it
+ * never showed the popup at all, only the browser's own "Leave site?" dialog —
+ * on checkout pages too.
+ *
+ * Fires once, on the first of:
+ *  - the cursor leaving the window through the top (toward the tabs, the URL
+ *    bar or the close button), the usual desktop signal;
+ *  - the visitor coming back after switching to another tab or app — phones
+ *    have no cursor, and this is the cleanest "they left" signal there. The
+ *    back-button trick (pushing a fake history entry) is avoided on purpose: it
+ *    pollutes history and fights the stores' SPA routers.
+ */
+export const onExitIntent = (fire, { armDelayMs = EXIT_INTENT_ARM_DELAY_MS } = {}) => {
+    let done = false;
+    let armed = false;
+    let wentAway = false;
+
+    const onMouseOut = (e) => {
+        // relatedTarget is null only when the pointer left the document itself.
+        if (!armed || e.relatedTarget || e.clientY > 0) return;
+        trigger();
+    };
+
+    const onVisibilityChange = () => {
+        if (document.visibilityState === 'hidden') {
+            wentAway = true;
+        } else if (wentAway) {
+            trigger();
+        }
+    };
+
+    const trigger = () => {
+        if (done) return;
+        done = true;
+        document.removeEventListener('mouseout', onMouseOut);
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+        fire();
+    };
+
+    setTimeout(() => { armed = true; }, armDelayMs);
+    document.addEventListener('mouseout', onMouseOut);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+};
+
 export const suscribe = (content, cb) => {
     const trigger = content.trigger;
     const html = content.contentValue.html;
@@ -18,13 +67,7 @@ export const suscribe = (content, cb) => {
         cb(html, js); // Call the callback function after the specified number of seconds
       }, seconds * 1000);
     }else if (trigger.id === 'exit_intent') {
-        // Attach an event listener to the beforeunload event
-        return window.addEventListener('beforeunload', (e) => {
-          // You can also show a confirmation dialog to the user
-          const confirmationMessage = js || 'Are you sure you want to leave?';
-          (e || window.event).returnValue = confirmationMessage; // For old browsers
-          return confirmationMessage;
-        });
+        onExitIntent(() => cb(html, js));
     }else if (trigger.id === 'click_element') {
         // Get the element using the selector from trigger.value
         const element = document.querySelector(trigger.value);
