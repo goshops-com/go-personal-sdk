@@ -555,14 +555,16 @@ async function addContentToWebsite(content, options) {
       if (types.includes(content.type)) {
         const canShow = canShowContent(content.frequency, content.experienceId);
 
+        // The script expects its markup in the page, so it goes in only after
+        // the HTML landed. Before, the two raced (setTimeout vs rAF) and on
+        // mouse- and scroll-triggered popups the script usually won: it found
+        // nothing and silently left a dead popup.
         if (options.forceShow) {
-          addHTMLToBody(html);
-          addJavaScriptToBody(js, content.key);
+          addHTMLToBody(html).then(() => addJavaScriptToBody(js, content.key));
         } else {
           if (canShow && !notAutomatic) {
             suscribe(content, function (html, js) {
-              addHTMLToBody(html);
-              addJavaScriptToBody(js, content.key);
+              addHTMLToBody(html).then(() => addJavaScriptToBody(js, content.key));
             });
           }
         }

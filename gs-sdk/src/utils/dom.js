@@ -85,21 +85,28 @@ export const addHTMLToDiv = async (html, selector, selectorPosition, options = {
     }
 }
 
+/**
+ * Resolves once the HTML is in the page. Callers that also inject a script
+ * must wait for it: the script goes in on requestAnimationFrame and could run
+ * before this setTimeout, find none of its markup and silently do nothing —
+ * which is what happened to popups whose script didn't poll for its HTML.
+ */
 export const addHTMLToBody = (html) => {
     // Check if html is undefined, an empty string, or the string "undefined"
     if (html == undefined || html == "" || html == "undefined") {
-        return; // Ignore and exit the function
+        return Promise.resolve(); // Ignore and exit the function
     }
 
     const bodyElement = document.body;
-    if (bodyElement) {
-        (async () => {
-            await new Promise(resolve => setTimeout(resolve, 0)); // Yield control to the UI thread
-            bodyElement.insertAdjacentHTML('beforeend', html);
-        })();
-    } else {
+    if (!bodyElement) {
         console.error('Body element not found.');
+        return Promise.resolve();
     }
+
+    return (async () => {
+        await new Promise(resolve => setTimeout(resolve, 0)); // Yield control to the UI thread
+        bodyElement.insertAdjacentHTML('beforeend', html);
+    })();
 };
 
 export const addJavaScriptToBody = (jsCode, id = undefined) => {
