@@ -118,7 +118,12 @@ export const addJavaScriptToBody = (jsCode, id = undefined) => {
     if (id) {
         scriptElement.id = `gopersonal-script-${id}`;
     }
-    scriptElement.textContent = `try {\n${jsCode}\n} catch (e) { console.error('[gopersonal] content script error${id ? ' ' + id : ''}', e); }`;
+    const executed = window.__gsExecutedScripts = window.__gsExecutedScripts || new Set();
+    const scriptKey = id || jsCode;
+    scriptElement.textContent = executed.has(scriptKey)
+        ? `try {\n${jsCode}\n} catch (e) { console.error('[gopersonal] content script error${id ? ' ' + id : ''}', e); }`
+        : jsCode;
+    executed.add(scriptKey);
 
     const bodyElement = document.body;
     if (bodyElement) {
