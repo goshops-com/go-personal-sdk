@@ -118,7 +118,7 @@ export const addJavaScriptToBody = (jsCode, id = undefined) => {
     if (id) {
         scriptElement.id = `gopersonal-script-${id}`;
     }
-    scriptElement.textContent = jsCode;
+    scriptElement.textContent = `try {\n${jsCode}\n} catch (e) { console.error('[gopersonal] content script error${id ? ' ' + id : ''}', e); }`;
 
     const bodyElement = document.body;
     if (bodyElement) {

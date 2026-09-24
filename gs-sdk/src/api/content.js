@@ -7,7 +7,7 @@ import {
   deleteGoPersonalElements,
 } from "../utils/dom";
 import { previewVariant, getParam } from "../utils/urlParam";
-import { suscribe } from "../utils/trigger";
+import { suscribe, clearPendingTriggers } from "../utils/trigger";
 import {
   getSession,
   getContentImpression,
@@ -196,6 +196,7 @@ export const getContentByContext = async (context, options = {}) => {
 
   try {
     if (options.singlePage) {
+      clearPendingTriggers();
       deleteGoPersonalElements();
     }
   } catch (e) {
@@ -839,6 +840,7 @@ export const observeElementInView = (elementId, impressionId, callback) => {
 };
 
 export const cleanContent = () => {
+  clearPendingTriggers();
   deleteGoPersonalElements();
 };
 

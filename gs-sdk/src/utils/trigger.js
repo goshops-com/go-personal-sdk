@@ -49,6 +49,20 @@ export const onExitIntent = (fire, { armDelayMs = EXIT_INTENT_ARM_DELAY_MS } = {
     document.addEventListener('visibilitychange', onVisibilityChange);
 };
 
+let pendingTriggers = [];
+
+export const clearPendingTriggers = () => {
+    const cleanups = pendingTriggers;
+    pendingTriggers = [];
+    cleanups.forEach((cleanup) => {
+        try {
+            cleanup();
+        } catch (e) {
+            console.error(e);
+        }
+    });
+};
+
 export const suscribe = (content, cb) => {
     const trigger = content.trigger;
     const html = content.contentValue.html;
@@ -63,9 +77,11 @@ export const suscribe = (content, cb) => {
     if (trigger.id === 'wait') {
       const seconds = parseInt(trigger.value) || 0;
   
-      return setTimeout(() => {
+      const timer = setTimeout(() => {
         cb(html, js); // Call the callback function after the specified number of seconds
       }, seconds * 1000);
+      pendingTriggers.push(() => clearTimeout(timer));
+      return timer;
     }else if (trigger.id === 'exit_intent') {
         onExitIntent(() => cb(html, js));
     }else if (trigger.id === 'click_element') {
@@ -88,18 +104,35 @@ export const suscribe = (content, cb) => {
     }else if (trigger.id === 'scroll') {
         const threshold = parseInt(trigger.value) || 50;
         let fired = false;
-        const onScroll = () => {
+        let ticking = false;
+        const check = () => {
+          ticking = false;
           if (fired) return;
-          const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-          const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-          if (docHeight > 0 && (scrollTop / docHeight) * 100 >= threshold) {
-            fired = true;
-            window.removeEventListener('scroll', onScroll);
-            cb(html, js);
+          try {
+            const root = document.documentElement || document.body;
+            if (!root) return;
+            const scrollTop = window.pageYOffset || root.scrollTop || 0;
+            const docHeight = root.scrollHeight - (window.innerHeight || root.clientHeight);
+            if (docHeight > 0 && (scrollTop / docHeight) * 100 >= threshold) {
+              fired = true;
+              window.removeEventListener('scroll', onScroll);
+              cb(html, js);
+            }
+          } catch (e) {
+            console.error('[gopersonal] scroll trigger error', e);
           }
         };
-        window.addEventListener('scroll', onScroll);
-        onScroll();
+        const onScroll = () => {
+          if (fired || ticking) return;
+          ticking = true;
+          requestAnimationFrame(check);
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        pendingTriggers.push(() => {
+          fired = true;
+          window.removeEventListener('scroll', onScroll);
+        });
+        check();
     }else if (trigger.id === 'page_load'){
         console.log('page_load');
         cb(html, js);
