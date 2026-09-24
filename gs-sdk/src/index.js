@@ -1,6 +1,6 @@
 import {
   login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, findLastInteractions, reorderCategories, getItems, search, searchAnswer, searchRedirect, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
-  getRanking, reRank, setPreferences, updateState, getItemById, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, addItemFeedback, getItemFeedbackSummary, getItemFeedbackComments, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData, getSearchHistory, getTopSearches
+  getRanking, reRank, setPreferences, updateState, getItemById, getItemsByIds, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, addItemFeedback, getItemFeedbackSummary, getItemFeedbackComments, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData, getSearchHistory, getTopSearches
 } from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent, createContentImpression, clickContentImpression, getContentImpressionId, trackURLClicked, sendContentEvent, initPreviewListener, invalidateContentCache, purgeContentCache, getSeenContents } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
@@ -227,6 +227,8 @@ const GSSDK = async (clientId, options = {}) => {
       loadPlugin: (name, external = true) => loadPlugin(name, external),
       getCount: (params) => getCount(params),
       getItemById: (id) => getItemById(id),
+      getItemsByIds: (ids, options = {}) => getItemsByIds(ids, options),
+      getItemsByParentIds: (parentIds) => getItemsByIds(parentIds, { field: 'parent_id' }),
       getRanking: (ranking, params) => getRanking(ranking, params),
       reRank: (ranking, params) => reRank(ranking, params),
       getFieldValues: (params) => getFieldValues(params),

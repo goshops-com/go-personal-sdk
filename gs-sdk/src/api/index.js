@@ -851,6 +851,28 @@ export const getItemById = async (id) => {
   return httpGet(`/item/${id}`);
 };
 
+// Products by id or parent_id, in the order asked for. Unknown or inactive ids
+// are skipped; a parent_id returns every active variant under it. Use this to
+// hydrate products a widget already knows (metafields, sibling colours) instead
+// of a recommendation call with a {$in: ids} filter: the server caches per
+// product, so it stays cheap however many different lists shoppers produce.
+const ITEMS_BY_IDS_BATCH = 250;
+
+export const getItemsByIds = async (ids, options = {}) => {
+  const field = options.field === 'parent_id' ? 'parent_id' : 'id';
+  const unique = [...new Set((ids || [])
+    .filter((v) => v !== null && v !== undefined && v !== '')
+    .map(String))];
+  if (!unique.length) return [];
+
+  const batches = [];
+  for (let i = 0; i < unique.length; i += ITEMS_BY_IDS_BATCH) {
+    batches.push(unique.slice(i, i + ITEMS_BY_IDS_BATCH));
+  }
+  const pages = await Promise.all(batches.map((batch) => httpPost('/item/by-ids', { ids: batch, field })));
+  return pages.flatMap((page) => (page && Array.isArray(page.resultData) ? page.resultData : []));
+};
+
 export const getRanking = async (ranking, params) => {
   const q = jsonToQueryString(params || {});
   return httpGet(`/item/ranking/${ranking}/${q}`);
