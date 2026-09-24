@@ -399,6 +399,17 @@ export const clearSharedSession = (clientId) => {
   clearToken(clientId);
 };
 
+// Adds the init provider (lowercase, e.g. "vtex") unless the payload already
+// has one. The API uses it to handle platform quirks, like VTEX pixel prices
+// coming in cents, without per-project lists.
+const withProvider = (data = {}) => {
+  const provider = window.gsConfig?.options?.provider;
+  if (!provider || !data || typeof data !== "object" || data.provider) {
+    return data;
+  }
+  return { ...data, provider: String(provider).toLowerCase() };
+};
+
 export const login = (id, data = {}) => {
   addDataToSession("customer_id", id);
   if (data.email) {
@@ -488,7 +499,7 @@ export const addInteraction = (interactionData) => {
     };
   }
 
-  return httpPost(`/interaction`, interactionData);
+  return httpPost(`/interaction`, withProvider(interactionData));
 };
 
 export const addInteractionState = (state, options = {}) => {
@@ -508,7 +519,7 @@ export const addInteractionState = (state, options = {}) => {
   // Cart/purchase changes should refresh recommendations
   invalidateContentCache();
 
-  return httpPost(`/interaction/state/${state}`, options);
+  return httpPost(`/interaction/state/${state}`, withProvider(options));
 };
 
 export const findState = () => {
@@ -572,7 +583,7 @@ export const addBulkInteractions = (interactions) => {
 
   return httpPost(`/interaction/bulk`, {
     transactionId: id,
-    events: interactions,
+    events: interactions.map((interaction) => withProvider(interaction)),
   });
 };
 

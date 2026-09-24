@@ -4,6 +4,8 @@ import { getContentByContext } from '../api/content';
 
 const EMBEDDED_FLAG = '__gsIntegrationListener';
 const RETRY_DELAY = 100;
+// VTEX pixel events carry prices in cents; the API reads this to handle them.
+const PROVIDER = 'vtex';
 
 export function onVtexEmbeddedInit() {
   if (typeof window === 'undefined') {
@@ -121,7 +123,8 @@ function handleAddToCart(event) {
     event: 'cart',
     item: item.productId,
     quantity: item.quantity,
-    price: item.price
+    price: item.price,
+    provider: PROVIDER
   });
 }
 
@@ -135,7 +138,8 @@ function handleRemoveFromCart(event) {
     event: 'remove-cart',
     item: item.productId,
     quantity: item.quantity,
-    price: item.price
+    price: item.price,
+    provider: PROVIDER
   });
 }
 
@@ -162,7 +166,7 @@ function handleCartChanged(event) {
 
 function handleOrderPlaced(event) {
   const transactionId = event?.data?.transactionId;
-  const payload = transactionId ? { transactionId } : {};
+  const payload = transactionId ? { transactionId, provider: PROVIDER } : { provider: PROVIDER };
   addInteractionState('cart', payload);
 }
 
