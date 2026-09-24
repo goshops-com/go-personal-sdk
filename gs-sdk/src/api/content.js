@@ -42,6 +42,14 @@ function getDraftContentId() {
   return window.gsConfig?.draftContentId || null;
 }
 
+// Variante forzada: ?gsVariantId=<variantId> (preview de una variante desde el admin).
+// Viaja como `variantId` en los POST y discover la sirve en el contenido que la
+// tiene, sin audiencias ni A/B; el resto de la pagina sale normal. Mientras
+// venga no se usan las rutas cacheadas, que no la conocen.
+function getForcedVariantId() {
+  return getParam("gsVariantId");
+}
+
 // Publicacion programada: el content viene publicado (status 1) con un rango
 // `publishAt` / `publishUntil` (ISO UTC, cualquiera puede ser null). Solo si
 // trae alguna fecha se valida en local, contra el reloj del navegador, antes
@@ -162,9 +170,13 @@ export const getContentByContext = async (context, options = {}) => {
   const draftContentId = getDraftContentId();
   const draftAll = !draftContentId && (includeDraft || includeDraftParam == "true");
   const draftKey = draftAll ? "all" : draftContentId || false;
+  const forcedVariantId = getForcedVariantId();
   let url = `/personal/content-page?pageType=${context}`;
   if (draftAll) {
     url += "&includeDraft=true";
+  }
+  if (forcedVariantId) {
+    url += `&variantId=${encodeURIComponent(forcedVariantId)}`;
   }
 
   if (!sessionObj || !sessionObj.project) {
@@ -174,9 +186,10 @@ export const getContentByContext = async (context, options = {}) => {
 
   let result;
 
-  if (gsDebug || draftAll || draftContentId) {
+  if (gsDebug || draftAll || draftContentId || forcedVariantId) {
     const payload = buildContextPayload(options);
-    result = await obtainContentByContext(url, payload, context, draftKey);
+    const cacheScope = forcedVariantId ? `${draftKey}_${forcedVariantId}` : draftKey;
+    result = await obtainContentByContext(url, payload, context, cacheScope);
   } else {
     try {
       let getURL = `/public/cached-content/${sessionObj.project}/?pageType=${context}`;
@@ -352,12 +365,14 @@ export const getContent = async (contentId, options) => {
 
   // we need to check if we are on preview or not.
   const prevVarId = previewVariant();
+  const forcedVariantId = getForcedVariantId();
+  const usePostCache = ENABLE_CONTENT_POST_CACHE && !forcedVariantId;
 
   let content;
 
   const sessionObj = getSession();
 
-  if (options.cache && sessionObj.project && !gsDebug && !singleDraftContent) {
+  if (options.cache && sessionObj.project && !gsDebug && !singleDraftContent && !forcedVariantId) {
     content = await httpPublicGet(
       `/public/cached-content/${sessionObj.project}/${contentId}`,
     );
@@ -372,6 +387,9 @@ export const getContent = async (contentId, options) => {
       }
       if (options.impressionStatus) {
         params.append("impressionStatus", options.impressionStatus);
+      }
+      if (forcedVariantId) {
+        params.append("variantId", forcedVariantId);
       }
 
       if (sessionObj && sessionObj.project) {
@@ -389,7 +407,7 @@ export const getContent = async (contentId, options) => {
 
       if (useClientSideRender) {
         let data;
-        const cached = ENABLE_CONTENT_POST_CACHE
+        const cached = usePostCache
           ? getCachedContent(contentId, options)
           : null;
 
@@ -398,7 +416,7 @@ export const getContent = async (contentId, options) => {
         } else {
           const result = await httpPost(url, payload);
           data = result.data;
-          if (ENABLE_CONTENT_POST_CACHE && data?.variantId) {
+          if (usePostCache && data?.variantId) {
             setCachedContent(contentId, options, data);
           }
         }
