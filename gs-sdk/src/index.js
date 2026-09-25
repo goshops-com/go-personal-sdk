@@ -19,6 +19,7 @@ import { scheduleVtexPdpFallback } from './vendors/vtexPdpFallback';
 import { getParam, previewVariant } from './utils/urlParam';
 import { initElementSelectorPicker } from './utils/elementSelectorPicker';
 import { initVariantEditor } from './utils/variantEditor';
+import { track, flushEvents } from './api/events';
 
 //plugins
 
@@ -276,6 +277,8 @@ const GSSDK = async (clientId, options = {}) => {
       parseItemsForGA4: (items, listName) => parseItemsForGA4(items, listName),
       trackGopersonalToDataLayer: (params) => trackGopersonalToDataLayer(params),
       invalidateContentCache: () => invalidateContentCache(),
+      track: (event, props = {}, options = {}) => track(event, props, options),
+      flushEvents: () => flushEvents(),
     };
     
 };
