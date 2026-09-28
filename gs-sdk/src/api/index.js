@@ -728,12 +728,21 @@ export const searchAutoFilter = async (filters, input) => {
  * `suggestions` y las categorías relacionadas se completan solo en los proyectos que tienen el
  * clasificador de búsquedas entrenado y activado; en el resto vienen vacías.
  * options.limit: cantidad de marcas/categorías (1-20, default 8).
+ * options.suggestionsOnly: true = solo `suggestions` (sin marcas ni categorías, más rápido).
+ * options.relatedCategories (0-9) y options.minRelatedScore (0-1): pisan la cantidad y el parecido
+ *   mínimo de las categorías relacionadas configurados en el proyecto (para probar valores).
  */
 export const searchAutocomplete = async (query, options = {}) => {
   let limit = options.limit != null ? Number(options.limit) : 8;
   if (!Number.isInteger(limit) || limit < 1) limit = 8;
   if (limit > 20) limit = 20;
-  return httpGet(`/item/search-filter-facelets?mode=autocomplete&limit=${limit}&query=${encodeURIComponent(query || "")}`);
+  let extra = "";
+  // Solo búsquedas sugeridas (sin marcas ni categorías).
+  if (options.suggestionsOnly) extra += "&suggestionsOnly=1";
+  // Overrides para probar valores: cantidad de categorías relacionadas y parecido mínimo (0-1).
+  if (options.relatedCategories != null) extra += `&relatedCategories=${Number(options.relatedCategories)}`;
+  if (options.minRelatedScore != null) extra += `&minRelatedScore=${Number(options.minRelatedScore)}`;
+  return httpGet(`/item/search-filter-facelets?mode=autocomplete&limit=${limit}${extra}&query=${encodeURIComponent(query || "")}`);
 };
 
 export const searchFilterFacelets = async (query = undefined) => {
