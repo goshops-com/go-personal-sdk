@@ -719,6 +719,23 @@ export const searchAutoFilter = async (filters, input) => {
   return httpPost(endpoint, payload);
 };
 
+/**
+ * Autocomplete del buscador (lo que se muestra mientras la persona escribe):
+ *   { suggestions: [{ query, count }],   búsquedas reales que completan lo escrito, las más hechas primero
+ *     brands: [{ value, count }],        marcas de lo buscado, ordenadas por popularidad
+ *     categories: [{ value, ... }],      categoría principal y relacionadas
+ *     relaxed, unknown, intent, totalHits }
+ * `suggestions` y las categorías relacionadas se completan solo en los proyectos que tienen el
+ * clasificador de búsquedas entrenado y activado; en el resto vienen vacías.
+ * options.limit: cantidad de marcas/categorías (1-20, default 8).
+ */
+export const searchAutocomplete = async (query, options = {}) => {
+  let limit = options.limit != null ? Number(options.limit) : 8;
+  if (!Number.isInteger(limit) || limit < 1) limit = 8;
+  if (limit > 20) limit = 20;
+  return httpGet(`/item/search-filter-facelets?mode=autocomplete&limit=${limit}&query=${encodeURIComponent(query || "")}`);
+};
+
 export const searchFilterFacelets = async (query = undefined) => {
   const endpoint = "/item/search-filter-facelets";
   const queryParam = query ? `?query=${encodeURIComponent(query)}` : "";
