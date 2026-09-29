@@ -708,7 +708,6 @@ export const openImpression = async (impressionId) => {
       return;
     }
 
-    window.gsImpressionIds.push(impressionId);
     return await httpPatch(`/personal/impression/${impressionId}`, {
       status: "opened",
     });
@@ -769,13 +768,11 @@ export const createContentImpression = async (impressionId, impression = {}) => 
 
     setContentImpression(contentKey, impressionId);
 
-    if (
-      Array.isArray(window.gsImpressionIds) &&
-      !window.gsImpressionIds.includes(impressionId)
-    ) {
-      window.gsImpressionIds.push(impressionId);
-    }
-
+    // No se agrega a window.gsImpressionIds: esa lista es la de las impresiones de
+    // RECOMENDACIÓN (openImpression). Las plantillas pasan el mismo {{gs_recoImpressionId}}
+    // a las dos, y si esta lo agregaba, openImpression lo daba por hecho y la
+    // recomendación se quedaba sin métricas. La de personalización ya se deduplica por
+    // contenido y sesión con setContentImpression.
     const response = await httpPost(`/personal/impression`, payload);
 
     // El server deriva el id de sesion + contenido, asi que no tiene por que
@@ -785,13 +782,6 @@ export const createContentImpression = async (impressionId, impression = {}) => 
     const createdImpressionId = response && response.impressionId;
     if (createdImpressionId && createdImpressionId !== impressionId) {
       setContentImpression(contentKey, createdImpressionId, true);
-
-      if (
-        Array.isArray(window.gsImpressionIds) &&
-        !window.gsImpressionIds.includes(createdImpressionId)
-      ) {
-        window.gsImpressionIds.push(createdImpressionId);
-      }
     }
 
     return response;
