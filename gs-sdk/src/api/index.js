@@ -775,7 +775,8 @@ const menuOrderMemo = new Map();
  * Devuelve { items: menu reordenado, order: índices del menú original, promoted: índices que
  * subieron, mapped }. mapped false = el server todavía no mapeó ese menú (lo hace en segundo
  * plano, la próxima llamada ya viene ordenada). Nunca rechaza: ante error o timeout devuelve el
- * orden original. options.timeout en ms (default 1500).
+ * orden original. options.timeout en ms (default 1500). options.level: "suave" | "medio" |
+ * "alto" (cuántas opciones pueden subir; sin level, el del proyecto).
  */
 export const orderMenu = async (menu, options = {}) => {
   const entries = Array.isArray(menu) ? menu : [];
@@ -783,11 +784,13 @@ export const orderMenu = async (menu, options = {}) => {
   const same = (extra = {}) => ({ items: entries.slice(), order: entries.map((_, i) => i), promoted: [], mapped: false, ...extra });
   if (!labels.length || labels.some((label) => !label)) return same({ reason: "invalid_menu" });
 
-  // Una llamada por menú y página: el orden no cambia mientras la persona no navega.
-  const key = JSON.stringify(labels);
+  // Una respuesta definitiva por menú y página: ya ordenado, no cambia mientras la persona
+  // no navega.
+  const level = options.level ? String(options.level) : undefined;
+  const key = JSON.stringify([labels, level || ""]);
   if (!menuOrderMemo.has(key)) {
     const timeout = Number(options.timeout) > 0 ? Number(options.timeout) : MENU_ORDER_TIMEOUT_MS;
-    const request = httpPost("/menu/order", { menu: labels })
+    const request = httpPost("/menu/order", level ? { menu: labels, level } : { menu: labels })
       .catch((e) => {
         window.gsLog?.("orderMenu error", e);
         return null;
@@ -798,10 +801,18 @@ export const orderMenu = async (menu, options = {}) => {
     ]);
     // Si falló o tardó no se memoriza: la próxima llamada vuelve a intentar.
     if (!response) return same({ reason: "unavailable" });
+    // Tampoco las respuestas provisorias (menú todavía sin mapear, persona sin historial):
+    // cambian en segundos, y en la misma página la persona puede ver productos después.
+    if (!response.mapped || response.reason) {
+      return orderMenuResult(entries, response, same);
+    }
     menuOrderMemo.set(key, response);
   }
 
-  const response = menuOrderMemo.get(key);
+  return orderMenuResult(entries, menuOrderMemo.get(key), same);
+};
+
+const orderMenuResult = (entries, response, same) => {
   const order = Array.isArray(response.order) ? response.order : [];
   const valid = order.length === entries.length && new Set(order).size === order.length &&
     order.every((i) => Number.isInteger(i) && i >= 0 && i < entries.length);
