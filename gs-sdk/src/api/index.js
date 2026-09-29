@@ -763,6 +763,59 @@ export const searchAutocomplete = async (query, options = {}) => {
   return httpGet(`/item/search-filter-facelets?mode=autocomplete&limit=${limit}${extra}&query=${encodeURIComponent(query || "")}`);
 };
 
+const MENU_ORDER_TIMEOUT_MS = 1500;
+const menuOrderMemo = new Map();
+
+/**
+ * Ordena las opciones de un menú según la afinidad del usuario (POST /menu/order en discover).
+ *   const { items, promoted, mapped } = await gsSDK.orderMenu(["Electrohogar", "Televisores", ...]);
+ *   const { items } = await gsSDK.orderMenu(lis.map((el) => ({ label: el.textContent.trim(), el })));
+ * `menu` es un array de strings o de objetos con `label` (lo demás del objeto se devuelve tal cual,
+ * así se puede pasar el elemento del DOM y recibirlo ya ordenado).
+ * Devuelve { items: menu reordenado, order: índices del menú original, promoted: índices que
+ * subieron, mapped }. mapped false = el server todavía no mapeó ese menú (lo hace en segundo
+ * plano, la próxima llamada ya viene ordenada). Nunca rechaza: ante error o timeout devuelve el
+ * orden original. options.timeout en ms (default 1500).
+ */
+export const orderMenu = async (menu, options = {}) => {
+  const entries = Array.isArray(menu) ? menu : [];
+  const labels = entries.map((entry) => String((entry && typeof entry === "object" ? entry.label : entry) ?? "").trim());
+  const same = (extra = {}) => ({ items: entries.slice(), order: entries.map((_, i) => i), promoted: [], mapped: false, ...extra });
+  if (!labels.length || labels.some((label) => !label)) return same({ reason: "invalid_menu" });
+
+  // Una llamada por menú y página: el orden no cambia mientras la persona no navega.
+  const key = JSON.stringify(labels);
+  if (!menuOrderMemo.has(key)) {
+    const timeout = Number(options.timeout) > 0 ? Number(options.timeout) : MENU_ORDER_TIMEOUT_MS;
+    const request = httpPost("/menu/order", { menu: labels })
+      .catch((e) => {
+        window.gsLog?.("orderMenu error", e);
+        return null;
+      });
+    const response = await Promise.race([
+      request,
+      new Promise((resolve) => setTimeout(() => resolve(null), timeout)),
+    ]);
+    // Si falló o tardó no se memoriza: la próxima llamada vuelve a intentar.
+    if (!response) return same({ reason: "unavailable" });
+    menuOrderMemo.set(key, response);
+  }
+
+  const response = menuOrderMemo.get(key);
+  const order = Array.isArray(response.order) ? response.order : [];
+  const valid = order.length === entries.length && new Set(order).size === order.length &&
+    order.every((i) => Number.isInteger(i) && i >= 0 && i < entries.length);
+  if (!valid) return same({ reason: response.reason || "invalid_response" });
+
+  return {
+    items: order.map((i) => entries[i]),
+    order,
+    promoted: response.promoted || [],
+    mapped: !!response.mapped,
+    reason: response.reason,
+  };
+};
+
 export const searchFilterFacelets = async (query = undefined) => {
   const endpoint = "/item/search-filter-facelets";
   const queryParam = query ? `?query=${encodeURIComponent(query)}` : "";
