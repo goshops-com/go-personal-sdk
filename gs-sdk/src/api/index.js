@@ -28,6 +28,7 @@ import {
 import { setupContentSelector } from "../utils/configure";
 import { getContentByContext, invalidateContentCache } from "./content";
 import { getProductUrlLookup } from "../utils/productLookup";
+import { notifyCartInteraction } from "./cart";
 import { getSharedToken, clearToken } from "../utils/session";
 import { initVendorFenicio } from "../vendors/fenicio";
 import { subscribeQueue } from "../utils/queue";
@@ -517,7 +518,9 @@ export const addInteraction = (interactionData) => {
     };
   }
 
-  return httpPost(`/interaction`, withProvider(interactionData));
+  const request = httpPost(`/interaction`, withProvider(interactionData));
+  request.then(() => notifyCartInteraction(interactionData.event)).catch(() => {});
+  return request;
 };
 
 export const addInteractionState = (state, options = {}) => {
@@ -599,10 +602,12 @@ export const addBulkInteractions = (interactions) => {
     type,
   });
 
-  return httpPost(`/interaction/bulk`, {
+  const request = httpPost(`/interaction/bulk`, {
     transactionId: id,
     events: interactions.map((interaction) => withProvider(interaction)),
   });
+  request.then(() => notifyCartInteraction(interactions.map((interaction) => interaction.event))).catch(() => {});
+  return request;
 };
 
 export const addFeedback = (feedbackData) => {

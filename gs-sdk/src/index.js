@@ -20,6 +20,7 @@ import { getParam, previewVariant } from './utils/urlParam';
 import { initElementSelectorPicker } from './utils/elementSelectorPicker';
 import { initVariantEditor } from './utils/variantEditor';
 import { track, flushEvents } from './api/events';
+import { getCart, onCartChange } from './api/cart';
 
 //plugins
 
@@ -222,6 +223,8 @@ const GSSDK = async (clientId, options = {}) => {
       searchFilterFacelets: (query = undefined) => searchFilterFacelets(query),
       searchAutocomplete: (query, options = {}) => searchAutocomplete(query, options),
       orderMenu: (menu, options = {}) => orderMenu(menu, options),
+      getCart: () => getCart(),
+      onCartChange: (callback) => onCartChange(callback),
       imageSearch: (formData, params) => imageSearch(formData, params),
       voiceSearch: (formData, params) => voiceSearch(formData, params),
       searchResult: (payload) => searchResult(payload),
