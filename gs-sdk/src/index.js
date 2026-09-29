@@ -1,6 +1,6 @@
 import {
   login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, findLastInteractions, reorderCategories, getItems, search, searchAnswer, searchRedirect, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
-  getRanking, reRank, setPreferences, updateState, getItemById, getItemsByIds, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, addItemFeedback, getItemFeedbackSummary, getItemFeedbackComments, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData, getSearchHistory, getTopSearches, searchAutocomplete, orderMenu
+  getRanking, reRank, setPreferences, updateState, getItemById, getItemsByIds, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, addItemFeedback, getItemFeedbackSummary, getItemFeedbackComments, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData, getSearchHistory, getTopSearches, searchAutocomplete, orderMenu, getLastInteraction
 } from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent, createContentImpression, clickContentImpression, getContentImpressionId, trackURLClicked, sendContentEvent, initPreviewListener, invalidateContentCache, purgeContentCache, getSeenContents } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
@@ -224,6 +224,7 @@ const GSSDK = async (clientId, options = {}) => {
       searchAutocomplete: (query, options = {}) => searchAutocomplete(query, options),
       orderMenu: (menu, options = {}) => orderMenu(menu, options),
       getCart: () => getCart(),
+      getLastInteraction: () => getLastInteraction(),
       onCartChange: (callback) => onCartChange(callback),
       imageSearch: (formData, params) => imageSearch(formData, params),
       voiceSearch: (formData, params) => voiceSearch(formData, params),

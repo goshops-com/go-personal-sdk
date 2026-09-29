@@ -518,10 +518,28 @@ export const addInteraction = (interactionData) => {
     };
   }
 
+  rememberInteraction(interactionData);
   const request = httpPost(`/interaction`, withProvider(interactionData));
   request.then(() => notifyCartInteraction(interactionData.event)).catch(() => {});
   return request;
 };
+
+// Última interacción de esta página, para plantillas que reaccionan a ella (ej. el pop-up
+// de sugerencias al agregar al carrito, disparado por "Interacción: carrito"). Del lado del
+// servidor la interacción se procesa unos segundos después, así que no se puede leer de ahí.
+const rememberInteraction = (interactionData) => {
+  if (!interactionData || !interactionData.event) return;
+  window.gsStore.lastInteraction = {
+    event: interactionData.event,
+    item: interactionData.item != null ? String(interactionData.item) : undefined,
+    preProcess: interactionData.preProcess,
+    fieldValue: interactionData.fieldValue,
+    quantity: interactionData.quantity,
+    at: Date.now(),
+  };
+};
+
+export const getLastInteraction = () => window.gsStore.lastInteraction || null;
 
 export const addInteractionState = (state, options = {}) => {
   window.gsStore.interactionCount++;
@@ -602,6 +620,7 @@ export const addBulkInteractions = (interactions) => {
     type,
   });
 
+  rememberInteraction(interactions[interactions.length - 1]);
   const request = httpPost(`/interaction/bulk`, {
     transactionId: id,
     events: interactions.map((interaction) => withProvider(interaction)),
