@@ -27,6 +27,7 @@ import {
 } from "../utils/urlParam";
 import { setupContentSelector } from "../utils/configure";
 import { getContentByContext, invalidateContentCache } from "./content";
+import { getProductUrlLookup } from "../utils/productLookup";
 import { getSharedToken, clearToken } from "../utils/session";
 import { initVendorFenicio } from "../vendors/fenicio";
 import { subscribeQueue } from "../utils/queue";
@@ -487,6 +488,23 @@ export const addInteraction = (interactionData) => {
     if (itemId) {
       trackGopersonalProductClickById(itemId, "Gopersonal - Search Results", 0);
     }
+  }
+
+  // Variante por URL (ver utils/productLookup): solo el view del producto de la
+  // pagina; si el server no la encuentra, queda el item que vino.
+  const productUrl = getProductUrlLookup();
+  if (
+    productUrl &&
+    interactionData.event == "view" &&
+    interactionData.item &&
+    !interactionData.preProcess &&
+    String(interactionData.item) === String(window.gsConfig?.options?.context?.product_id)
+  ) {
+    interactionData = {
+      ...interactionData,
+      preProcess: ["findItemByField:url"],
+      fieldValue: productUrl,
+    };
   }
 
   //exclude project with own sku resolution

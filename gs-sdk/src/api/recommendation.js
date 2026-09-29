@@ -1,4 +1,5 @@
 import { httpGet, httpPost, httpPatch } from "../utils/http";
+import { getProductUrlLookup } from "../utils/productLookup";
 
 export const bestProducts = async (options = {}) => {
   let q = "";
@@ -20,6 +21,11 @@ export const byContext = async (options = {}) => {
         productId: currentPageContext.product_id + "",
       },
     };
+    // Variante por URL (ver utils/productLookup): productId queda como fallback.
+    const productUrl = getProductUrlLookup();
+    if (productUrl) {
+      context.currentPage.preProcess = { field: "url", fieldValue: productUrl };
+    }
   }
 
   let filterVariable;

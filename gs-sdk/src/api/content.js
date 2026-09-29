@@ -23,6 +23,7 @@ import {
   invalidateContentCache,
   purgeContentCache,
 } from "../utils/contentCache";
+import { getProductUrlLookup } from "../utils/productLookup";
 
 const ENABLE_CONTENT_POST_CACHE = true;
 
@@ -367,6 +368,10 @@ export const getContent = async (contentId, options) => {
   const prevVarId = previewVariant();
   const forcedVariantId = getForcedVariantId();
   const usePostCache = ENABLE_CONTENT_POST_CACHE && !forcedVariantId;
+  // Con el lookup por URL, todas las variantes comparten el product_id del
+  // padre: la URL tiene que entrar en la key del cache.
+  const productUrl = options?.product_id ? getProductUrlLookup() : null;
+  const cacheOptions = productUrl ? { ...options, product_url: productUrl } : options;
 
   let content;
 
@@ -408,7 +413,7 @@ export const getContent = async (contentId, options) => {
       if (useClientSideRender) {
         let data;
         const cached = usePostCache
-          ? getCachedContent(contentId, options)
+          ? getCachedContent(contentId, cacheOptions)
           : null;
 
         if (cached) {
@@ -417,7 +422,7 @@ export const getContent = async (contentId, options) => {
           const result = await httpPost(url, payload);
           data = result.data;
           if (usePostCache && data?.variantId) {
-            setCachedContent(contentId, options, data);
+            setCachedContent(contentId, cacheOptions, data);
           }
         }
 
@@ -509,6 +514,11 @@ function buildContextPayload(options) {
   if (window.gsConfig?.options?.provider === "Luna" && getSession()?.project !== "672154a195567b6f32f56407" && currentPage.product_id) {
     const { product_id, ...rest } = currentPage;
     currentPage = { ...rest, preProcess: { field: "sku_list", fieldValue: String(product_id) } };
+  }
+  // Variante por URL (ver utils/productLookup): product_id queda como fallback.
+  const productUrl = currentPage.product_id ? getProductUrlLookup() : null;
+  if (productUrl && !currentPage.preProcess) {
+    currentPage.preProcess = { field: "url", fieldValue: productUrl };
   }
   return {
     context: {
