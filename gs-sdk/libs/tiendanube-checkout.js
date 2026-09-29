@@ -9,7 +9,8 @@
  *
  *   1. Recovers (or creates) the Gopersonal session token.
  *   2. Identifies the customer as soon as the checkout knows the email.
- *   3. Reports the purchase when the order is confirmed.
+ *   3. Sends the checkout cart as the customer's cart once identified.
+ *   4. Reports the purchase when the order is confirmed.
  *
  * It renders nothing — no UI slot is involved.
  */
@@ -37,6 +38,15 @@ const PURCHASE_FLAG_TTL_SECONDS = 7 * 24 * 60 * 60;
 // `customer:update` fires on every keystroke. Wait for the customer to stop
 // typing before identifying them so partial emails never become customers.
 const CUSTOMER_DEBOUNCE_MS = 1200;
+
+// The backend applies each cart interaction on top of the session state it
+// read when the request arrived, so two in flight overwrite each other. The
+// cart is sent one change at a time, waiting for each to land before reading
+// the session again.
+const CART_SYNC_SETTLE_MS = 1500;
+// A product the catalog cannot resolve never shows up in the session cart, so
+// it would be resent forever; give up on it after this many tries.
+const CART_SYNC_MAX_ATTEMPTS = 2;
 
 // Query params that may carry the order id on the success page.
 const ORDER_ID_QUERY_KEYS = ["order", "order_id", "orderId", "id"];
@@ -220,6 +230,20 @@ class GopersonalClient {
     return this.post("/channel/login", payload);
   }
 
+  // GET /channel/state — the session cart as the backend sees it.
+  getState() {
+    return this.request("GET", "/channel/state");
+  }
+
+  // POST /interaction/bulk with a single event, as the storefront does: the
+  // bulk endpoint skips the 2 s de-duplication of /interaction, which would
+  // swallow a retry of the same product.
+  addInteraction(event) {
+    return this.post("/interaction/bulk", {
+      events: [{ ...event, provider: PROVIDER }],
+    });
+  }
+
   // POST /interaction/state/cart — closes the purchase.
   //
   // `items` is the confirmed cart. The backend falls back to the cart it has
@@ -230,7 +254,11 @@ class GopersonalClient {
     return this.post("/interaction/state/cart", { transactionId, items });
   }
 
-  async post(endpoint, body, options = {}) {
+  post(endpoint, body, options = {}) {
+    return this.request("POST", endpoint, body, options);
+  }
+
+  async request(method, endpoint, body, options = {}) {
     const authenticated = options.authenticated !== false;
 
     if (authenticated && !this.token) {
@@ -238,16 +266,19 @@ class GopersonalClient {
       return null;
     }
 
-    const headers = { "Content-Type": "application/json" };
+    const headers = {};
+    if (body !== undefined) {
+      headers["Content-Type"] = "application/json";
+    }
     if (authenticated && this.token) {
       headers.Authorization = `Bearer ${this.token}`;
     }
 
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        method: "POST",
+        method,
         headers,
-        body: JSON.stringify(body),
+        body: body === undefined ? undefined : JSON.stringify(body),
       });
 
       if (response.status === 401) {
@@ -262,7 +293,9 @@ class GopersonalClient {
         return null;
       }
 
-      return await response.json();
+      // A session without state answers /channel/state with an empty body.
+      const text = await response.text();
+      return text ? JSON.parse(text) : {};
     } catch (error) {
       logError(`${endpoint} request failed`, error);
       return null;
@@ -274,8 +307,13 @@ class GopersonalClient {
  * Builds the /channel/login payload.
  *
  * Tiendanube emits partial customer state while an email is being typed. Only
- * a complete email identifies a customer, and the API needs it in both fields:
- * `customerId` selects/upserts the record and `email` persists the address.
+ * a complete email identifies a customer.
+ *
+ * Same contract as gs-sdk's `loginEmail()`: the email goes without a
+ * `customerId`, so the API resolves the customer by email. A shopper the
+ * storefront already identified keeps their numeric Tiendanube id, and only
+ * an email the API has never seen becomes a customer keyed by the email.
+ * Sending the email as `customerId` would split one shopper into two records.
  */
 function buildLoginPayload(customer) {
   const email = resolveEmail(customer);
@@ -286,7 +324,6 @@ function buildLoginPayload(customer) {
 
   const payload = {
     provider: PROVIDER,
-    customerId: email,
     email,
   };
 
@@ -407,6 +444,74 @@ function buildPurchaseItems(cartItems) {
   }));
 }
 
+/**
+ * The checkout cart grouped by product, which is how the session cart is
+ * keyed. Two variants of the same product add up to one line.
+ */
+function desiredCartProducts(cartItems) {
+  const products = new Map();
+  for (const item of cartItems || []) {
+    const id = `${item.product_id}`;
+    const quantity = Number(item.quantity) || 1;
+    const line = products.get(id);
+    if (line) {
+      line.quantity += quantity;
+    } else {
+      products.set(id, {
+        id,
+        variantId: `${item.variant_id}`,
+        quantity,
+        price: Number(item.price) || 0,
+      });
+    }
+  }
+  return products;
+}
+
+function sessionCartProducts(sessionState) {
+  const products = new Map();
+  for (const product of sessionState?.cart?.products || []) {
+    products.set(`${product.id}`, parseInt(product.quantity, 10) || 1);
+  }
+  return products;
+}
+
+/**
+ * The next interaction that brings the session cart closer to the checkout
+ * cart, or null when they match (or nothing left is worth retrying).
+ *
+ * `cart` goes with `fullOverride`, so it sets the quantity instead of adding
+ * to it and resending it after a lost write is harmless.
+ */
+function nextCartChange(desired, current, attempts) {
+  const canTry = (id) => (attempts.get(id) || 0) < CART_SYNC_MAX_ATTEMPTS;
+
+  for (const line of desired.values()) {
+    if (current.get(line.id) !== line.quantity && canTry(line.id)) {
+      return {
+        id: line.id,
+        event: {
+          event: "cart",
+          item: line.id,
+          preProcess: ["findItemByField:sku_list"],
+          fieldValue: line.variantId,
+          quantity: line.quantity,
+          price: line.price,
+          fullOverride: true,
+        },
+      };
+    }
+  }
+
+  for (const [id, quantity] of current) {
+    if (!desired.has(id) && canTry(id)) {
+      return { id, event: { event: "remove-cart", item: id, quantity } };
+    }
+  }
+
+  return null;
+}
+
 function resolveTransactionId(state) {
   const queries = (state.location && state.location.queries) || {};
   for (const key of ORDER_ID_QUERY_KEYS) {
@@ -475,6 +580,15 @@ class CheckoutApp {
     this.profileTimer = null;
     // Last order snapshot, to tell a real change from a repeated event.
     this.lastOrderSnapshot = null;
+    // The cart only becomes the customer's cart once the session carries the
+    // customer, so it is not sent before the login went through.
+    this.customerAttached = false;
+    // Running cart sync, and whether the cart changed while it ran.
+    this.cartSync = null;
+    this.cartSyncPending = false;
+    // After the purchase the backend empties the cart; sending it again would
+    // turn a completed order into an abandoned cart.
+    this.purchased = false;
   }
 
   start() {
@@ -513,6 +627,12 @@ class CheckoutApp {
     });
 
     this.listen("customer:update", (state) => this.handleCustomer(state));
+
+    this.listen("cart:update", (state) => {
+      if (this.customerAttached) {
+        this.syncCart(state);
+      }
+    });
 
     this.listen("order:update", (state) => this.handleOrder(state, "order:update"));
 
@@ -616,15 +736,16 @@ class CheckoutApp {
       return;
     }
 
-    await action(this.client);
+    const result = await action(this.client);
 
     if (!this.client.hasToken()) {
       log("Token was rejected, re-initializing the session and retrying once");
       this.sessionPromise = null;
       if (await this.ensureSession(state)) {
-        await action(this.client);
+        return action(this.client);
       }
     }
+    return result;
   }
 
   handleCustomer(state) {
@@ -671,7 +792,91 @@ class CheckoutApp {
     // a failed login is retried by the next state change anyway.
     this.lastLoginSignature = signature;
     log("Customer identified:", payload);
-    await this.withSession(state, (client) => client.login(payload));
+    const response = await this.withSession(state, (client) => client.login(payload));
+    if (!response) {
+      return;
+    }
+
+    this.customerAttached = true;
+    await this.syncCart(state);
+  }
+
+  /**
+   * Makes the session cart match the checkout cart. The backend copies every
+   * cart change of an identified session into the customer, which is what the
+   * abandoned-cart journeys read.
+   *
+   * Runs one sync at a time; a change arriving meanwhile triggers one more
+   * pass so the last cart always wins.
+   */
+  syncCart(state) {
+    if (this.cartSync) {
+      this.cartSyncPending = true;
+      return this.cartSync;
+    }
+
+    this.cartSync = (async () => {
+      do {
+        this.cartSyncPending = false;
+        await this.runCartSync(state);
+      } while (this.cartSyncPending);
+    })()
+      .catch((error) => logError("Cart sync failed", error))
+      .finally(() => {
+        this.cartSync = null;
+      });
+
+    return this.cartSync;
+  }
+
+  async runCartSync(fallbackState) {
+    const attempts = new Map();
+
+    for (;;) {
+      if (this.purchased) {
+        return;
+      }
+
+      // The cart may change while this runs, so read the latest one each pass.
+      const state = this.currentState() || fallbackState;
+      if (isPurchaseConfirmed(state)) {
+        return;
+      }
+
+      const sessionState = await this.withSession(state, (client) => client.getState());
+      if (!sessionState) {
+        return;
+      }
+
+      const change = nextCartChange(
+        desiredCartProducts(state.cart?.items),
+        sessionCartProducts(sessionState),
+        attempts
+      );
+      if (!change) {
+        log("Cart synced with the customer");
+        return;
+      }
+
+      attempts.set(change.id, (attempts.get(change.id) || 0) + 1);
+      log(`Cart sync: ${change.event.event} ${change.id}`, {
+        quantity: change.event.quantity,
+      });
+      await this.withSession(state, (client) => client.addInteraction(change.event));
+      await this.wait(CART_SYNC_SETTLE_MS);
+    }
+  }
+
+  currentState() {
+    try {
+      return this.nube.getState();
+    } catch (error) {
+      return null;
+    }
+  }
+
+  wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   async handleOrder(state, source) {
@@ -684,6 +889,7 @@ class CheckoutApp {
     if (!isPurchaseConfirmed(state)) {
       return;
     }
+    this.purchased = true;
 
     const transactionId = resolveTransactionId(state);
     if (!transactionId) {
