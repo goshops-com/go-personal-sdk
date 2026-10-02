@@ -16,6 +16,7 @@ import { installFenicio, installFenicioNavigationMonitor, processFenicioNavigati
 import { setSharedToken, getSharedToken } from './utils/session';
 import { onVtexEmbeddedInit } from './vendors/vtexEmbedded';
 import { scheduleVtexPdpFallback } from './vendors/vtexPdpFallback';
+import { installVtexCheckout } from './vendors/vtexCheckout';
 import { getParam, previewVariant } from './utils/urlParam';
 import { initElementSelectorPicker } from './utils/elementSelectorPicker';
 import { initVariantEditor } from './utils/variantEditor';
@@ -158,6 +159,10 @@ const GSSDK = async (clientId, options = {}) => {
 
   if (options && String(options.provider || '').toUpperCase() === 'VTEX' && options.singlePage) {
     try { scheduleVtexPdpFallback(); } catch (e) { window.gsLog?.('Error scheduling vtex pdp fallback', e); }
+  }
+
+  if (options && String(options.provider || '').toUpperCase() === 'VTEX') {
+    try { installVtexCheckout(options); } catch (e) { window.gsLog?.('Error installing vtex checkout', e); }
   }
 
   const sessionObj = getCustomerSession();
