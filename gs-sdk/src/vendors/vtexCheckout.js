@@ -3,13 +3,20 @@ import { loginEmail, addBulkInteractions, getState, getCustomerSession } from '.
 // VTEX checkout (checkout-ui v6). The IO pixel app does not run there, so a
 // guest who types their email and leaves is never identified and their cart
 // never becomes a customer cart. When the SDK is loaded on the checkout with
-// the VTEX provider, this module reads the orderForm, identifies the shopper by
-// email and keeps the session cart in line with the checkout cart.
+// the VTEX provider, this module identifies the shopper by email and keeps the
+// session cart in line with the checkout cart.
+//
+// The email comes from two places. The orderForm has it for a returning or
+// logged in shopper, but for a new one only once the whole profile form went
+// through, which is too late for someone who leaves halfway. So the checkout's
+// own email fields are read as well, when the shopper leaves them.
 //
 // Everything here is best effort: it must never throw into the checkout, and
 // it does nothing outside of it.
 const INSTALLED_FLAG = '__gsVtexCheckoutInstalled';
 const IDENTIFIED_KEY = 'gs-vtex-ck-identified';
+// Ids checkout-ui gives the email field on the email and profile steps.
+const EMAIL_INPUT_SELECTOR = '#client-email, #client-pre-email';
 const READY_RETRY_DELAY = 500;
 const READY_MAX_TRIES = 20;
 // Only used when jQuery, which carries `orderFormUpdated.vtex`, is missing.
@@ -26,6 +33,11 @@ let latestOrderForm = null;
 // Email whose customer is attached to the session, as far as this page knows.
 let identifiedEmail = null;
 let identifying = null;
+// Email that arrived while another login was in flight; it goes next.
+let queuedEmail = null;
+// Email the orderForm still carried when the shopper typed a different one.
+// Until the orderForm moves on, it must not undo what they typed.
+let supersededEmail = null;
 let cartSync = null;
 let cartSyncPending = false;
 // Login does not copy the session cart into the customer; the API only does
@@ -48,7 +60,36 @@ export function installVtexCheckout(options = {}) {
   }
 
   window[INSTALLED_FLAG] = true;
+  bindEmailInputs();
   waitForCheckout(0);
+}
+
+// Delegated, so it also covers fields the checkout renders later. `change` and
+// `blur` only fire once the shopper is done with the field, never per key.
+function bindEmailInputs() {
+  if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') {
+    return;
+  }
+
+  const onEmailField = (event) => {
+    try {
+      const field = event && event.target;
+      if (!field || typeof field.matches !== 'function' || !field.matches(EMAIL_INPUT_SELECTOR)) {
+        return;
+      }
+      const email = normalizeEmail(field.value);
+      if (!email || email === identifiedEmail) {
+        return;
+      }
+      supersededEmail = resolveEmail(latestOrderForm);
+      identify(email);
+    } catch (error) {
+      window.gsLog?.('[vtex-checkout] email field handling failed', error);
+    }
+  };
+
+  document.addEventListener('change', onEmailField, true);
+  document.addEventListener('blur', onEmailField, true);
 }
 
 // The order placed page lives under /checkout too, but the purchase is
@@ -99,12 +140,15 @@ function handleOrderForm(orderForm) {
     latestOrderForm = orderForm;
 
     const email = resolveEmail(orderForm);
-    if (!email) {
-      return;
+    if (email && email !== supersededEmail) {
+      supersededEmail = null;
+      if (email !== identifiedEmail) {
+        identify(email);
+        return;
+      }
     }
 
-    if (email !== identifiedEmail) {
-      identify(email);
+    if (!identifiedEmail) {
       return;
     }
 
@@ -116,11 +160,13 @@ function handleOrderForm(orderForm) {
   }
 }
 
-// VTEX fills the email once the shopper confirms the step, so there is no
-// partial value to wait out. A returning shopper who is not logged in gets
-// their profile masked with asterisks; a masked value is never an identity.
 function resolveEmail(orderForm) {
-  const raw = orderForm?.clientProfileData?.email;
+  return normalizeEmail(orderForm?.clientProfileData?.email);
+}
+
+// A returning shopper who is not logged in gets their profile masked with
+// asterisks; a masked value is never an identity.
+function normalizeEmail(raw) {
   if (typeof raw !== 'string') {
     return null;
   }
@@ -132,7 +178,8 @@ function resolveEmail(orderForm) {
 }
 
 async function identify(email) {
-  if (identifying === email) {
+  if (identifying) {
+    queuedEmail = email === identifying ? null : email;
     return;
   }
   identifying = email;
@@ -165,6 +212,11 @@ async function identify(email) {
     window.gsLog?.('[vtex-checkout] identify failed', error);
   } finally {
     identifying = null;
+    const next = queuedEmail;
+    queuedEmail = null;
+    if (next && next !== identifiedEmail) {
+      identify(next);
+    }
   }
 }
 
@@ -260,7 +312,8 @@ async function readSessionState() {
 function desiredCartProducts(items) {
   const products = new Map();
   for (const item of items || []) {
-    if (!item || !item.productId || item.isGift) {
+    // Gifts stay in: the storefront already counts them in the session cart.
+    if (!item || !item.productId) {
       continue;
     }
     const id = `${item.productId}`;

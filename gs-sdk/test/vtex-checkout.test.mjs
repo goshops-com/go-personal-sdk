@@ -42,9 +42,23 @@ async function loadVtexCheckout({ pathname = "/checkout/", session = {}, jquery 
     window.jQuery = $;
   }
 
+  const fieldHandlers = [];
+  const document = {
+    addEventListener(name, handler) {
+      fieldHandlers.push({ name, handler });
+    },
+  };
+  // What the browser does when the shopper leaves an email field.
+  const leaveField = async (id, value) => {
+    const field = { value, matches: (selector) => selector.split(", ").includes(`#${id}`) };
+    fieldHandlers.forEach(({ handler }) => handler({ target: field }));
+    await settle();
+  };
+
   const context = vm.createContext({
     console,
     window,
+    document,
     setTimeout: (callback) => setImmediate(callback),
     setInterval() {},
     getCustomerSession: () => session,
@@ -92,7 +106,7 @@ async function loadVtexCheckout({ pathname = "/checkout/", session = {}, jquery 
     await settle();
   };
 
-  return { ...context.__test, backend, handlers, storage, window, update };
+  return { ...context.__test, backend, handlers, storage, window, update, leaveField };
 }
 
 const orderForm = (email, items) => ({
@@ -169,7 +183,6 @@ test("the session cart follows the checkout cart, one change at a time", async (
       { productId: 10, quantity: 1 },
       { productId: 10, quantity: 2 },
       { productId: 20, quantity: 1 },
-      { productId: 99, quantity: 1, isGift: true },
     ])
   );
 
@@ -253,4 +266,48 @@ test("a session without state reads as an empty cart", async () => {
   await update(orderForm("ada@example.com", [{ productId: "10", quantity: 1 }]));
 
   assert.equal(backend.sent[0], "cart:10:1:override");
+});
+
+test("an email typed in the checkout field identifies before the orderForm has it", async () => {
+  const { installVtexCheckout, backend, update, leaveField } = await loadVtexCheckout({
+    session: { sessionId: "s1" },
+  });
+  backend.cart.set("10", 1);
+  backend.cart.set("657", 1);
+  installVtexCheckout({});
+  // New shopper: the orderForm has no profile until the whole form is sent.
+  const items = [{ productId: "10", quantity: 1 }, { productId: "657", quantity: 1, isGift: true }];
+  await update(orderForm(null, items));
+
+  await leaveField("cart-coupon", "ada@example.com");
+  await leaveField("client-email", "ada@exam");
+  assert.deepEqual(backend.logins, []);
+
+  await leaveField("client-email", " Ada@Example.com ");
+  assert.deepEqual(backend.logins, ["ada@example.com"]);
+  assert.deepEqual(backend.sent, ["cart:10:1:override"]);
+
+  // Both `change` and `blur` fire, and the orderForm catches up later.
+  await leaveField("client-email", "ada@example.com");
+  await update(orderForm("ada@example.com", items));
+  assert.deepEqual(backend.logins, ["ada@example.com"]);
+  assert.deepEqual(backend.sent, ["cart:10:1:override"]);
+
+  // Cart changes are followed even while the orderForm has no email.
+  await update(orderForm(null, [{ productId: "10", quantity: 2 }]));
+  assert.deepEqual(backend.sent.slice(1), ["cart:10:2:override", "remove-cart:657:1"]);
+});
+
+test("a typed email is not undone by the one the orderForm still carries", async () => {
+  const { installVtexCheckout, backend, update, leaveField } = await loadVtexCheckout();
+  installVtexCheckout({});
+  const items = [{ productId: "10", quantity: 1 }];
+
+  await update(orderForm("old@example.com", items));
+  await leaveField("client-pre-email", "new@example.com");
+  await update(orderForm("old@example.com", items));
+  assert.deepEqual(backend.logins, ["old@example.com", "new@example.com"]);
+
+  await update(orderForm("third@example.com", items));
+  assert.deepEqual(backend.logins.at(-1), "third@example.com");
 });
