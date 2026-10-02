@@ -460,10 +460,11 @@ export const addInteraction = (interactionData) => {
 
   if (interactionData.event == "view" && hasImpressionId) {
     interactionData.impressionId = hasImpressionId;
+    const shouldTrackGa4Click = getParam("gsGa4ClickSent") !== "true";
     const listName = getParam("gsListName") || "gopersonal_list";
     const index = getParam("gsIndex") || 0;
 
-    if (Array.isArray(interactionData.preProcess)) {
+    if (shouldTrackGa4Click && Array.isArray(interactionData.preProcess)) {
       for (const entry of interactionData.preProcess) {
         const [action, field] = entry.split(":");
         if (action === "findItemByField" && field) {
@@ -474,7 +475,7 @@ export const addInteraction = (interactionData) => {
           }
         }
       }
-    } else {
+    } else if (shouldTrackGa4Click) {
       const itemId = interactionData.item;
       if (itemId) {
         try {
