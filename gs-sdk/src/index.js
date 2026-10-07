@@ -1,6 +1,6 @@
 import {
   login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, findLastInteractions, reorderCategories, getItems, search, searchAnswer, searchRedirect, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
-  getRanking, reRank, setPreferences, updateState, getItemById, getItemsByIds, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, addItemFeedback, getItemFeedbackSummary, getItemFeedbackComments, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData, getSearchHistory, getTopSearches, searchAutocomplete, orderMenu, getLastInteraction
+  getRanking, reRank, setPreferences, updateState, getItemById, getItemsByIds, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, addItemFeedback, getItemFeedbackSummary, getItemFeedbackComments, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData, getSearchHistory, getTopSearches, searchAutocomplete, orderMenu, getLastInteraction, setEmailSubscription
 } from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent, createContentImpression, clickContentImpression, getContentImpressionId, trackURLClicked, sendContentEvent, initPreviewListener, invalidateContentCache, purgeContentCache, getSeenContents } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
@@ -204,6 +204,7 @@ const GSSDK = async (clientId, options = {}) => {
       login: (username, data = {}) => login(username, data),
       loginEmail: (email) => loginEmail(email),
       logout: () => logout(clientId),
+      setEmailSubscription: (optIn) => setEmailSubscription(optIn),
       updateCustomerData: (data) => updateCustomerData(data),
       getSession: () => getCustomerSession(),
       setCookies: (status) => setCustomerCookies(status),
