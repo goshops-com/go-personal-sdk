@@ -71,10 +71,33 @@ Note: Replace 'your-client-id' with your actual client ID.
 
 * login(userId)
 * logout()
+* setEmailSubscription(optIn)
 * addInteraction(interaction)
 * getContent(contentId)
 
 Refer to the official API documentation for detailed information about these methods.
+
+## Email subscriptions
+
+Identify the customer before changing their email preference. Both calls use the
+existing SDK session token; no additional credentials are needed.
+
+```javascript
+await window.gsSDK.login(email, { email });
+await window.gsSDK.setEmailSubscription(false); // Reject email notifications
+await window.gsSDK.setEmailSubscription(true);  // Accept email notifications
+```
+
+`setEmailSubscription` requires a boolean. It persists the email channel's `optIn`
+and recalculates email reachability, preserving other channels. It does not erase
+the email, end the session, or bypass delivery checks for invalid addresses and
+bounces. A subsequent login preserves the saved opt-out. An anonymous session or
+a missing customer is rejected by Discover. Handle a rejected promise as a failed
+save; do not show the preference as saved until the request succeeds.
+
+Deploy Discover's `/channel/email-subscription` before publishing this SDK.
+Then connect the store's notification checkbox to the new
+method. This preference concerns receiving emails, not deleting shared data.
 
 
 

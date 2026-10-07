@@ -442,6 +442,13 @@ export const loginEmail = (email) => {
   return httpPost(`/channel/login`, { email: email });
 };
 
+export const setEmailSubscription = async (optIn) => {
+  if (typeof optIn !== "boolean") {
+    throw new TypeError("Email subscription must be a boolean");
+  }
+  return httpPost("/channel/email-subscription", { optIn });
+};
+
 export const addInteraction = (interactionData) => {
   window.gsStore.interactionCount++;
   // ev.emit('interaction', interactionData);
