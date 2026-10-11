@@ -22,6 +22,7 @@ import { initElementSelectorPicker } from './utils/elementSelectorPicker';
 import { initVariantEditor } from './utils/variantEditor';
 import { track, flushEvents } from './api/events';
 import { getCart, onCartChange } from './api/cart';
+import { mountShopper } from './api/shopper';
 
 //plugins
 
@@ -219,6 +220,7 @@ const GSSDK = async (clientId, options = {}) => {
       search: (input, params) => search(input, params),
       searchAnswer: (input, params) => searchAnswer(input, params),
       searchChat: (payload) => searchChat(payload),
+      mountShopper: (options) => mountShopper(options),
       isSearch: (payload) => isSearch(payload),
       searchRedirect: (input, params) => searchRedirect(input, params),
       searchBulk: (payload) => searchBulk(payload),

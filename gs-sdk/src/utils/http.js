@@ -1,5 +1,8 @@
 let BASE_URL = 'https://go-discover-dev.goshops.ai';
 
+// Public base only; credentials continue to be handled by the existing SDK.
+export const getApiBaseURL = () => BASE_URL;
+
 import { getToken, clearSession } from './storage';
 
 export const configure = (clientId) => {
