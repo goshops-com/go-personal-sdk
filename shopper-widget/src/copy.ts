@@ -4,7 +4,7 @@ const localized = {
   pt: { connect: 'Conectando com sua loja…', start: 'O que você gostaria de encontrar?', placeholder: 'Conte o que está procurando…', send: 'Enviar', stop: 'Parar', searching: 'Buscando no catálogo…', responding: 'Preparando sua resposta…', product: 'Ver produto', newChat: 'Nova conversa', recover: 'Recuperar conversa', error: 'Não conseguimos concluir. Recupere a conversa para continuar.', interrupted: 'Resposta interrompida', waiting: 'Aguardando conexão com a loja.', busy: 'Uma resposta está em andamento. Recupere a conversa em alguns segundos.', unavailable: 'Não foi possível conectar. Tente novamente pela loja.', unknownPrice: 'Consultar preço' },
 };
 export const copy = {
-  es: { ...localized.es, close: 'Cerrar' },
-  en: { ...localized.en, close: 'Close' },
-  pt: { ...localized.pt, close: 'Fechar' },
+  es: { ...localized.es, close: 'Cerrar', failed: 'No se pudo completar esta respuesta', retry: 'Reintentar consulta', error: 'No pudimos completar la consulta. Podés reintentar sin volver a escribirla.' },
+  en: { ...localized.en, close: 'Close', failed: 'This answer could not be completed', retry: 'Retry request', error: 'We could not finish the request. You can retry without typing it again.' },
+  pt: { ...localized.pt, close: 'Fechar', failed: 'Não foi possível concluir esta resposta', retry: 'Tentar novamente', error: 'Não conseguimos concluir. Você pode tentar novamente sem digitar de novo.' },
 };

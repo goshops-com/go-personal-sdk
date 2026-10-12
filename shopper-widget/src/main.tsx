@@ -61,7 +61,7 @@ function Chat({ session, conversation, restart }: { session: Session; conversati
       ...(latest.current.context ? { context: latest.current.context } : {}),
     } }),
   }), [session.apiUrl, conversation.id]);
-  const { messages, setMessages, sendMessage, status, error, stop, clearError } = useChat<Message>({
+  const { messages, setMessages, sendMessage, regenerate, status, error, stop, clearError } = useChat<Message>({
     id: conversation.id, messages: conversation.messages, transport,
     onData: part => { if (part.type === 'data-status') setSearching(true); },
     onFinish: () => setSearching(false),
@@ -76,6 +76,16 @@ function Chat({ session, conversation, restart }: { session: Session; conversati
     catch { setNotice(t.unavailable); send('refresh'); }
     finally { setRestoring(false); }
   }
+  async function retryLast() {
+    setRestoring(true); setNotice('');
+    try {
+      const doc = await request(latest.current, `/conversations/${conversation.id}`);
+      setMessages(doc.messages); setRunning(!!doc.running);
+      if (doc.running) return;
+      clearError(); await regenerate();
+    } catch { setNotice(t.unavailable); }
+    finally { setRestoring(false); }
+  }
   const submit = async (text: string) => {
     if (!text.trim() || busy || running) return;
     setInput(''); setSearching(false); setNotice('');
@@ -87,16 +97,16 @@ function Chat({ session, conversation, restart }: { session: Session; conversati
       {session.canClose && <button className="icon-button" title={t.close} aria-label={t.close} onClick={() => send('close')}><span aria-hidden="true">×</span></button>}</header>
     <section className="conversation" aria-label={session.config.name}>
       {messages.length === 0 && <div className="welcome"><h2>{session.config.welcome}</h2><div className="suggestions" role="group" aria-labelledby="start"><span className="eyebrow" id="start">{t.start}</span>{session.config.suggestions.map(s => <button key={s} onClick={() => void submit(s)}>{s}<span aria-hidden="true">→</span></button>)}</div></div>}
-      {messages.map(message => <div key={message.id} className={`message ${message.role}`}>
+      {messages.filter(m => m.role !== 'assistant' || m.parts.some(p => p.type === 'text' && p.text.trim() || p.type === 'data-products' && p.data.products.length)).map(message => <div key={message.id} className={`message ${message.role}`}>
         {message.parts.map((part, index) => {
           if (part.type === 'text') return <p key={index} className="message-text">{part.text}</p>;
           if (part.type === 'data-products' && part.data.products.length) return <div className="products" key={index}>{part.data.products.map(p => <ProductCard key={p.id} product={p} session={session} conversationId={conversation.id} messageId={message.id} />)}</div>;
           return null;
         })}
-        {message.metadata?.status && message.metadata.status !== 'completed' && <small className="interrupted">{t.interrupted}</small>}
+        {message.metadata?.status && message.metadata.status !== 'completed' && <small className="interrupted">{message.metadata.status === 'failed' ? t.failed : t.interrupted}</small>}
       </div>)}
       {busy && <p className="working" role="status"><span className="working-dot" aria-hidden="true" />{searching ? t.searching : t.responding}</p>}
-      {(error || notice || running) && <div className={!notice && running ? 'error is-busy' : 'error'} role="alert"><p>{notice || (running ? t.busy : t.error)}</p><button onClick={() => void recover()} disabled={restoring || busy}>{t.recover}</button></div>}
+      {(error || notice || running) && <div className={!notice && running ? 'error is-busy' : 'error'} role="alert"><p>{notice || (running ? t.busy : t.error)}</p>{error && !running && <button onClick={() => void retryLast()} disabled={restoring || busy}>{t.retry}</button>}<button onClick={() => void recover()} disabled={restoring || busy}>{t.recover}</button></div>}
       <div ref={end} />
     </section>
     <form className="composer" onSubmit={e => { e.preventDefault(); void submit(input); }}>
