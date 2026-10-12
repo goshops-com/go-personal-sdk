@@ -11,6 +11,20 @@ credenciales de modelo/admin en este bundle.
 
 ## Montaje opt-in con SDK
 
+En el admin, `/shopper` → **Obtener script** genera el código con las URLs
+públicas y la integración web del proyecto. **Copiar script** lo entrega listo
+para pegar antes de `</body>` o en el gestor de etiquetas. Por defecto reutiliza
+el SDK existente; desmarcar esa opción genera también la carga e inicialización.
+El código evita montajes duplicados y valida el proyecto de la sesión.
+
+Los datos públicos salen de `GET /api/shopper-configs/:project/installation`.
+No incluye tokens de admin/preview, client secrets ni credenciales de Azure.
+`SHOPPER_SDK_URL` en admin-apis permite elegir la URL de la versión publicada
+del SDK; requiere una versión que incluya `mountShopper`.
+
+Para instalaciones nuevas, el snippet usa `apiBaseURL` con el origen de
+`SHOPPER_API_URL`, y el client ID web completo (incluidos sus guiones).
+
 Después de inicializar el SDK normalmente:
 
 ```js

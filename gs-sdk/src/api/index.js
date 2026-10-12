@@ -134,7 +134,7 @@ export const init = async (clientId, options) => {
   window.gsConfig.includeDraft = options.includeDraft;
   window.gsConfig.draftContentId = options.draftContentId || null;
 
-  clientId = configure(clientId);
+  clientId = configure(clientId, options.apiBaseURL);
   configureStorage({ cookieFallback: COOKIE_FALLBACK_CLIENT_IDS.includes(clientId) });
   const clientOrigin = window.location.origin;
 

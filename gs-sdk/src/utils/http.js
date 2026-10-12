@@ -5,21 +5,33 @@ export const getApiBaseURL = () => BASE_URL;
 
 import { getToken, clearSession } from './storage';
 
-export const configure = (clientId) => {
+export const configure = (clientId, apiBaseURL) => {
   // Check if clientId contains a hyphen
   if (clientId.includes('-')) {
     // Split the clientId at the hyphen
-    const [region, secondPart] = clientId.split('-');
+    const separator = clientId.indexOf('-');
+    const region = clientId.slice(0, separator);
+    const secondPart = clientId.slice(separator + 1);
 
     if (region == 'BR') {
       BASE_URL = 'https://discover.gopersonal.ai';
     }else if (region == 'LOCAL') {
       BASE_URL = 'http://localhost:3000';
     }
+    if (apiBaseURL) setApiBaseURL(apiBaseURL);
     return secondPart;
   } else {
+    if (apiBaseURL) setApiBaseURL(apiBaseURL);
     return clientId;
   }
+}
+
+function setApiBaseURL(value) {
+  const url = new URL(value);
+  if (url.username || url.password || !(url.protocol === 'https:' || (url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname)))) {
+    throw new Error('apiBaseURL must use HTTPS');
+  }
+  BASE_URL = url.origin;
 }
 
 async function handleInvalidAuth() {
