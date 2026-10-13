@@ -1,0 +1,18 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const { createRequire } = require('node:module');
+const ts = require('typescript');
+const React = require('react');
+const { renderToStaticMarkup } = require('react-dom/server');
+const filename = path.join(__dirname, '../src/MarkdownMessage.tsx');
+const compiled = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText;
+const module_ = { exports: {} };
+new Function('require', 'module', 'exports', compiled)(createRequire(filename), module_, module_.exports);
+const render = text => renderToStaticMarkup(React.createElement(module_.exports.MarkdownMessage, { text }));
+const html = render('**Pizza**\n\n- Opción A\n- Opción B\n\n| Producto | Precio |\n| --- | --- |\n| Pizza | 25 |\n\n`SKU` y [producto](https://store.test/pizza)');
+assert.match(html, /<strong>Pizza<\/strong>/); assert.match(html, /<ul>/); assert.match(html, /<table>/); assert.match(html, /<code>SKU<\/code>/);
+assert.match(html, /rel="noopener noreferrer"/);
+const unsafe = render('<script>alert(1)</script>\n\n[click](javascript:alert(1))\n\n<img src=x onerror=alert(1)>');
+assert.doesNotMatch(unsafe, /<script|onerror=|href="javascript:/);
+console.log('Markdown messages: all assertions passed');

@@ -4,6 +4,7 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
 import { hostOrigin, send, validSession, type Config, type Product, type Session } from './bridge';
 import { copy } from './copy';
+import { MarkdownMessage } from './MarkdownMessage';
 import './style.css';
 
 type Message = UIMessage<{ status?: string }, { products: { products: Product[] }; status: { label: string } }>;
@@ -96,10 +97,10 @@ function Chat({ session, conversation, restart }: { session: Session; conversati
       <button className="icon-button" title={t.newChat} aria-label={t.newChat} onClick={() => { stop(); restart(); }} disabled={busy}><span aria-hidden="true">↻</span></button>
       {session.canClose && <button className="icon-button" title={t.close} aria-label={t.close} onClick={() => send('close')}><span aria-hidden="true">×</span></button>}</header>
     <section className="conversation" aria-label={session.config.name}>
-      {messages.length === 0 && <div className="welcome"><h2>{session.config.welcome}</h2><div className="suggestions" role="group" aria-labelledby="start"><span className="eyebrow" id="start">{t.start}</span>{session.config.suggestions.map(s => <button key={s} onClick={() => void submit(s)}>{s}<span aria-hidden="true">→</span></button>)}</div></div>}
+      {messages.length === 0 && <div className="welcome"><h2>{session.config.welcome}</h2>{session.config.suggestions.length > 0 && <div className="suggestions" role="group" aria-labelledby="start"><span className="eyebrow" id="start">{t.start}</span>{session.config.suggestions.map(s => <button key={s} onClick={() => void submit(s)}>{s}<span aria-hidden="true">→</span></button>)}</div>}</div>}
       {messages.filter(m => m.role !== 'assistant' || m.parts.some(p => p.type === 'text' && p.text.trim() || p.type === 'data-products' && p.data.products.length)).map(message => <div key={message.id} className={`message ${message.role}`}>
         {message.parts.map((part, index) => {
-          if (part.type === 'text') return <p key={index} className="message-text">{part.text}</p>;
+          if (part.type === 'text') return message.role === 'assistant' ? <MarkdownMessage key={index} text={part.text} /> : <p key={index} className="message-text">{part.text}</p>;
           if (part.type === 'data-products' && part.data.products.length) return <div className="products" key={index}>{part.data.products.map(p => <ProductCard key={p.id} product={p} session={session} conversationId={conversation.id} messageId={message.id} />)}</div>;
           return null;
         })}

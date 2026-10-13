@@ -38,6 +38,40 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .user .message-text { max-width: 86%; padding: 10px 14px; border-radius: 16px 16px 4px 16px; background: var(--shopper-tint); }
 .interrupted { color: var(--shopper-muted); font-size: 12px; }
 
+/* Respuesta del asistente en Markdown. Todo cuelga de .message-markdown para no tocar el resto del widget;
+   el ancho se fija acá y lo que no entra (tablas, bloques de código) scrollea dentro de su propia caja. */
+.message-markdown { width: 100%; min-width: 0; font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+.message-markdown > * { margin: 0; }
+.message-markdown > * + * { margin-top: 10px; }
+.message-markdown strong { font-weight: 600; }
+.message-markdown h1, .message-markdown h2, .message-markdown h3, .message-markdown h4, .message-markdown h5, .message-markdown h6 { font-size: 14px; font-weight: 600; letter-spacing: -.01em; line-height: 1.4; }
+.message-markdown h1, .message-markdown h2 { font-size: 16px; }
+.message-markdown > * + :is(h1, h2, h3, h4, h5, h6) { margin-top: 16px; }
+.message-markdown ul, .message-markdown ol { padding-left: 20px; }
+.message-markdown li + li, .message-markdown li > ul, .message-markdown li > ol { margin-top: 4px; }
+.message-markdown li > p { margin: 0; }
+.message-markdown li > p + p { margin-top: 6px; }
+.message-markdown li::marker { color: var(--shopper-muted); font-variant-numeric: tabular-nums; }
+.message-markdown .contains-task-list { padding-left: 2px; list-style: none; }
+.message-markdown .task-list-item input { margin: 0 8px 0 0; vertical-align: -1px; accent-color: var(--shopper-brand-ink); }
+.message-markdown blockquote { padding: 2px 0 2px 12px; border-left: 2px solid var(--shopper-rule); color: var(--shopper-muted); }
+.message-markdown blockquote > * { margin: 0; }
+.message-markdown blockquote > * + * { margin-top: 8px; }
+.message-markdown a { color: var(--shopper-brand-ink); font-weight: 500; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.message-markdown a:focus-visible { border-radius: 3px; }
+.message-markdown code { padding: 1px 5px; border-radius: 5px; background: var(--shopper-shelf); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+.message-markdown pre { max-width: 100%; padding: 10px 12px; overflow-x: auto; border: 1px solid var(--shopper-rule); border-radius: 10px; background: var(--shopper-shelf); line-height: 1.5; overflow-wrap: normal; scrollbar-width: thin; scrollbar-color: var(--shopper-rule) transparent; }
+.message-markdown pre code { padding: 0; border-radius: 0; background: none; white-space: pre; }
+.message-markdown hr { height: 1px; border: 0; background: var(--shopper-rule); }
+.message-markdown img { max-width: 100%; height: auto; border-radius: 8px; }
+/* La tabla es su propio contenedor de scroll: display: block la deja desbordar sin ensanchar la conversación. */
+.message-markdown table { display: block; width: max-content; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: 13px; line-height: 1.45; overflow-wrap: normal; scrollbar-width: thin; scrollbar-color: var(--shopper-rule) transparent; }
+.message-markdown th, .message-markdown td { min-width: 72px; max-width: 240px; padding: 6px 10px; border-bottom: 1px solid var(--shopper-rule); text-align: left; vertical-align: top; font-variant-numeric: tabular-nums; }
+.message-markdown th { color: var(--shopper-muted); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.message-markdown tbody tr:last-child td { border-bottom: 0; }
+.message-markdown th:first-child, .message-markdown td:first-child { padding-left: 0; }
+.message-markdown del { color: var(--shopper-muted); }
+
 /* El enlace se estira sobre toda la tarjeta: se toca el producto, no una palabra chica. */
 .products { display: grid; gap: 8px; width: 100%; }
 .product { position: relative; display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; padding: 8px; border: 1px solid var(--shopper-rule); border-radius: 16px; background: var(--shopper-paper); transition: border-color 160ms, background-color 160ms; animation: rise 260ms cubic-bezier(.23, 1, .32, 1) both; }
