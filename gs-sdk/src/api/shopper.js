@@ -20,6 +20,11 @@ export function mountShopper({ widgetUrl, container = null, context = {} } = {})
   context = normalizeContext(context);
   const panel = document.createElement('section');
   panel.setAttribute('aria-label', 'Personal Shopper'); panel.hidden = !embedded;
+  // Store themes often override the browser's [hidden] rule (including iframes).
+  function visible(element, show) {
+    element.hidden = !show;
+    element.style.setProperty('display', show ? 'block' : 'none', 'important');
+  }
   const iframe = document.createElement('iframe');
   iframe.title = 'Personal Shopper'; iframe.style.cssText = 'display:block;width:100%;height:100%;border:0;background:white;';
   const error = document.createElement('p'); error.setAttribute('role', 'alert'); error.hidden = true;
@@ -31,6 +36,8 @@ export function mountShopper({ widgetUrl, container = null, context = {} } = {})
   launcher.style.cssText = 'position:fixed;right:24px;bottom:24px;z-index:2147483000;border:0;border-radius:24px;padding:14px 20px;background:#5e40bf;color:white;font:600 14px system-ui;cursor:pointer;';
   if (!embedded) panel.style.cssText = 'position:fixed;right:16px;bottom:80px;width:min(420px,calc(100vw - 32px));height:min(680px,calc(100dvh - 112px));z-index:2147483001;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px #0002;border:1px solid #e9e7ed;background:white;';
   else panel.style.cssText = 'position:relative;width:100%;height:100%;min-height:480px;';
+  panel.style.boxSizing = 'border-box';
+  visible(panel, embedded); visible(error, false); visible(iframe, false);
   panel.appendChild(error); panel.appendChild(iframe);
   (target || document.body).appendChild(panel);
   if (!embedded) document.body.appendChild(launcher);
@@ -60,7 +67,7 @@ export function mountShopper({ widgetUrl, container = null, context = {} } = {})
         ownerKey = key;
         try { conversationId = key ? localStorage.getItem(key) : null; } catch (_) { conversationId = null; }
         launcher.style.background = bootstrap.config.color;
-        error.hidden = true; iframe.hidden = false;
+        visible(error, false); visible(iframe, true);
         if (!iframe.src) {
           url.searchParams.set('hostOrigin', location.origin); iframe.src = url.href;
         }
@@ -69,18 +76,18 @@ export function mountShopper({ widgetUrl, container = null, context = {} } = {})
         renewal = setTimeout(() => { if (!panel.hidden) void connect(true); }, Math.max(1000, (bootstrap.expiresIn - 60) * 1000));
       } catch (_) {
         bootstrap = null; expiresAt = 0;
-        if (!destroyed) { error.textContent = 'No pudimos abrir el asistente. Probá nuevamente.'; error.hidden = false; iframe.hidden = true; }
+        if (!destroyed) { error.textContent = 'No pudimos abrir el asistente. Probá nuevamente.'; visible(error, true); visible(iframe, false); }
       }
     })().finally(() => { refreshing = null; });
     return refreshing;
   }
   async function open() {
     if (destroyed) return;
-    panel.hidden = false; launcher.setAttribute('aria-expanded', 'true');
+    visible(panel, true); launcher.setAttribute('aria-expanded', 'true');
     await connect();
     if (ready) iframe.focus();
   }
-  function hide() { panel.hidden = true; launcher.setAttribute('aria-expanded', 'false'); launcher.focus(); }
+  function hide() { visible(panel, false); launcher.setAttribute('aria-expanded', 'false'); launcher.focus(); }
   function receive(event) {
     if (event.origin !== url.origin || event.source !== iframe.contentWindow || !event.data || destroyed) return;
     switch (event.data.type) {
