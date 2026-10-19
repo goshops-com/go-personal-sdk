@@ -23,6 +23,7 @@ const PANEL_CLASS = "gopersonal-element-selector-picker-panel";
 const PANEL_BTN_CLASS = "gopersonal-element-selector-picker-panel-btn";
 const PANEL_BTN_ACTIVE_CLASS = "gopersonal-element-selector-picker-panel-btn-active";
 const BAR_CLASS = "gopersonal-element-selector-picker-bar";
+const BAR_BOTTOM_CLASS = "gopersonal-element-selector-picker-bar-bottom";
 const BAR_TEXT_CLASS = "gopersonal-element-selector-picker-bar-text";
 const BAR_COMBO_CLASS = "gopersonal-element-selector-picker-bar-combo";
 const BAR_SELECT_CLASS = "gopersonal-element-selector-picker-bar-select";
@@ -31,6 +32,7 @@ const BAR_CLOSE_CLASS = "gopersonal-element-selector-picker-bar-close";
 
 const MODE_SELECT = "select";
 const MODE_INTERACT = "interact";
+const DEFAULT_BAR_DOCK_BOTTOM = true;
 
 const POSITION_REPLACE = "replace";
 const POSITION_AFTER = "after";
@@ -54,6 +56,8 @@ let pickerCleanup = null;
 let panel = null;
 let bar = null;
 let barSelect = null;
+let barDockButton = null;
+let barDockBottom = DEFAULT_BAR_DOCK_BOTTOM;
 let pickerMode = MODE_SELECT;
 let pickerPosition = POSITION_REPLACE;
 
@@ -248,7 +252,12 @@ function ensureStyles() {
     // The bar lives inside customer sites, so every rule that decides the
     // layout is forced: their global `select{width:100%}` and friends would
     // otherwise push the combo onto its own line.
-    "{position:fixed!important;top:0!important;left:0!important;right:0!important;z-index:2147483647!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;min-height:68px!important;margin:0!important;padding:12px 56px!important;background:#2b0d38!important;color:#fff!important;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif!important;box-shadow:0 2px 10px rgba(0,0,0,.35);pointer-events:auto}" +
+    "{position:fixed!important;top:0!important;bottom:auto!important;left:0!important;right:0!important;z-index:2147483647!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;min-height:68px!important;margin:0!important;padding:12px 88px!important;background:#2b0d38!important;color:#fff!important;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif!important;box-shadow:0 2px 10px rgba(0,0,0,.35);pointer-events:auto}" +
+    "." +
+    BAR_CLASS +
+    "." +
+    BAR_BOTTOM_CLASS +
+    "{top:auto!important;bottom:0!important;box-shadow:0 -2px 10px rgba(0,0,0,.35)}" +
     "." +
     BAR_TEXT_CLASS +
     "{display:flex!important;align-items:center!important;justify-content:center!important;flex-wrap:nowrap!important;gap:10px!important;max-width:100%!important;margin:0!important;padding:0!important;text-align:center;font-size:15px!important;line-height:20px!important;font-weight:700!important;color:#fff!important}" +
@@ -282,6 +291,11 @@ function ensureStyles() {
     "." +
     PANEL_CLASS +
     "{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:2147483647;display:flex;gap:4px;padding:4px;background:#111827;border-radius:9999px;box-shadow:0 4px 16px rgba(0,0,0,.3);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;pointer-events:auto}" +
+    "." +
+    BAR_BOTTOM_CLASS +
+    "~." +
+    PANEL_CLASS +
+    "{bottom:84px}" +
     "." +
     PANEL_BTN_CLASS +
     "{appearance:none;-webkit-appearance:none;border:0;margin:0;cursor:pointer;padding:7px 16px;border-radius:9999px;font-size:13px;line-height:1;font-weight:600;color:#9ca3af;background:transparent;transition:color .12s,background .12s}" +
@@ -328,6 +342,20 @@ function placementLabelText() {
 
 function applyBarUi() {
   if (barSelect) barSelect.value = pickerPosition;
+}
+
+function applyBarDockUi() {
+  if (bar) bar.classList.toggle(BAR_BOTTOM_CLASS, barDockBottom);
+  if (!barDockButton) return;
+  const action = barDockBottom ? "arriba" : "abajo";
+  barDockButton.textContent = barDockBottom ? "↑" : "↓";
+  barDockButton.setAttribute("aria-label", "Mover barra " + action);
+  barDockButton.title = "Mover barra " + action;
+}
+
+function toggleBarDock() {
+  barDockBottom = !barDockBottom;
+  applyBarDockUi();
 }
 
 function applyPlacementLabel() {
@@ -406,6 +434,16 @@ function ensureBar() {
 
   const closeWrapper = document.createElement("div");
   closeWrapper.className = BAR_CLOSE_CLASS;
+
+  barDockButton = document.createElement("button");
+  barDockButton.type = "button";
+  barDockButton.addEventListener("click", function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleBarDock();
+  });
+  closeWrapper.appendChild(barDockButton);
+
   const closeBtn = document.createElement("button");
   closeBtn.type = "button";
   closeBtn.setAttribute("aria-label", "Cerrar");
@@ -424,6 +462,7 @@ function ensureBar() {
   bar.appendChild(closeWrapper);
 
   document.documentElement.appendChild(bar);
+  applyBarDockUi();
 }
 
 function ensurePanel() {
@@ -551,7 +590,9 @@ export function hideElementSelectorPicker() {
     bar.remove();
     bar = null;
     barSelect = null;
+    barDockButton = null;
   }
+  barDockBottom = DEFAULT_BAR_DOCK_BOTTOM;
   pickerMode = MODE_SELECT;
 }
 
