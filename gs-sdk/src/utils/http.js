@@ -5,15 +5,18 @@ export const getApiBaseURL = () => BASE_URL;
 
 import { getToken, clearSession } from './storage';
 
+const byPassedClientIds = ["ar0EwoNiXkGDpng2"];
+
 export const configure = (clientId, apiBaseURL) => {
+  const bypass = byPassedClientIds.includes(clientId);
   // Check if clientId contains a hyphen
-  if (clientId.includes('-')) {
+  if (clientId.includes('-') || bypass ) {
     // Split the clientId at the hyphen
     const separator = clientId.indexOf('-');
     const region = clientId.slice(0, separator);
     const secondPart = clientId.slice(separator + 1);
 
-    if (region == 'BR') {
+    if (region == 'BR' || bypass ) {
       BASE_URL = 'https://discover.gopersonal.ai';
     }else if (region == 'LOCAL') {
       BASE_URL = 'http://localhost:3000';
