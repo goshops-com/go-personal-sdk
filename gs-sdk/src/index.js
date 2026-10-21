@@ -1,6 +1,6 @@
 import {
   login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, findLastInteractions, reorderCategories, getItems, search, searchAnswer, searchRedirect, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
-  getRanking, reRank, setPreferences, updateState, getItemById, getItemsByIds, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, addBulkInteractions, addFeedback, addItemFeedback, getItemFeedbackSummary, getItemFeedbackComments, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData, getSearchHistory, getTopSearches, searchAutocomplete, orderMenu, getLastInteraction, setEmailSubscription
+  getRanking, reRank, setPreferences, updateState, getItemById, getItemsByIds, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, getLoyalty, addBulkInteractions, addFeedback, addItemFeedback, getItemFeedbackSummary, getItemFeedbackComments, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData, getSearchHistory, getTopSearches, searchAutocomplete, orderMenu, getLastInteraction, setEmailSubscription
 } from './api';
 import { getContent, getContentByContext, observeElementInView, openImpression as openImpressionForContent, createContentImpression, clickContentImpression, getContentImpressionId, trackURLClicked, sendContentEvent, initPreviewListener, invalidateContentCache, purgeContentCache, getSeenContents } from './api/content';
 import { bestProducts, byContext, openImpression as openImpressionForRecommendation } from './api/recommendation';
@@ -255,6 +255,7 @@ const GSSDK = async (clientId, options = {}) => {
       getState: (params = {}) => getState(params),
       getAffinity: () => getAffinity(),
       getAffinityCustomer: () => getAffinityCustomer(),
+      getLoyalty: () => getLoyalty(),
       addBulkInteractions: (interactions) => addBulkInteractions(interactions),
       addFeedback: (feedbackData) => addFeedback(feedbackData),
       addItemFeedback: (feedbackData) => addItemFeedback(feedbackData),

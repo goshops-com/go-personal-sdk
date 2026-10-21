@@ -48,32 +48,11 @@ window.gsStore = {
   interactionCount: 0,
 };
 
-const COOKIE_FALLBACK_CLIENT_IDS = ["aPlEvUhcwYr76idR"];
+const COOKIE_FALLBACK_CLIENT_IDS = ["aPlEvUhcwYr76idR", "aExoXxtrCJ6I40ud"];
 
 // variationIds lists the experiment variants allowed traffic
 const CUSTOM_TRAFFIC_SPLIT_RULES = [
-  {
-    clientId: "Z4arNzD%2Bl30LntC%2B", //TH CO
-    varifyIid: 5870,
-    experimentSlug: "gp-traffic",
-    variationIds: [54678],
-  },
-  {
-    clientId: "Z9GXJWGNWhV3ZTMI", //CK AR
-    varifyIid: 6026,
-    experimentSlug: "gp-traffic",
-    variationIds: [56038],
-  },{
-    clientId: "Z%2Ban4pyN104uCc7a", //TH AR
-    varifyIid: 6028,
-    experimentSlug: "gp-traffic",
-    variationIds: [56040],
-  },{
-    clientId: "aExoXxtrCJ6I40ud", //CK CO
-    varifyIid: 6027,
-    experimentSlug: "gp-traffic",
-    variationIds: [56039],
-  },
+
 ];
 
 async function resolveTrafficSplitFlow(clientId) {
@@ -461,7 +440,7 @@ export const addInteraction = (interactionData) => {
   });
 
   invalidateContentCache();
-  
+
 
   const hasImpressionId = getParam("gsImpressionId");
 
@@ -1056,6 +1035,12 @@ export const getAffinity = (params = {}) => {
 
 export const getAffinityCustomer = (params = {}) => {
   return httpGet(`/channel/whoiam?includeCustomer=true`);
+};
+
+// Saldo de lealtad del cliente de la sesión. `{ enabled: false }` si el proyecto
+// no tiene programa o no habilitó mostrar el saldo en el storefront.
+export const getLoyalty = () => {
+  return httpGet(`/personal/loyalty`);
 };
 
 function generateUniqueId() {
