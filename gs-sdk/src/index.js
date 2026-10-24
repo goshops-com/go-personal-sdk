@@ -100,6 +100,17 @@ const GSSDK = async (clientId, options = {}) => {
     }
   }
 
+  const playgroundToken = getUrlParameter('_gsPlaygroundToken');
+  if (playgroundToken) {
+    const env = getUrlParameter('_gsPlaygroundEnv') || 'BR';
+    clientId = `${env}-playground`;
+    options.playgroundToken = playgroundToken;
+  }
+
+  if (!clientId) {
+    throw new Error('Client ID is required to initialize the SDK');
+  }
+
   window.gsConfig = {};
   window.gsEventHandlers = {};
   window.gsImpressionIds = [];
@@ -109,17 +120,7 @@ const GSSDK = async (clientId, options = {}) => {
     window.gsConfig.log = getUrlParameter('_gsLog');
   }
 
-  const playgroundToken = getUrlParameter('_gsPlaygroundToken');
-  if (playgroundToken) {
-    const env = getUrlParameter('_gsPlaygroundEnv') || 'BR';
-    clientId = `${env}-playground`;
-    options.playgroundToken = playgroundToken;
-  }
-
   window.gsLog(`GSSDK: ${clientId}`);
-  if (!clientId) {
-    throw new Error('Client ID is required to initialize the SDK');
-  }
 
   window.gsConfig.clientId = clientId;
   window.gsConfig.options = options;
