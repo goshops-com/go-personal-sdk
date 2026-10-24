@@ -9,20 +9,20 @@ async function loadSDK(search = '') {
   const context = vm.createContext({
     window,
     URLSearchParams,
-    console: { log() {} },
+    console,
     getUrlParameter: key => new URLSearchParams(search).get(key),
-    init: async (clientId, options) => {
+    init: (clientId, options) => {
       calls.push({ clientId, options });
-      return clientId;
+      return Promise.resolve(clientId);
     },
     purgeContentCache: () => calls.push('purge'),
     getCustomerSession: () => ({}),
     previewVariant: () => false,
     getParam: () => null,
-    checkURLEvents() {},
-    executeActions() {},
-    executeSearchActions() {},
-    executeSessionActions() {},
+    checkURLEvents: () => null,
+    executeActions: () => null,
+    executeSearchActions: () => null,
+    executeSessionActions: () => null,
   });
   const source = (await readFile(new URL('../src/index.js', import.meta.url), 'utf8'))
     .replace(/^import\s[\s\S]*?;\s*$/gm, '')
@@ -34,7 +34,7 @@ async function loadSDK(search = '') {
 test('empty bootstrap preserves the valid instance and all shared state references', async () => {
   const { window, calls, sdk } = await loadSDK();
   window.gsSDK = await sdk('BR-client', { provider: 'Magento' });
-  window.gsEventHandlers.ready = () => {};
+  window.gsEventHandlers.ready = () => 'ready';
   window.gsImpressionIds.push('impression');
   const saved = {
     instance: window.gsSDK,
@@ -52,6 +52,7 @@ test('empty bootstrap preserves the valid instance and all shared state referenc
   assert.equal(window.gsConfig.options, saved.options);
   assert.equal(window.gsEventHandlers, saved.handlers);
   assert.equal(saved.handlers.ready, handler);
+  assert.equal(saved.handlers.ready(), 'ready');
   assert.equal(window.gsImpressionIds, saved.impressions);
   assert.deepEqual([...saved.impressions], ['impression']);
   assert.equal(window.gsResetData, saved.reset);
