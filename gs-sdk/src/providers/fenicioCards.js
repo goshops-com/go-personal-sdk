@@ -52,18 +52,6 @@ const buildRequestUrl = (codes, params) => {
 
 const cleanText = value => String(value || '').replace(/\s+/g, ' ').trim();
 
-const toAbsoluteUrl = (value) => {
-    if (!value) {
-        return null;
-    }
-
-    try {
-        return new URL(value, window.location.href).href;
-    } catch (error) {
-        return value;
-    }
-};
-
 const parseAmount = (value) => {
     const amount = cleanText(value).replace(/[^\d,.-]/g, '');
     if (!amount) {
@@ -91,7 +79,7 @@ const getImage = (element) => {
     }
 
     return {
-        url: toAbsoluteUrl(image.getAttribute('src') || image.getAttribute('data-src')),
+        url: image.getAttribute('src') || image.getAttribute('data-src') || null,
         alt: image.getAttribute('alt') || null,
     };
 };
@@ -129,16 +117,23 @@ const getBadgeKind = (classes) => {
     return classes.find(value => !['ico', 'promo-data', 'fn-hidden'].includes(value)) || 'custom';
 };
 
-const parseBadge = (element, location) => {
+const getNativePlacement = (element, area, container) => {
+    const slot = element.closest?.('.dfl, .ctm');
+    return {
+        area,
+        container,
+        slot: slot ? getClasses(slot)[0] || null : null,
+    };
+};
+
+const parseBadge = (element, area, container) => {
     const classes = getClasses(element);
     const image = getImage(element);
-    const slot = element.closest?.('.dfl, .ctm');
     const text = cleanText(element.textContent);
     const percentage = getPercentage(element);
 
     return {
-        location,
-        slot: slot ? getClasses(slot)[0] || null : null,
+        placement: getNativePlacement(element, area, container),
         kind: getBadgeKind(classes),
         label: image?.alt || (percentage !== null && /^[\d\s.,]+$/.test(text) ? null : text || null),
         image,
@@ -175,6 +170,7 @@ const parsePaymentDiscount = (element, currency) => {
 
     return {
         id: getClassId(getClasses(element), 'desc_'),
+        placement: getNativePlacement(element, 'below-card-line', 'descuentosMDP'),
         label: image?.alt || labelElement?.getAttribute('title') || cleanText(element.textContent) || null,
         image,
         price: priceElement ? parsePrice(priceElement, currency) : null,
@@ -199,11 +195,11 @@ const parseCard = (card) => {
     const data = parseNativeData(card);
     const currency = data?.moneda || null;
     const imageBadges = Array.from(card.querySelectorAll('.cocardas .ico, .cocardas .promo-data'))
-        .map(element => parseBadge(element, 'image'));
+        .map(element => parseBadge(element, 'over-image', 'cocardas'));
     const discountBadges = Array.from(card.querySelectorAll('.porcRebaja'))
-        .map(element => parseBadge(element, 'image'));
+        .map(element => parseBadge(element, 'over-image', 'porcRebaja'));
     const lowerBadges = Array.from(card.querySelectorAll('.cocardasTexto > *'))
-        .map(element => parseBadge(element, 'below-image'));
+        .map(element => parseBadge(element, 'below-image-line', 'cocardasTexto'));
 
     return {
         code: card.getAttribute('data-codprod') || data?.producto?.codigo || null,
@@ -219,10 +215,10 @@ const parseCard = (card) => {
 };
 
 export const parseFenicioCards = (html, requestedCodes = []) => {
-    const document = new DOMParser().parseFromString(html, 'text/html');
+    const root = new DOMParser().parseFromString(html, 'text/html');
     const groupsByCode = new Map();
 
-    document.querySelectorAll('[data-codigo]').forEach((group) => {
+    root.querySelectorAll('[data-codigo]').forEach((group) => {
         const code = group.getAttribute('data-codigo');
         if (!code) {
             return;

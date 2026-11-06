@@ -222,14 +222,19 @@ test('getFenicioCards parses prices, image/lower badges and payment discounts', 
     ['current', 1274],
     ['list', 1699],
   ]);
-  assert.deepEqual(result[0].cards[0].badges.map(badge => [badge.location, badge.kind]), [
-    ['image', 'promotion'],
-    ['image', 'discount'],
-    ['below-image', 'nuevo'],
+  assert.deepEqual(result[0].cards[0].badges.map(badge => [badge.placement, badge.kind]), [
+    [{ area: 'over-image', container: 'cocardas', slot: 'ctm' }, 'promotion'],
+    [{ area: 'over-image', container: 'porcRebaja', slot: null }, 'discount'],
+    [{ area: 'below-image-line', container: 'cocardasTexto', slot: null }, 'nuevo'],
   ]);
   assert.equal(result[0].cards[0].badges[0].percentage, 25.01);
-  assert.equal(result[0].cards[0].badges[0].image.url, 'https://cdn.test/promo.png');
+  assert.equal(result[0].cards[0].badges[0].image.url, '//cdn.test/promo.png');
   assert.equal(result[0].cards[0].paymentDiscounts[0].label, 'Santander 15 Débito');
+  assert.deepEqual(result[0].cards[0].paymentDiscounts[0].placement, {
+    area: 'below-card-line',
+    container: 'descuentosMDP',
+    slot: null,
+  });
   assert.equal(result[0].cards[0].paymentDiscounts[0].price.amount, 1083);
   assert.deepEqual(result[1], { code: 'MISSING', cards: [] });
 });
