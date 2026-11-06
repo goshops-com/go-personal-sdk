@@ -13,6 +13,7 @@ import { getUrlParameter, removeParamFromUrl } from './utils/dom';
 import { getCurrentGeoIPLocation } from './api/geolocation';
 import { liveGetVideo, liveLikeVideo, liveUnlikeVideo, liveTrackVideoTime } from './api/live';
 import { installFenicio, installFenicioNavigationMonitor, processFenicioNavigation } from './providers/fenicio';
+import { getFenicioCards } from './providers/fenicioCards';
 import { setSharedToken, getSharedToken } from './utils/session';
 import { onVtexEmbeddedInit } from './vendors/vtexEmbedded';
 import { scheduleVtexPdpFallback } from './vendors/vtexPdpFallback';
@@ -244,6 +245,7 @@ const GSSDK = async (clientId, options = {}) => {
       getItemById: (id) => getItemById(id),
       getItemsByIds: (ids, options = {}) => getItemsByIds(ids, options),
       getItemsByParentIds: (parentIds) => getItemsByIds(parentIds, { field: 'parent_id' }),
+      getFenicioCards: (codes, options = {}) => getFenicioCards(codes, options),
       getRanking: (ranking, params) => getRanking(ranking, params),
       reRank: (ranking, params) => reRank(ranking, params),
       getFieldValues: (params) => getFieldValues(params),
