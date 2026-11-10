@@ -422,7 +422,9 @@ export const getContent = async (contentId, options) => {
         } else {
           const result = await httpPost(url, payload);
           data = result.data;
-          if (usePostCache && data?.variantId) {
+          // cache: false = la respuesta depende del cliente (propiedades de
+          // cliente): no se guarda, así cada carga trae el dato actual.
+          if (usePostCache && data?.variantId && data.cache !== false) {
             setCachedContent(contentId, cacheOptions, data);
           }
         }
