@@ -212,6 +212,31 @@ assert('ignore_start/end blocks removed',
   'beforeafter'
 );
 
+// ── customer_property ──────────────────────────────────────
+
+console.log('\n── customer_property ──');
+
+const customerVar = {
+  name: 'Property',
+  type: { id: 'customer_property' },
+  value: { column_name: 'name', name: 'Nombre' },
+  defaultValue: 'cliente'
+};
+const customerTpl = 'console.log(JSON.stringify("{{Property}}"));';
+
+assert('customer_property: valor resuelto de data.variables',
+  renderTemplate(customerTpl, [customerVar], { variables: [{ ...customerVar, value: 'Ana' }] }),
+  'console.log(JSON.stringify("Ana"));'
+);
+assert('customer_property: sin data usa el valor por defecto (nunca [object Object])',
+  renderTemplate(customerTpl, [customerVar], {}),
+  'console.log(JSON.stringify("cliente"));'
+);
+assert('customer_property: data sin resolver (API viejo) usa el valor por defecto',
+  renderTemplate(customerTpl, [customerVar], { variables: [customerVar] }),
+  'console.log(JSON.stringify("cliente"));'
+);
+
 // ── Summary ────────────────────────────────────────────────
 
 console.log(`\n── Results: ${passed} passed, ${failed} failed ──\n`);

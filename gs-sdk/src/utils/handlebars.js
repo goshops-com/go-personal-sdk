@@ -129,6 +129,14 @@ function addItemVariables(variables, recommendations) {
   };
 }
 
+// Variable "Propiedad de cliente" (Hola {{name}}): el API manda en data.variables
+// solo el valor de esa propiedad para el cliente de la sesión.
+const CUSTOMER_PROPERTY_TYPE = 'customer_property';
+
+function customerPropertyDefault(variable) {
+  return variable?.defaultValue == null ? '' : String(variable.defaultValue);
+}
+
 function isStrategyVariable(variable) {
   const options = variable?.type?.options || variable?.options || [];
   return Array.isArray(options) && options.some((option) =>
@@ -150,6 +158,10 @@ export function renderTemplate(template, variablesArray, data) {
       try {
         if (variable.type.id == 'list') {
           variablesObject[variable.name] = JSON.stringify(variable.value);
+        } else if (variable.type.id == CUSTOMER_PROPERTY_TYPE) {
+          // En la plantilla el value es la propiedad elegida, no el dato del
+          // cliente (llega en data.variables): hasta entonces, el valor por defecto.
+          variablesObject[variable.name] = customerPropertyDefault(variable);
         } else {
           variablesObject[variable.name] = variable.value;
         }
@@ -162,9 +174,20 @@ export function renderTemplate(template, variablesArray, data) {
   if (Array.isArray(data.variables)) {
     data.variables
       .filter((variable) =>
-        variable?.type?.id === 'social_proof' || isStrategyVariable(variable)
+        variable?.type?.id === 'social_proof' ||
+        variable?.type?.id === CUSTOMER_PROPERTY_TYPE ||
+        isStrategyVariable(variable)
       )
       .forEach((variable) => {
+        // Propiedad de cliente: solo se usa el valor ya resuelto (string). Sin
+        // resolver (API viejo) trae el objeto de la propiedad: valor por defecto.
+        if (variable?.type?.id === CUSTOMER_PROPERTY_TYPE) {
+          const value = variable.value;
+          variablesObject[variable.name] = value === null || typeof value === 'object'
+            ? customerPropertyDefault(variable)
+            : value;
+          return;
+        }
         variablesObject[variable.name] =
           variable?.type?.id === 'list'
             ? JSON.stringify(variable.value)
