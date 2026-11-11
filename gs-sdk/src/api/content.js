@@ -12,6 +12,7 @@ import {
   getSession,
   getContentImpression,
   setContentImpression,
+  removeContentImpression,
   getSeenContents,
   addSeenContent,
 } from "../utils/storage";
@@ -161,7 +162,51 @@ async function obtainContentByContext(
   return result;
 }
 
-export const getContentByContext = async (context, options = {}) => {
+// Hay integraciones que piden el contenido de la misma pagina dos veces
+// seguidas: en VTEX IO los listados disparan dos `vtex:pageView` con ~40ms de
+// diferencia (el segundo cuando la URL pasa a `?page=1`) y la app pixel llama
+// a getContentByContext en cada uno. La segunda carga duplicaba todos los
+// pedidos y pisaba a la primera a mitad de camino. Si llega una llamada igual
+// (mismo contexto, mismas opciones, misma ruta) apenas arranco la anterior y
+// esta sigue en curso, se devuelve esa misma promesa.
+const DUPLICATE_CONTEXT_WINDOW = 500;
+let contextInFlight = null;
+
+export const getContentByContext = (context, options = {}) => {
+  let key = null;
+  try {
+    // `type` lo pisa la propia carga sobre el objeto que recibe: se iguala
+    // aca para que reusar el mismo objeto de opciones no cambie la key.
+    key = JSON.stringify([context, { ...(options || {}), type: context }, window.location.origin + window.location.pathname]);
+  } catch (e) {
+    // Opciones que no se pueden serializar: no se deduplica.
+  }
+
+  if (
+    key !== null &&
+    contextInFlight &&
+    contextInFlight.key === key &&
+    Date.now() - contextInFlight.ts < DUPLICATE_CONTEXT_WINDOW
+  ) {
+    window.gsLog("getContentByContext duplicated, reusing the one in flight", context);
+    return contextInFlight.request;
+  }
+
+  const request = loadContentByContext(context, options);
+  if (key !== null) {
+    const entry = { key, request, ts: Date.now() };
+    contextInFlight = entry;
+    const clear = () => {
+      if (contextInFlight === entry) {
+        contextInFlight = null;
+      }
+    };
+    request.then(clear, clear);
+  }
+  return request;
+};
+
+const loadContentByContext = async (context, options = {}) => {
   const sessionObj = getSession();
   const onlyForcedProjects = [
     "67374d510dfcc232a627662e",
@@ -665,7 +710,7 @@ function isMobileDevice() {
 }
 
 function isNotEmpty(str) {
-  return str !== null && str !== "";
+  return str != null && str !== "";
 }
 function canShowContent(frequency, contentId) {
   if (!frequency) {
@@ -799,7 +844,14 @@ export const createContentImpression = async (impressionId, impression = {}) => 
     // a las dos, y si esta lo agregaba, openImpression lo daba por hecho y la
     // recomendación se quedaba sin métricas. La de personalización ya se deduplica por
     // contenido y sesión con setContentImpression.
-    const response = await httpPost(`/personal/impression`, payload);
+    let response;
+    try {
+      response = await httpPost(`/personal/impression`, payload);
+    } catch (error) {
+      // No se creo: se saca de la sesion para que el proximo intento la mande.
+      removeContentImpression(contentKey, impressionId);
+      throw error;
+    }
 
     // El server deriva el id de sesion + contenido, asi que no tiene por que
     // coincidir con el que viajaba en la pagina (en un contenido con `cache` ese
@@ -892,7 +944,9 @@ export { invalidateContentCache, purgeContentCache, getSeenContents };
 
 export const sendContentEvent = (key, value) => {
   const sessionObj = getSession();
-  sendEvent(key, value, sessionObj.sessionId);
+  return sendEvent(key, value, sessionObj.sessionId).catch((error) => {
+    window.gsLog?.("Error sending content event", error);
+  });
 };
 
 export const initPreviewListener = () => {

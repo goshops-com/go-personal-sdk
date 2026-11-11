@@ -132,6 +132,9 @@ function cssPathFromRoot(root, element) {
 function selectorFromBody(target) {
   const selector = cssPathFromRoot(activeRoot, target);
   if (selector === ":scope") return "body";
+  // El camino se corta en el primer ancestro con id, que puede no ser hijo
+  // directo de <body>: con el prefijo, ese selector no encontraba nada.
+  if (selector.startsWith("#")) return selector;
   return "body > " + selector;
 }
 

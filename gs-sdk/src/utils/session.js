@@ -2,6 +2,12 @@ const iframeOrigin = "https://sdk.gopersonal.ai";
 
 import { getToken, getSession } from './storage';
 
+// El SDK puede correr antes de que exista <body> (script en el <head>): el
+// iframe es invisible, asi que va en lo que haya.
+const appendIframe = (iframe) => {
+    (document.body || document.head || document.documentElement).appendChild(iframe);
+};
+
 export const getSharedToken = () => {
     const clientId = window.gsConfig.clientId;
     const clientOrigin = window.location.origin;
@@ -39,7 +45,7 @@ export const getSharedToken = () => {
             iframe.style.display = "none";
             iframe.id = 'gs_sessionTokenIframe';
             iframe.onload = setupIframe;
-            document.body.appendChild(iframe);
+            appendIframe(iframe);
         } else {
             setupIframe();
         }
@@ -92,7 +98,7 @@ export const setSharedToken = () => {
             iframe.style.display = "none";
             iframe.id = 'gs_sessionTokenIframe';
             iframe.onload = sendMessage;
-            document.body.appendChild(iframe);
+            appendIframe(iframe);
         } else {
             sendMessage();
         }

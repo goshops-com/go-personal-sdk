@@ -299,6 +299,25 @@ export const setContentImpression = (contentKey, impressionId, overwrite = false
   }
 };
 
+// Saca la impresion guardada para ese content, solo si sigue siendo la misma:
+// es para deshacer el registro cuando el pedido que la creaba fallo.
+export const removeContentImpression = (contentKey, impressionId) => {
+  if (!contentKey) {
+    return;
+  }
+
+  try {
+    const stored = readContentImpressions();
+    if (stored.items[contentKey] !== impressionId) {
+      return;
+    }
+    delete stored.items[contentKey];
+    localStorage.setItem(GS_CONTENT_IMPRESSIONS, JSON.stringify(stored));
+  } catch (e) {
+    console.error("Error removing content impression:", e);
+  }
+};
+
 // Seen contents: same shape and lifecycle as the content impressions above
 // ({ sessionId, items }), but items is an ordered array of unique content _ids.
 // localStorage (and not sessionStorage) because the GoPersonal session lasts

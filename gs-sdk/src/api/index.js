@@ -154,7 +154,9 @@ export const init = async (clientId, options) => {
     const session = getSession();
     executeInitialLoad(clientId, session, options);
     subscribeQueue();
-    return obj;
+    // El client id, igual que cuando la sesion se crea: quien llama lo usa
+    // como tal (logout lo manda al server).
+    return clientId;
   } else {
     console.log("Token not valid, getting new one");
   }
@@ -318,36 +320,6 @@ async function executeInitialLoad(clientId, session, options) {
       const result = await getContentByContext("other", {});
     }
   }
-}
-
-function getUrlFromState(event) {
-  // Dynamically construct the base URL from the current location
-  const protocol = window.location.protocol;
-  const host = window.location.host; // Includes hostname and port if present
-  const basePath = `${protocol}//${host}`;
-
-  // Initialize default values
-  let path = "/";
-  let hash = "";
-
-  // Check if the navigationRoute or similar property is available in the state
-  const navigationRoute = event.state?.navigationRoute;
-  if (navigationRoute) {
-    // Assuming the path might sometimes include a hash
-    const pathAndHash = navigationRoute.path.split("#");
-    path = pathAndHash[0] || "/";
-    hash = pathAndHash[1] ? `#${pathAndHash[1]}` : "";
-  }
-
-  // Construct the full URL
-  const fullUrl = basePath + path + hash;
-
-  // Return an object with the constructed URL, path, and hash
-  return {
-    url: fullUrl,
-    path: path,
-    hash: hash,
-  };
 }
 
 function getPageType(provider) {
@@ -672,13 +644,15 @@ export const triggerJourney = (data) => {
 
 export const logout = (clientId) => {
   const session = getSession();
-  if (session["customer_id"]) {
-    clearSession();
-    window.gsResetSession();
-  } else {
+  if (!session["customer_id"]) {
     return;
   }
-  return httpPost(`/channel/logout`, { clientId });
+  // El pedido se arma antes de borrar la sesion: httpPost lee el token al
+  // arrancar, y despues de clearSession salia con `Bearer undefined`.
+  const request = httpPost(`/channel/logout`, { clientId });
+  clearSession();
+  window.gsResetSession();
+  return request;
 };
 
 export const getItems = async (params) => {
@@ -844,8 +818,23 @@ export const searchFilterFacelets = async (query = undefined) => {
   return httpGet(`${endpoint}${queryParam}`);
 };
 
+// El texto buscado iba crudo en la URL: un `&`, `#` o `+` la rompia. Se
+// codifica, salvo que ya venga codificado (quien llama pudo haberlo hecho para
+// esquivar el problema): en ese caso se deja como esta, igual que antes.
+const encodeQuery = (input) => {
+  const text = String(input ?? "");
+  try {
+    if (decodeURIComponent(text) !== text) {
+      return text;
+    }
+  } catch (e) {
+    // Un `%` suelto ("50% off"): es texto crudo.
+  }
+  return encodeURIComponent(text);
+};
+
 export const search = async (input, params) => {
-  let q = `?query=${input}`;
+  let q = `?query=${encodeQuery(input)}`;
 
   if (params.insta) {
     q += `&insta=1`;
@@ -899,7 +888,7 @@ export const searchAnswer = async (input, params) => {
 };
 
 export const searchRedirect = async (input, params) => {
-  let q = `?query=${input}`;
+  let q = `?query=${encodeQuery(input)}`;
 
   if (params.searchResultId) {
     q += `&searchResultId=${params.searchResultId}`;
@@ -924,7 +913,7 @@ export const updateSearchResult = async (id, payload) => {
 export const imageSearch = async (formData, params) => {
   let q = `?sdk=1`;
   if (params.text && params.text.length > 0) {
-    q = `&text=${params.text}`;
+    q += `&text=${encodeURIComponent(params.text)}`;
   }
   if (window.gsSearchOptions && window.gsSearchOptions.hasMultimodal) {
     q += `&hasMultimodal=${window.gsSearchOptions.hasMultimodal}`;
@@ -945,7 +934,7 @@ export const imageSearch = async (formData, params) => {
 export const voiceSearch = async (formData, params) => {
   let q = `?sdk=1`;
   if (params.text && params.text.length > 0) {
-    q = `&text=${params.text}`;
+    q += `&text=${encodeURIComponent(params.text)}`;
   }
   if (window.gsSearchOptions && window.gsSearchOptions.hasMultimodal) {
     q += `&hasMultimodal=${window.gsSearchOptions.hasMultimodal}`;
