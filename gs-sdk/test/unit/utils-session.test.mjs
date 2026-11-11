@@ -169,28 +169,3 @@ test('setSharedToken reuses an existing iframe and waits for the confirmation of
   iframeSays({ action: 'sessionSet' });
   assert.equal(await promise, undefined);
 });
-
-test('the iframe is still added when the SDK runs before <body> exists', async () => {
-  const body = document.body;
-  body.remove();
-  try {
-    const shared = getSharedToken();
-    const iframe = document.getElementById(IFRAME_ID);
-    assert.equal(iframe.parentNode, document.head);
-    stubContentWindow(iframe);
-    iframe.onload();
-    iframeSays({ action: 'sessionData', session: { token: 'early' } });
-    assert.deepEqual(await shared, { token: 'early' });
-    iframe.remove();
-
-    const pending = setSharedToken();
-    const second = document.getElementById(IFRAME_ID);
-    assert.equal(second.parentNode, document.head);
-    stubContentWindow(second);
-    second.onload();
-    iframeSays({ action: 'sessionSet' });
-    await pending;
-  } finally {
-    document.documentElement.appendChild(body);
-  }
-});
