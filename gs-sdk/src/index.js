@@ -1,3 +1,4 @@
+import './publicPath';
 import {
   login, loginEmail, addInteraction, addInteractionState, logout, getCustomerSession, findState, findLastInteractions, reorderCategories, getItems, search, searchAnswer, searchRedirect, imageSearch, voiceSearch, searchResult, updateSearchResult, uploadImage, getCount, getFieldValues,
   getRanking, reRank, setPreferences, updateState, getItemById, getItemsByIds, init, triggerJourney, clearSharedSession, getState, getAffinity, getAffinityCustomer, getLoyalty, addBulkInteractions, addFeedback, addItemFeedback, getItemFeedbackSummary, getItemFeedbackComments, getCurrentSession, downloadSearchAutocompleteIndex, searchFilterFacelets, searchAutoFilter, searchChat, searchBulk, isSearch, setCustomerCookies, updateCustomerData, getSearchHistory, getTopSearches, searchAutocomplete, orderMenu, getLastInteraction, setEmailSubscription
@@ -19,8 +20,6 @@ import { onVtexEmbeddedInit } from './vendors/vtexEmbedded';
 import { scheduleVtexPdpFallback } from './vendors/vtexPdpFallback';
 import { installVtexCheckout } from './vendors/vtexCheckout';
 import { getParam, previewVariant } from './utils/urlParam';
-import { initElementSelectorPicker } from './utils/elementSelectorPicker';
-import { initVariantEditor } from './utils/variantEditor';
 import { track, flushEvents } from './api/events';
 import { getCart, onCartChange } from './api/cart';
 import { mountShopper } from './api/shopper';
@@ -90,7 +89,7 @@ function hasActions(option) {
   return false;
 }
 
-const GSSDK = async (clientId, options = {}) => {
+const initSDK = async (clientId, options = {}) => {
 
   if (options && options.provider == 'Fenicio') {
     installFenicioNavigationMonitor(options?.context);
@@ -187,7 +186,10 @@ const GSSDK = async (clientId, options = {}) => {
 
   try {
     if (previewVariant()) {
-      initVariantEditor();
+      // Herramienta del admin: se baja aparte, solo cuando hace falta.
+      import(/* webpackChunkName: "variant-editor" */ './utils/variantEditor')
+        .then((module) => module.initVariantEditor())
+        .catch((e) => window.gsLog?.('Error initializing variant editor', e));
     }
   } catch (e) {
     window.gsLog?.('Error initializing variant editor', e);
@@ -195,7 +197,10 @@ const GSSDK = async (clientId, options = {}) => {
 
   try {
     if (getParam('gsSelectElementSelector') === 'true') {
-      initElementSelectorPicker();
+      // Herramienta del admin: se baja aparte, solo cuando hace falta.
+      import(/* webpackChunkName: "element-selector-picker" */ './utils/elementSelectorPicker')
+        .then((module) => module.initElementSelectorPicker())
+        .catch((e) => window.gsLog?.('Error initializing element selector picker', e));
     }
   } catch (e) {
     window.gsLog?.('Error initializing element selector picker', e);
@@ -299,5 +304,12 @@ const GSSDK = async (clientId, options = {}) => {
     };
     
 };
+
+// Funcion comun (no arrow ni async): hay sitios que la llaman con
+// `new window.GSSDK.default(...)`, y una async nativa no se puede construir.
+// Devuelve la misma promesa con o sin `new`.
+function GSSDK(clientId, options = {}) {
+  return initSDK(clientId, options);
+}
 
 export default GSSDK;

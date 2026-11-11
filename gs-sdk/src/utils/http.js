@@ -51,7 +51,6 @@ export const httpGet = async (endpoint, params = {}, includeHeaders = false) => 
   const response = await fetch(url.toString(), {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
       'Authorization': `Bearer ${obj.token}`
     },
   });
@@ -80,11 +79,10 @@ export const httpPublicGet = async (endpoint, params = {}) => {
   const url = new URL(`${BASE_URL}${endpoint}`);
   Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
 
+  // Sin headers propios es un "simple request" de CORS: no dispara el preflight
+  // OPTIONS (un GET no tiene body, el Content-Type no aportaba nada).
   const response = await fetch(url.toString(), {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
   });
 
   if (!response.ok) {

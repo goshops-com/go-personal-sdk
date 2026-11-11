@@ -108,13 +108,29 @@ const removeStorageItem = (storageKey) => {
   deleteCookieValue(storageKey);
 };
 
+// La sesion se lee muchas veces por contenido. El string de storage se sigue
+// leyendo siempre (otra pestaña puede cambiarlo), pero solo se vuelve a
+// parsear cuando cambia. Se devuelve una copia: quien la recibe la modifica.
+let parsedSessionRaw = null;
+let parsedSession = null;
+
+const parseSession = (raw) => {
+  if (raw !== parsedSessionRaw) {
+    parsedSession = JSON.parse(raw);
+    parsedSessionRaw = raw;
+  }
+  if (!parsedSession || typeof parsedSession !== "object" || Array.isArray(parsedSession)) {
+    return parsedSession;
+  }
+  return { ...parsedSession };
+};
 
 export const getToken = () => {
   const item = getStorageItem(key);
   if (!item) {
     return {};
   }
-  return JSON.parse(item);
+  return parseSession(item);
 };
 
 export const checkSameClientId = (clientId) => {
@@ -135,7 +151,7 @@ export const isTokenValid = () => {
     return false;
   }
   try {
-    const itemObj = JSON.parse(item);
+    const itemObj = parseSession(item);
     const timestamp = new Date(itemObj.ts);
     const oneDayAgo = new Date();
     oneDayAgo.setHours(oneDayAgo.getHours() - 24);
@@ -149,7 +165,7 @@ export const isTokenValid = () => {
 export const getSession = () => {
   const item = getStorageItem(key);
   if (item) {
-    const session = JSON.parse(item);
+    const session = parseSession(item);
     const vuuid = getVUUID();
     session["vuuid"] = vuuid;
     return session;
@@ -161,7 +177,7 @@ export const getSession = () => {
 export const addDataToSession = (fieldKey, value) => {
   const item = getStorageItem(key);
   if (item) {
-    const session = JSON.parse(item);
+    const session = parseSession(item);
     session[fieldKey] = value;
     setSession(session);
   } else {

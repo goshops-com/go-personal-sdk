@@ -27,14 +27,28 @@ export const subscribeToTask = (taskType, callback, params) => {
   localStorage.setItem(subscriberKey, JSON.stringify(subscribers));
 }
 
+let queueTimer = null;
+
 export const subscribeQueue = () => {
 
-  setInterval(() => {
+  // Cada init vuelve a pasar por aca: un solo intervalo por pagina.
+  if (queueTimer !== null) {
+    return;
+  }
 
-    const queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
-    const subscribers = JSON.parse(localStorage.getItem(subscriberKey) || '{}');
+  queueTimer = setInterval(() => {
+
+    // Casi siempre la cola esta vacia: se sale sin parsear nada.
+    const rawQueue = localStorage.getItem(queueKey);
+    if (!rawQueue || rawQueue === '[]') {
+      return;
+    }
+
+    const queue = JSON.parse(rawQueue);
 
     if (queue.length > 0) {
+
+      const subscribers = JSON.parse(localStorage.getItem(subscriberKey) || '{}');
 
       const task = queue[0];
       const expirationDate = task.expirationDate;

@@ -144,6 +144,33 @@ function isStrategyVariable(variable) {
   );
 }
 
+// Compilar es lo caro del render y el mismo template se pide muchas veces
+// (navegacion SPA, el mismo contenido en varias paginas): se compila una vez.
+const COMPILE_OPTIONS = {
+  helpers: {
+    'eq': function (arg1, arg2) {
+      return arg1 === arg2;
+    }
+  }
+};
+const MAX_COMPILED_TEMPLATES = 100;
+const compiledTemplates = new Map();
+
+function compileTemplate(template) {
+  if (typeof template !== 'string') {
+    return Handlebars.compile(template, COMPILE_OPTIONS);
+  }
+  let compiled = compiledTemplates.get(template);
+  if (!compiled) {
+    compiled = Handlebars.compile(template, COMPILE_OPTIONS);
+    if (compiledTemplates.size >= MAX_COMPILED_TEMPLATES) {
+      compiledTemplates.clear();
+    }
+    compiledTemplates.set(template, compiled);
+  }
+  return compiled;
+}
+
 export function renderTemplate(template, variablesArray, data) {
   if (!data) {
     data = {
@@ -214,26 +241,14 @@ export function renderTemplate(template, variablesArray, data) {
     variablesObject['gs_recommendations'] = data.gs_recommendations;
   }
 
-  let compiledTemplate = Handlebars.compile(template, {
-    helpers: {
-      'eq': function (arg1, arg2) {
-        return arg1 === arg2;
-      }
-    }
-  });
+  let compiledTemplate = compileTemplate(template);
 
   let renderedTemplate = compiledTemplate(variablesObject);
   return renderedTemplate;
 }
 
 export function renderRaw(template, data) {
-  let compiledTemplate = Handlebars.compile(template, {
-    helpers: {
-      'eq': function (arg1, arg2) {
-        return arg1 === arg2;
-      }
-    }
-  });
+  let compiledTemplate = compileTemplate(template);
 
   let renderedTemplate = compiledTemplate(data);
   return renderedTemplate;

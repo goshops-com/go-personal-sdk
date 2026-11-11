@@ -87,6 +87,28 @@ function filterScheduledContents(contents) {
   });
 }
 
+// Template de la variante: el mismo se pide en cada getContent del contenido.
+// Se reusa unos minutos en memoria (tambien el pedido en curso), asi una
+// navegacion SPA no vuelve a bajarlo. Un pedido que falla no se guarda.
+const VARIANT_TEMPLATE_TTL = 5 * 60 * 1000;
+const variantTemplateRequests = new Map();
+
+function fetchVariantTemplate(project, variantId) {
+  const url = `/public/cached-content/${project}/variant/${variantId}`;
+  const cached = variantTemplateRequests.get(url);
+  if (cached && Date.now() - cached.ts < VARIANT_TEMPLATE_TTL) {
+    return cached.request;
+  }
+  const request = httpPublicGet(url);
+  variantTemplateRequests.set(url, { request, ts: Date.now() });
+  request.catch(() => {
+    if (variantTemplateRequests.get(url)?.request === request) {
+      variantTemplateRequests.delete(url);
+    }
+  });
+  return request;
+}
+
 async function obtainContentByContext(
   url,
   payload,
@@ -439,8 +461,9 @@ export const getContent = async (contentId, options) => {
         }
 
         // Get variant template
-        const variantResponse = await httpPublicGet(
-          `/public/cached-content/${data.project || sessionObj.project}/variant/${data.variantId}`,
+        const variantResponse = await fetchVariantTemplate(
+          data.project || sessionObj.project,
+          data.variantId,
         );
         const templateValue = variantResponse.variant.templateValue;
         const variables = templateValue.variables || [];

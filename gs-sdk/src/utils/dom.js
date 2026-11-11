@@ -1,5 +1,3 @@
-import { md5 } from 'pure-md5';
-
 export const injectCSS = (css, id = undefined) => {
     if (css == undefined || css == "" || css == "undefined") {
         return; // Ignore and exit the function
@@ -21,46 +19,110 @@ export const selectElement = (selector) => {
     return document.querySelector(selector);
 }
 
-export const selectElementWithRetry = async (
-    selector, 
-    maxRetries = 40, 
-    initialBackoffTime = 200,  // Starting delay
-    backoffIncrement = 100,     // Increment for each retry
-    maxBackoffTime = 4 * 1000   // Cap for backoff time
-) => {
-    const attemptSelect = async () => {
-        try {
-            return document.querySelector(selector);
-        } catch (error) {
-            console.error("Error selecting element:", error);
-            return null;
-        }
-    };
+const safeQuerySelector = (selector) => {
+    try {
+        return document.querySelector(selector);
+    } catch (error) {
+        console.error("Error selecting element:", error);
+        return null;
+    }
+};
 
+// Reintentos con backoff lineal: es el fallback para navegadores sin
+// MutationObserver.
+const selectElementByPolling = async (selector, maxRetries, initialBackoffTime, backoffIncrement, maxBackoffTime) => {
     let retries = 0;
     let selectedElement = null;
 
     while (retries < maxRetries) {
-        selectedElement = await attemptSelect();
+        selectedElement = safeQuerySelector(selector);
         if (selectedElement) {
             break;
         }
 
         retries += 1;
-
-        // Linear backoff
         const backoffTime = Math.min(maxBackoffTime, initialBackoffTime + backoffIncrement * retries);
-
-        // Wait for backoffTime milliseconds before next attempt
         await new Promise((resolve) => setTimeout(resolve, backoffTime));
     }
 
     return selectedElement;
 };
 
-export const addHTMLToDiv = async (html, selector, selectorPosition, options = {}) => {
-    const hash = `element:${selector}-hash:${md5(html)}`;
+const OBSERVER_CHECK_INTERVAL = 50;
 
+/**
+ * Espera a que el selector exista. Antes era solo polling (primer reintento a
+ * los 300ms, despues cada vez mas espaciado): ahora un MutationObserver avisa
+ * apenas cambia el DOM, asi el contenido entra en cuanto aparece su elemento.
+ * El tiempo maximo de espera es el mismo que sumaban los reintentos (~90s con
+ * los valores por defecto); pasado eso devuelve null, igual que antes.
+ */
+export const selectElementWithRetry = async (
+    selector,
+    maxRetries = 40,
+    initialBackoffTime = 200,  // Starting delay
+    backoffIncrement = 100,     // Increment for each retry
+    maxBackoffTime = 4 * 1000   // Cap for backoff time
+) => {
+    const found = safeQuerySelector(selector);
+    if (found) {
+        return found;
+    }
+
+    if (typeof MutationObserver === 'undefined' || !document.documentElement) {
+        return selectElementByPolling(selector, maxRetries, initialBackoffTime, backoffIncrement, maxBackoffTime);
+    }
+
+    let totalWait = 0;
+    for (let retry = 1; retry <= maxRetries; retry++) {
+        totalWait += Math.min(maxBackoffTime, initialBackoffTime + backoffIncrement * retry);
+    }
+
+    return new Promise((resolve) => {
+        let done = false;
+        let checkTimer = null;
+        let observer = null;
+        let timeoutTimer = null;
+
+        const finish = (element) => {
+            if (done) return;
+            done = true;
+            if (observer) observer.disconnect();
+            clearTimeout(checkTimer);
+            clearTimeout(timeoutTimer);
+            resolve(element);
+        };
+
+        const check = () => {
+            checkTimer = null;
+            const element = safeQuerySelector(selector);
+            if (element) {
+                finish(element);
+            }
+        };
+
+        // Una pagina que muta mucho dispara el observer sin parar: se revisa a
+        // lo sumo una vez cada OBSERVER_CHECK_INTERVAL.
+        observer = new MutationObserver(() => {
+            if (!done && checkTimer === null) {
+                checkTimer = setTimeout(check, OBSERVER_CHECK_INTERVAL);
+            }
+        });
+        observer.observe(document.documentElement, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class', 'id'],
+        });
+
+        timeoutTimer = setTimeout(() => finish(safeQuerySelector(selector)), totalWait);
+
+        // Por si el elemento aparecio entre el primer intento y el observe.
+        check();
+    });
+};
+
+export const addHTMLToDiv = async (html, selector, selectorPosition, options = {}) => {
     const divElement = await selectElementWithRetry(selector);
     if (divElement) {
 

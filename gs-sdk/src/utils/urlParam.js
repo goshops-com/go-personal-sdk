@@ -1,12 +1,24 @@
 
+// Se consulta muchas veces por contenido: el parseo se reusa mientras el query
+// string de la pagina no cambie.
+let parsedSearch = null;
+let parsedParams = null;
+
+const currentParams = () => {
+  const search = window.location.search;
+  if (search !== parsedSearch || !parsedParams) {
+    parsedParams = new URLSearchParams(search);
+    parsedSearch = search;
+  }
+  return parsedParams;
+}
+
 export const previewVariant = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('gsPreviewVariant');
+    return currentParams().get('gsPreviewVariant');
 }
 
 export const getParam = (param) => {
-  const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get(param);
+  return currentParams().get(param);
 }
 
 export const jsonToQueryString = (json) => {
