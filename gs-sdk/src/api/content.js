@@ -472,6 +472,10 @@ export const getContent = async (contentId, options) => {
       const useClientSideRender = !includeDraft && !gsDebug;
       if (useClientSideRender) {
         params.append("onlyData", "true");
+        // Las recomendaciones venian dos veces (el array y el mismo array como
+        // string): se pide solo el array y el string se arma aca. Un discover
+        // que no conoce el parametro lo ignora y manda los dos, como siempre.
+        params.append("omitRecoString", "true");
       }
 
       if (params.toString()) {
@@ -499,6 +503,8 @@ export const getContent = async (contentId, options) => {
         if (!data?.variantId) {
           return;
         }
+
+        ensureRecommendationsString(data);
 
         if (!isContentPublished(data)) {
           window.gsLog("Scheduled content skipped", contentId, data.publishAt, data.publishUntil);
@@ -566,6 +572,16 @@ export const getContent = async (contentId, options) => {
     return content;
   }
 };
+
+// `gs_recommendations` es `recommendations` serializado: es lo que el template
+// recibe en {{gs_recommendations}}. Si discover no lo mando (omitRecoString),
+// se arma igual que alla, y antes del render, que le agrega campos a los items.
+// Si vino, se respeta.
+function ensureRecommendationsString(data) {
+  if (data.gs_recommendations == null && data.recommendations) {
+    data.gs_recommendations = JSON.stringify(data.recommendations);
+  }
+}
 
 function buildContextPayload(options) {
   let download;

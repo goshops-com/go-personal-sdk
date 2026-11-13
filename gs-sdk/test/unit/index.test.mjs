@@ -815,10 +815,10 @@ test('gsSDK.getContent asks for the personalised content', async () => {
 
   // The API has no variant for this visitor: nothing to render.
   assert.equal(await sdk.getContent('content-1'), undefined);
-  assert.ok(find(calls, 'POST', '/personal/content/content-1?project=project-1&onlyData=true'));
+  assert.ok(find(calls, 'POST', '/personal/content/content-1?project=project-1&onlyData=true&omitRecoString=true'));
 
   assert.equal(await sdk.getContent('content-2', { impressionStatus: 'opened' }), undefined);
-  assert.ok(find(calls, 'POST', '/personal/content/content-2?impressionStatus=opened&project=project-1&onlyData=true'));
+  assert.ok(find(calls, 'POST', '/personal/content/content-2?impressionStatus=opened&project=project-1&onlyData=true&omitRecoString=true'));
 });
 
 test('gsSDK.getContentByContext asks for the contents of the page type', async () => {

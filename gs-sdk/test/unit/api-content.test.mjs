@@ -293,7 +293,7 @@ test('gsDraftContentId shows only that content in draft and the rest of the page
 
   assert.deepEqual(paths(calls), [
     'POST /personal/content-page?pageType=Home',
-    'POST /personal/content/lazy-y?project=project-1&onlyData=true',
+    'POST /personal/content/lazy-y?project=project-1&onlyData=true&omitRecoString=true',
     'POST /personal/content/draft-1?includeDraft=true&project=project-1',
   ]);
   assert.equal(document.getElementById('html-draft-1'), null, 'the published version of the draft target is left out');
@@ -332,7 +332,7 @@ test('gsVariantId forces a variant: it travels on every request and skips the ca
 
   assert.deepEqual(paths(calls), [
     'POST /personal/content-page?pageType=Home&variantId=var%207',
-    'POST /personal/content/lazy-v?variantId=var+7&project=project-1&onlyData=true',
+    'POST /personal/content/lazy-v?variantId=var+7&project=project-1&onlyData=true&omitRecoString=true',
     'GET /public/cached-content/project-1/variant/forced-variant-1',
   ]);
   assert.ok(localStorage.getItem(contextCacheKey('Home', 'false_var 7')));
@@ -471,7 +471,7 @@ test('contents outside their publishAt / publishUntil range are skipped', async 
   assert.equal(document.getElementById('html-expired'), null);
   assert.ok(document.getElementById('html-running'));
   assert.ok(document.getElementById('html-bad-date'));
-  assert.deepEqual(paths(calls).slice(1), ['POST /personal/content/lazy-running?project=project-1&onlyData=true']);
+  assert.deepEqual(paths(calls).slice(1), ['POST /personal/content/lazy-running?project=project-1&onlyData=true&omitRecoString=true']);
 });
 
 test('singlePage removes the contents and pending triggers of the previous page', async () => {
@@ -505,7 +505,7 @@ test('lazy contents are requested with the page options, from the cached route w
 
   assert.deepEqual(paths(calls).slice(1), [
     'GET /public/cached-content/project-1/lazy-cached',
-    'POST /personal/content/lazy-personal?project=project-1&onlyData=true',
+    'POST /personal/content/lazy-personal?project=project-1&onlyData=true&omitRecoString=true',
   ]);
   assert.equal(calls[2].body.context.currentPage.type, 'Product');
   assert.equal(calls[2].body.context.currentPage.product_id, 'sku-1');
@@ -762,7 +762,7 @@ test('getContent renders the variant template with the data of the visitor', asy
 
   assert.equal(result, undefined);
   assert.deepEqual(paths(calls), [
-    'POST /personal/content/content-render-1?project=project-1&onlyData=true',
+    'POST /personal/content/content-render-1?project=project-1&onlyData=true&omitRecoString=true',
     'GET /public/cached-content/project-data/variant/variant-render-1',
   ]);
   assert.equal(calls[0].body.context.currentPage.type, 'Product');
@@ -771,6 +771,65 @@ test('getContent renders the variant template with the data of the visitor', asy
   assert.equal(document.getElementById('gopersonal-style-welcome').textContent, '.welcome { color: blue; }');
   assert.equal(window.__gsWelcome, 'Welcome banner|variant-render-1');
   assert.deepEqual(getSeenContents(), ['exp-welcome']);
+});
+
+test('getContent builds gs_recommendations when discover sends only the array', async () => {
+  const recommendations = [
+    { id: '1', name: 'Uno "a"', imgs: [{ url: 'https://img/1.jpg' }] },
+    { id: '2', name: 'Dos', imgs: [] },
+  ];
+  const expected = JSON.stringify(recommendations);
+  const template = {
+    contentKey: 'reco',
+    selector: '#slot',
+    type: 'recommendations',
+    experienceId: 'exp-reco',
+    variant: {
+      templateValue: {
+        html: '<i id="reco-html"></i>',
+        js: 'window.__gsReco = {{gs_recommendations}};',
+        // Variable de producto: el render la copia en cada item. El string
+        // tiene que salir de los items tal como vinieron, sin ese campo.
+        variables: [{ name: 'foto', type: { id: 'product_property' }, value: { id: 'image' } }],
+      },
+    },
+  };
+  clientRenderApi({
+    data: { variantId: 'variant-reco-1', hasRecommendationsBlockFlag: true, recommendations },
+    template,
+  });
+
+  await getContent('content-reco-1', { type: 'Home' });
+  await waitFor(() => window.__gsReco);
+
+  assert.equal(JSON.stringify(window.__gsReco), expected);
+
+  // Desde el cache local (segunda carga) sale igual.
+  delete window.__gsReco;
+  await getContent('content-reco-1', { type: 'Home' });
+  await waitFor(() => window.__gsReco);
+  assert.equal(JSON.stringify(window.__gsReco), expected);
+});
+
+test('getContent keeps the gs_recommendations sent by discover', async () => {
+  clientRenderApi({
+    data: {
+      variantId: 'variant-reco-2',
+      recommendations: [{ id: '1' }],
+      gs_recommendations: '[{"id":"from-server"}]',
+    },
+    template: {
+      selector: '#slot',
+      type: 'recommendations',
+      experienceId: 'exp-reco-2',
+      variant: { templateValue: { html: '<i></i>', js: 'window.__gsReco2 = {{gs_recommendations}};', variables: [] } },
+    },
+  });
+
+  await getContent('content-reco-2', { type: 'Home' });
+  await waitFor(() => window.__gsReco2);
+
+  assert.equal(JSON.stringify(window.__gsReco2), '[{"id":"from-server"}]');
 });
 
 test('getContent injects nothing when the template of the variant is empty', async () => {
