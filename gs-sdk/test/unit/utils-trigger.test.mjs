@@ -315,14 +315,14 @@ test('suscribe with an interaction trigger registers a queue task that loads the
   assert.equal(cb.mock.callCount(), 0, 'nothing is shown until the interaction happens');
   const subscribers = JSON.parse(localStorage.getItem('gs_suscribers'));
   assert.deepEqual(Object.keys(subscribers), ['interaction-added-to-cart']);
-  assert.deepEqual(subscribers['interaction-added-to-cart'][0].params, { contentKey: '77' });
+  assert.deepEqual(subscribers['interaction-added-to-cart'][0].params, { contentKey: '77', cache: 0 });
 
   // The function handed to the queue asks the SDK for the content.
   const getContent = mock.fn();
   window.gsSDK = { getContent };
   assert.equal(typeof registered, 'function');
-  registered({ contentKey: '77' });
-  assert.deepEqual(getContent.mock.calls[0].arguments, ['77', { forceShow: true }]);
+  registered({ contentKey: '77', cache: 0 });
+  assert.deepEqual(getContent.mock.calls[0].arguments, ['77', { forceShow: true, cache: 0 }]);
 
   // End to end: the queue picks the interaction up and runs the stored callback.
   getContent.mock.resetCalls();
@@ -332,7 +332,22 @@ test('suscribe with an interaction trigger registers a queue task that loads the
   subscribeQueue();
   mock.timers.tick(500);
 
-  assert.deepEqual(getContent.mock.calls.map((call) => call.arguments), [['77', { forceShow: true }]]);
+  assert.deepEqual(getContent.mock.calls.map((call) => call.arguments), [['77', { forceShow: true, cache: 0 }]]);
   assert.deepEqual(JSON.parse(localStorage.getItem('gs_suscribers')), {});
   assert.equal(localStorage.getItem('gs_queue'), '[]');
+});
+
+test('a cacheable content keeps its cache flag when the interaction trigger asks for it again', () => {
+  mock.method(console, 'log', () => {});
+  suscribe(content({ id: 'interaction', value: { id: 'added-to-cart' } }, 78), mock.fn(), { cache: 1 });
+
+  const subscribers = JSON.parse(localStorage.getItem('gs_suscribers'));
+  assert.deepEqual(subscribers['interaction-added-to-cart'].at(-1).params, { contentKey: '78', cache: 1 });
+
+  // The stored source is what runs on a later page load: it has to forward the flag.
+  const getContent = mock.fn();
+  window.gsSDK = { getContent };
+  const stored = eval('(' + subscribers['interaction-added-to-cart'].at(-1).callback + ')');
+  stored({ contentKey: '78', cache: 1 });
+  assert.deepEqual(getContent.mock.calls[0].arguments, ['78', { forceShow: true, cache: 1 }]);
 });

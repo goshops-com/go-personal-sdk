@@ -41,6 +41,17 @@ test('subscribeToTask stores the callback source and its params per task type', 
   assert.match(stored['interaction-cart'][0].callback, /^function/);
 });
 
+test('subscribing the same content again replaces its subscriber instead of adding another', () => {
+  subscribeToTask('interaction-cart', function (params) { return params; }, { contentKey: 'k1', cache: 0 });
+  subscribeToTask('interaction-cart', function (params) { return params; }, { contentKey: 'k2', cache: 0 });
+  subscribeToTask('interaction-cart', function (params) { return params; }, { contentKey: 'k1', cache: 1 });
+  const stored = JSON.parse(localStorage.getItem('gs_suscribers'));
+  assert.deepEqual(stored['interaction-cart'].map((subscriber) => subscriber.params), [
+    { contentKey: 'k2', cache: 0 },
+    { contentKey: 'k1', cache: 1 },
+  ]);
+});
+
 test('the queue runs the subscribers of a task once, then drops task and subscribers', () => {
   subscribeQueue();
   subscribeToTask('interaction-cart', function (params) { globalThis.__queueCalls.push(params.contentKey); }, { contentKey: 'k1' });

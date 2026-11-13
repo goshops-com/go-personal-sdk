@@ -679,9 +679,13 @@ async function addContentToWebsite(content, options) {
           addHTMLToBody(html).then(() => addJavaScriptToBody(js, content.key));
         } else {
           if (canShow && !notAutomatic) {
-            suscribe(content, function (html, js) {
-              addHTMLToBody(html).then(() => addJavaScriptToBody(js, content.key));
-            });
+            suscribe(
+              content,
+              function (html, js) {
+                addHTMLToBody(html).then(() => addJavaScriptToBody(js, content.key));
+              },
+              { cache: options.cache },
+            );
           }
         }
       } else {

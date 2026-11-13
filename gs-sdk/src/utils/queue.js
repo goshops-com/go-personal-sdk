@@ -19,6 +19,14 @@ export const subscribeToTask = (taskType, callback, params) => {
   // Add callback to subscribers of the task type.
   // Note: For simplicity, we're directly storing the function as a string.
   // In a real-world application, this might require more sophisticated handling.
+  // Un suscriptor por contenido: cada carga de pagina vuelve a suscribir al
+  // mismo, y sin esto al dispararse el evento se pedia una vez por cada carga.
+  if (params && params.contentKey != null) {
+    subscribers[taskType] = subscribers[taskType].filter(
+      (subscriber) => subscriber?.params?.contentKey !== params.contentKey,
+    );
+  }
+
   subscribers[taskType].push({
     callback: callback.toString(),
     params: params

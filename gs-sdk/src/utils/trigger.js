@@ -63,7 +63,7 @@ export const clearPendingTriggers = () => {
     });
 };
 
-export const suscribe = (content, cb) => {
+export const suscribe = (content, cb, options = {}) => {
     const trigger = content.trigger;
     const html = content.contentValue.html;
     const js = content.contentValue.js;
@@ -144,10 +144,13 @@ export const suscribe = (content, cb) => {
       //   }
       // })
       console.log('trigger interaction')
-      const params = { contentKey: contentKey + '' };
+      // `cache` viaja en los params: el callback se guarda como texto y se
+      // ejecuta en otra carga de pagina. Sin el, un contenido cacheable volvia
+      // a pedirse por POST cada vez que se disparaba.
+      const params = { contentKey: contentKey + '', cache: options.cache ? 1 : 0 };
       subscribeToTask('interaction-' + trigger.value.id, function(params){
         console.log('f', params);
-        window.gsSDK.getContent(params.contentKey, { forceShow: true});
+        window.gsSDK.getContent(params.contentKey, { forceShow: true, cache: params.cache });
       }, params);
 
     }
