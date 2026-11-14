@@ -47,7 +47,7 @@ test('resolves the product by the VTEX runtime id and tracks the view', async ()
   await flush();
 
   const [content] = contentCalls(calls);
-  assert.ok(content.url.endsWith('/public/cached-content/project-1/?pageType=product_detail'), content.url);
+  assert.ok(content.url.endsWith('/public/cached-content/project-1/?pageType=product_detail&fd=1'), content.url);
   assert.deepEqual(window.__gsLastContentContext.context, 'product_detail');
   assert.deepEqual(window.gsConfig.options.context, { pageType: 'product_detail', product_url: PDP_URL });
 

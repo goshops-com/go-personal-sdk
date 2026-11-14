@@ -26,6 +26,7 @@ import {
   purgeContentCache,
   getSeenContents,
 } from '../../src/api/content.js';
+import { flushEvents } from '../../src/api/events.js';
 
 const API = 'https://go-discover-dev.goshops.ai';
 const HOUR = 3600 * 1000;
@@ -100,6 +101,9 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  // Events queued by a test (front decision shadow reports) end here.
+  mockFetch();
+  flushEvents();
   mock.timers.reset();
   mock.restoreAll();
   for (const [target, name] of overridden.splice(0)) {
@@ -131,7 +135,7 @@ test('getContentByContext asks the public cached page of the project and injects
   await waitFor(() => window.__gsHeroRan === 1);
 
   assert.equal(result, undefined);
-  assert.deepEqual(paths(calls), ['GET /public/cached-content/project-1/?pageType=Home']);
+  assert.deepEqual(paths(calls), ['GET /public/cached-content/project-1/?pageType=Home&fd=1']);
   assert.deepEqual(calls[0].headers, {}, 'public request: no auth header');
   assert.equal(document.getElementById('slot').innerHTML, '<b id="hero-html">Hi</b>');
   assert.equal(document.getElementById('gopersonal-style-hero').textContent, '.hero { color: red; }');
@@ -160,7 +164,7 @@ test('getContentByContext skips the projects that only load content when forced'
   assert.equal(calls.length, 0);
 
   await getContentByContext('Home', { force: true });
-  assert.deepEqual(paths(calls), ['GET /public/cached-content/67374d510dfcc232a627662e/?pageType=Home']);
+  assert.deepEqual(paths(calls), ['GET /public/cached-content/67374d510dfcc232a627662e/?pageType=Home&fd=1']);
 });
 
 test('getContentByContext falls back to the personalized POST when the cached page fails', async () => {
@@ -174,7 +178,7 @@ test('getContentByContext falls back to the personalized POST when the cached pa
   await waitFor(() => document.getElementById('html-fallback'));
 
   assert.deepEqual(paths(calls), [
-    'GET /public/cached-content/project-1/?pageType=Category',
+    'GET /public/cached-content/project-1/?pageType=Category&fd=1',
     'POST /personal/content-page?pageType=Category',
   ]);
   assert.equal(calls[1].headers.Authorization, 'Bearer token-1');
@@ -713,6 +717,537 @@ test('getContent skips a content that is outside its schedule', async () => {
 
   assert.equal(document.getElementById('html-scheduled'), null);
   assert.deepEqual(getSeenContents(), []);
+});
+
+// ---------------------------------------------------------------------------
+// Front decision: contents decided in the browser (listing asked with fd=1)
+// ---------------------------------------------------------------------------
+
+const EVENTS_URL = 'https://events.gopersonal.ai/events';
+const SALE_URL = 'https://shop.example/sale?utm=1#top';
+const ULID = /^[0-9A-HJKMNP-TV-Z]{26}$/;
+
+const urlLeaf = (x, o = null) => ({ f: 'current_url', o, x });
+
+/** `fd` of a listed content: one target, one variant, a current_url rule. */
+const fdOf = (key, rule = urlLeaf('/sale'), extra = {}) => ({
+  id: `exp-${key}`,
+  name: `Name of ${key}`,
+  rev: 1772600767000,
+  t: [{ id: `target-${key}`, r: { t: 'and', c: [rule] }, v: [{ id: `variant-${key}`, w: 100, s: 24 }] }],
+  ...extra,
+});
+
+const fdListed = (key, rule, extra = {}) => ({ key, fd: fdOf(key, rule), ...extra });
+
+/** Answer of GET /public/cached-content/<project>/variant/<variantId>. */
+const fdTemplate = (variantId, extra = {}) => {
+  const key = variantId.replace(/^variant-/, '');
+  return {
+    contentKey: key,
+    // Before the slot: the contents of a page do not replace each other.
+    selector: '#slot',
+    selectorPosition: 'before',
+    type: 'web',
+    experienceId: `exp-${key}`,
+    variant: {
+      _id: variantId,
+      status: 1,
+      ratio: 100,
+      templateValue: {
+        html: `<p id="fd-${key}" data-variant="{{gs_variantId}}" data-target="{{gs_targetId}}" data-content="{{gs_contentId}}"`
+          + ' data-imp="{{impressionId}}" data-reco="{{gs_recoImpressionId}}">{{gs_contentName}}: {{label}}</p>',
+        variables: [{ name: 'label', type: { id: 'text' }, value: 'from the variant' }],
+      },
+    },
+    ...extra,
+  };
+};
+
+/** Data of POST /personal/content/<key> for a visitor that gets the variant of `fdOf(key)`. */
+const fdServerData = (key, extra = {}) => ({
+  variantId: `variant-${key}`,
+  target: `target-${key}`,
+  contentId: `exp-${key}`,
+  contentName: `Name of ${key}`,
+  impressionId: `imp-${key}`,
+  recoImpressionId: `imp-${key}`,
+  ...extra,
+});
+
+/**
+ * API of a page listed with front decisions. `post(key)` is the data of the
+ * POST of each content (default: the variant of its fd); `template(variantId)`
+ * the template answer (default: fdTemplate).
+ */
+function frontApi({ fd, contents, post = (key) => fdServerData(key), template = (variantId) => fdTemplate(variantId) }) {
+  return mockFetch((url, init) => {
+    if (url.includes('pageType=')) return { ...pageOf([], contents), ...(fd === undefined ? {} : { fd }) };
+    if (url.includes('/variant/')) return template(url.split('/variant/')[1]);
+    if (init.method === 'POST' && contentKeyOf(url)) return { data: post(contentKeyOf(url)) };
+    return {};
+  });
+}
+
+const FD_ON = { v: 1, mode: 'on', sample: 1 };
+const FD_SHADOW = { v: 1, mode: 'shadow', sample: 1 };
+const postsOf = (calls) => paths(calls).filter((path) => path.startsWith('POST /personal/content/'));
+const templatesOf = (calls) => paths(calls).filter((path) => path.includes('/variant/'));
+const frontNodes = () => [...document.querySelectorAll('[id^="fd-"]')];
+const clearFrontNodes = () => frontNodes().forEach((node) => node.remove());
+const postOf = (key) => `POST /personal/content/${key}?project=project-1&onlyData=true&omitRecoString=true`;
+
+test('the public listing is always asked with fd=1, and the fallback POST listing never is', async () => {
+  silence('error');
+  setUrl(SALE_URL);
+  const calls = mockFetch((url, init) => {
+    if (url.includes('/public/cached-content/') && url.includes('pageType=')) return failure();
+    // Whatever the personalized page says about fd is ignored.
+    if (url.includes('pageType=')) return { ...pageOf([], [fdListed('fallback-listing')]), fd: FD_ON };
+    if (url.includes('/variant/')) return fdTemplate(url.split('/variant/')[1]);
+    return init.method === 'POST' ? { data: fdServerData(contentKeyOf(url)) } : {};
+  });
+
+  await getContentByContext('Home');
+  await waitFor(() => document.getElementById('fd-fallback-listing'));
+
+  assert.deepEqual(paths(calls), [
+    'GET /public/cached-content/project-1/?pageType=Home&fd=1',
+    'POST /personal/content-page?pageType=Home',
+    postOf('fallback-listing'),
+    'GET /public/cached-content/project-1/variant/variant-fallback-listing',
+  ]);
+});
+
+test('project without front decision: the contents are requested exactly like before', async () => {
+  setUrl(SALE_URL);
+  // No top-level fd: an `fd` left on a content is ignored.
+  const calls = frontApi({ contents: [fdListed('off-1'), { key: 'off-2' }] });
+
+  await getContentByContext('Home', { product_id: 'sku-1' });
+  await waitFor(() => document.getElementById('fd-off-1') && document.getElementById('fd-off-2'));
+
+  assert.deepEqual(paths(calls), [
+    'GET /public/cached-content/project-1/?pageType=Home&fd=1',
+    postOf('off-1'),
+    postOf('off-2'),
+    'GET /public/cached-content/project-1/variant/variant-off-1',
+    'GET /public/cached-content/project-1/variant/variant-off-2',
+  ]);
+  // The body of the POST is the one of always: nothing of fd travels.
+  assert.deepEqual(calls[1].body.context.currentPage, {
+    product_id: 'sku-1',
+    type: 'Home',
+    cache: 0,
+    provider: null,
+    location: SALE_URL,
+    referrer: '',
+  });
+  assert.deepEqual(Object.keys(calls[1].body), ['context']);
+  assert.equal(document.getElementById('fd-off-1').dataset.imp, 'imp-off-1');
+  assert.equal(window.__gsFrontDecide, undefined);
+});
+
+test('mode on, match: no POST, one template request, and the content renders with the ids of the listing', async () => {
+  setUrl(SALE_URL);
+  const calls = frontApi({ fd: FD_ON, contents: [fdListed('on-1')] });
+
+  await getContentByContext('Home');
+  await waitFor(() => document.getElementById('fd-on-1'));
+
+  assert.deepEqual(paths(calls), [
+    'GET /public/cached-content/project-1/?pageType=Home&fd=1',
+    'GET /public/cached-content/project-1/variant/variant-on-1',
+  ]);
+  const node = document.getElementById('fd-on-1');
+  assert.equal(node.dataset.variant, 'variant-on-1');
+  assert.equal(node.dataset.target, 'target-on-1');
+  assert.equal(node.dataset.content, 'exp-on-1');
+  assert.match(node.dataset.imp, ULID, 'an impression id shaped like the one of the server');
+  assert.equal(node.dataset.reco, node.dataset.imp, 'one id for both, like the server');
+  assert.equal(node.textContent, 'Name of on-1: from the variant');
+  assert.deepEqual(getSeenContents(), ['exp-on-1']);
+  assert.equal(localStorage.getItem(POST_CACHE_KEY), null, 'a front decision is never stored as a server decision');
+  assert.equal(window.__gsFrontDecide, undefined, 'nothing to report outside shadow');
+
+  // A second load (SPA navigation) decides again: still no POST, the template is reused.
+  clearFrontNodes();
+  await getContentByContext('Home');
+  await waitFor(() => document.getElementById('fd-on-1'));
+  assert.deepEqual(postsOf(calls), []);
+  assert.equal(templatesOf(calls).length, 1);
+  assert.notEqual(document.getElementById('fd-on-1').dataset.imp, node.dataset.imp, 'a new impression id per decision, like per POST');
+});
+
+test('mode on, match: the impression flow is the same, one per content and session', async () => {
+  setUrl(SALE_URL);
+  frontApi({ fd: FD_ON, contents: [fdListed('on-imp')] });
+  await getContentByContext('Home');
+  const first = (await waitFor(() => document.getElementById('fd-on-imp'))).dataset;
+
+  const calls = mockFetch(() => ({ success: true, impressionId: 'imp-derived-by-server' }));
+  const impression = { content: first.content, target: first.target, variantId: first.variant };
+  const created = await createContentImpression(first.imp, impression);
+
+  assert.deepEqual(created, { success: true, impressionId: 'imp-derived-by-server' });
+  assert.deepEqual(paths(calls), ['POST /personal/impression']);
+  assert.deepEqual(calls[0].body, {
+    impressionId: first.imp,
+    content: 'exp-on-imp',
+    target: 'target-on-imp',
+    variantId: 'variant-on-imp',
+    status: 'opened',
+  });
+  assert.equal(getContentImpressionId('exp-on-imp'), 'imp-derived-by-server');
+
+  // The content shows again with another id: no second impression.
+  frontApi({ fd: FD_ON, contents: [fdListed('on-imp')] });
+  clearFrontNodes();
+  await getContentByContext('Home');
+  const second = (await waitFor(() => document.getElementById('fd-on-imp'))).dataset;
+  const again = mockFetch();
+  assert.deepEqual(await createContentImpression(second.imp, impression), {
+    success: true,
+    impressionId: 'imp-derived-by-server',
+    skipped: true,
+  });
+  assert.equal(again.length, 0);
+});
+
+test('mode on, no match: no request at all and nothing injected', async () => {
+  setUrl('https://shop.example/other');
+  const calls = frontApi({ fd: FD_ON, contents: [fdListed('on-no-1'), fdListed('on-no-2', urlLeaf('/sale', 'in'))] });
+
+  await getContentByContext('Home');
+  await settle();
+
+  assert.deepEqual(paths(calls), ['GET /public/cached-content/project-1/?pageType=Home&fd=1']);
+  assert.deepEqual(frontNodes(), []);
+  assert.equal(document.body.innerHTML, '<div id="slot"></div>');
+  assert.equal(document.head.innerHTML, '');
+  assert.deepEqual(getSeenContents(), []);
+  assert.equal(localStorage.getItem(POST_CACHE_KEY), null);
+});
+
+test('mode on evaluates the location that would travel in the POST: the full href, at decision time', async () => {
+  setUrl(SALE_URL);
+  const calls = frontApi({
+    fd: FD_ON,
+    contents: [
+      fdListed('on-href-1', urlLeaf('utm=1#top')),
+      fdListed('on-href-2', urlLeaf(['HTTPS://SHOP.EXAMPLE/SALE?UTM=1#TOP '], 'in')),
+      fdListed('on-href-3', urlLeaf('/sale', '!=')),
+    ],
+  });
+
+  // A `location` passed in the options never replaces the one of the page (same as in the POST).
+  await getContentByContext('Home', { location: 'https://shop.example/elsewhere' });
+  await waitFor(() => document.getElementById('fd-on-href-1') && document.getElementById('fd-on-href-2'));
+
+  assert.deepEqual(postsOf(calls), []);
+  assert.equal(document.getElementById('fd-on-href-3'), null);
+});
+
+test('mode on only skips the POST of the contents it can decide; the rest of the page loads as always', async () => {
+  setUrl(SALE_URL);
+  const calls = frontApi({
+    fd: FD_ON,
+    contents: [
+      fdListed('mix-front'),
+      { key: 'mix-server' },
+      fdListed('mix-unknown', { f: 'device', o: null, x: 'mobile' }),
+      fdListed('mix-cached', urlLeaf('/nowhere'), { cache: 1 }),
+    ],
+    template: (variantId) => fdTemplate(variantId),
+  });
+
+  await getContentByContext('Home');
+  await waitFor(() => ['mix-front', 'mix-server', 'mix-unknown'].every((key) => document.getElementById(`fd-${key}`)));
+
+  assert.deepEqual(postsOf(calls), [postOf('mix-server'), postOf('mix-unknown')]);
+  assert.ok(paths(calls).includes('GET /public/cached-content/project-1/mix-cached'), 'cache: 1 ignores its fd');
+  assert.equal(document.getElementById('fd-mix-unknown').dataset.imp, 'imp-mix-unknown', 'rendered from the POST');
+});
+
+test('anything that is not a clean front decision goes through the POST, as always', async () => {
+  const badVersion = { v: 2, mode: 'on', sample: 1 };
+  const cases = [
+    ['unknown-field', { contents: (key) => [fdListed(key, { f: 'utm_source', o: '=', x: 'x' })] }],
+    ['unknown-operator', { contents: (key) => [fdListed(key, urlLeaf('/sale', 'regex'))] }],
+    ['two-variants', { contents: (key) => {
+      const listed = fdListed(key);
+      listed.fd.t[0].v.push({ id: 'variant-b', w: 50, s: 1 });
+      return [listed];
+    } }],
+    ['two-targets', { contents: (key) => {
+      const listed = fdListed(key);
+      listed.fd.t.push(listed.fd.t[0]);
+      return [listed];
+    } }],
+    ['fd-not-an-object', { contents: (key) => [{ key, fd: 'yes' }] }],
+    ['no-entry', { contents: (key) => [{ key }] }],
+    ['version', { fd: badVersion }],
+    ['version-missing', { fd: { mode: 'on', sample: 1 } }],
+    ['mode-off', { fd: { v: 1, mode: 'off', sample: 1 } }],
+    ['mode-other', { fd: { v: 1, mode: 'ON', sample: 1 } }],
+    ['listing-fd-not-an-object', { fd: 'on' }],
+    ['sample-zero', { fd: { v: 1, mode: 'on', sample: 0 } }],
+    ['sample-invalid', { fd: { v: 1, mode: 'on', sample: '1' } }],
+    // session-1 is out of a 10% sample (and in a 25% one, see below).
+    ['out-of-sample', { fd: { v: 1, mode: 'on', sample: 0.1 } }],
+    ['no-session-id', { setup: () => seedSession({ sessionId: undefined }) }],
+    // An exception while deciding (here, while reading the listing block).
+    ['decision-throws', {
+      fd: { v: 1, mode: 'on', sample: 0.999 },
+      setup: () => {
+        const isArray = Array.isArray;
+        mock.method(Array, 'isArray', (value) => {
+          if (value && value.sample === 0.999) throw new Error('boom');
+          return isArray(value);
+        });
+      },
+    }],
+    ['random-throws', { setup: () => mock.method(Math, 'random', () => { throw new Error('no entropy'); }) }],
+    ['template-of-other-content', { template: (variantId) => fdTemplate(variantId, { experienceId: 'exp-other' }) }],
+    ['variant-disabled', { template: (variantId) => {
+      const answer = fdTemplate(variantId);
+      answer.variant.status = 0;
+      return answer;
+    } }],
+    ['variant-without-ratio', { template: (variantId) => {
+      const answer = fdTemplate(variantId);
+      answer.variant.ratio = 0;
+      return answer;
+    } }],
+  ];
+
+  for (const [name, { fd = FD_ON, contents, setup, template }] of cases) {
+    resetDom({ url: SALE_URL });
+    seedSession();
+    document.body.innerHTML = '<div id="slot"></div>';
+    setup?.();
+    const key = `fallback-${name}`;
+    const calls = frontApi({ fd, contents: contents ? contents(key) : [fdListed(key)], template });
+
+    await getContentByContext('Home');
+    const node = await waitFor(() => document.getElementById(`fd-${key}`));
+
+    assert.deepEqual(postsOf(calls), [postOf(key)], name);
+    assert.equal(calls.find((call) => call.method === 'POST').body.context.currentPage.location, SALE_URL, name);
+    assert.equal(node.dataset.imp, `imp-${key}`, `${name}: rendered from the POST`);
+    mock.restoreAll();
+  }
+});
+
+test('a session inside the sample decides in the front', async () => {
+  setUrl(SALE_URL);
+  const calls = frontApi({ fd: { v: 1, mode: 'on', sample: 0.25 }, contents: [fdListed('sampled-in')] });
+
+  await getContentByContext('Home');
+  await waitFor(() => document.getElementById('fd-sampled-in'));
+
+  assert.deepEqual(postsOf(calls), []);
+});
+
+test('mode on falls back to the POST when the template of the decided variant cannot be downloaded', async () => {
+  setUrl(SALE_URL);
+  let templateRequests = 0;
+  const calls = frontApi({
+    fd: FD_ON,
+    contents: [fdListed('on-broken')],
+    template: (variantId) => (++templateRequests === 1 ? failure(404) : fdTemplate(variantId)),
+  });
+
+  await getContentByContext('Home');
+  const node = await waitFor(() => document.getElementById('fd-on-broken'));
+
+  assert.deepEqual(paths(calls).slice(1), [
+    'GET /public/cached-content/project-1/variant/variant-on-broken',
+    postOf('on-broken'),
+    'GET /public/cached-content/project-1/variant/variant-on-broken',
+  ]);
+  assert.equal(node.dataset.imp, 'imp-on-broken');
+});
+
+test('mode on never applies to debug, draft, forced variant, preview or the element picker', async () => {
+  const cases = [
+    ['debug', '?gsDebug=true', (key) => [`POST /personal/content/${key}?project=project-1`]],
+    ['draft-param', '?gsIncludeDraft=true', (key) => [`POST /personal/content/${key}?includeDraft=true&project=project-1`]],
+    ['draft-config', '', (key) => [`POST /personal/content/${key}?includeDraft=true&project=project-1`], () => {
+      window.gsConfig.includeDraft = true;
+    }],
+    ['draft-other', '?gsDraftContentId=another', (key) => [postOf(key), 'POST /personal/content/another?includeDraft=true&project=project-1']],
+    ['forced', '?gsVariantId=v-forced', (key) => [`POST /personal/content/${key}?variantId=v-forced&project=project-1&onlyData=true&omitRecoString=true`]],
+    ['preview', '?gsPreviewVariant=v-preview', () => []],
+    ['picker', '?gsElementSelector=1', () => []],
+  ];
+
+  for (const [name, query, expectedPosts, setup] of cases) {
+    const key = `gated-${name}`;
+    const listing = { ...pageOf([], [fdListed(key)]), fd: FD_ON };
+    const answer = (url, init) => {
+      if (url.includes('pageType=')) return listing;
+      if (url.includes('/variant/')) return fdTemplate(url.split('/variant/')[1]);
+      if (init.method === 'POST' && url.includes('onlyData')) {
+        return { data: fdServerData(contentKeyOf(url)) };
+      }
+      return webContent(key);
+    };
+
+    // 1. The page opens with the param: neither the listing nor the content use fd.
+    resetDom({ url: `https://shop.example/sale${query}` });
+    seedSession();
+    setup?.();
+    let calls = mockFetch(answer);
+    await getContentByContext('Home');
+    await settle();
+    assert.deepEqual(postsOf(calls), expectedPosts(key), `${name}: from the start`);
+
+    // 2. The param shows up after the public listing (with fd) was read:
+    //    getContent checks again on its own.
+    resetDom({ url: 'https://shop.example/sale' });
+    seedSession();
+    calls = mockFetch((url, init) => {
+      if (url.includes('pageType=')) {
+        setUrl(`https://shop.example/sale${query}`);
+        setup?.();
+      }
+      return answer(url, init);
+    });
+    await getContentByContext('Home');
+    await settle();
+    assert.deepEqual(
+      postsOf(calls).filter((path) => path.includes(key)),
+      expectedPosts(key).filter((path) => path.includes(key)),
+      `${name}: after the listing`,
+    );
+  }
+});
+
+test('gsSDK.getContent called directly never decides in the front, whatever its options say', async () => {
+  setUrl(SALE_URL);
+  const calls = frontApi({ fd: FD_ON, contents: [] });
+
+  await getContent('direct-1', { type: 'Home', fd: fdOf('direct-1'), cache: 0 });
+  await waitFor(() => document.getElementById('fd-direct-1'));
+
+  assert.deepEqual(postsOf(calls), [postOf('direct-1')]);
+});
+
+test('mode shadow: the POST is still made and rendered; mismatches and unknowns are reported once per content', async () => {
+  setUrl(SALE_URL);
+  const serverAnswers = {
+    // local match, the server gives another variant
+    'sh-other': fdServerData('sh-other', { variantId: 'variant-sh-other-b' }),
+    // local match, the server gives another target
+    'sh-target': fdServerData('sh-target', { target: 'target-x' }),
+    // local match, the server gives nothing
+    'sh-none': {},
+    // local no match, the server gives a variant
+    'sh-extra': fdServerData('sh-extra'),
+    // local unknown: counted apart
+    'sh-unknown': fdServerData('sh-unknown'),
+    // both agree
+    'sh-same': fdServerData('sh-same'),
+    'sh-same-none': { reason: 'no target' },
+  };
+  const contents = [
+    fdListed('sh-other'),
+    fdListed('sh-target'),
+    fdListed('sh-none'),
+    fdListed('sh-extra', urlLeaf('/nowhere')),
+    fdListed('sh-unknown', { f: 'device', o: null, x: 'mobile' }),
+    fdListed('sh-same'),
+    fdListed('sh-same-none', urlLeaf('/nowhere')),
+  ];
+  const calls = frontApi({ fd: FD_SHADOW, contents, post: (key) => serverAnswers[key] });
+
+  await getContentByContext('Home');
+  await waitFor(() => document.getElementById('fd-sh-other-b') && document.getElementById('fd-sh-same'));
+
+  // Zero behaviour change: every content asked the server and rendered what it said.
+  assert.deepEqual(postsOf(calls), contents.map((content) => postOf(content.key)));
+  assert.equal(calls[1].body.context.currentPage.location, SALE_URL);
+  assert.deepEqual(Object.keys(calls[1].body.context.currentPage).sort(), ['cache', 'location', 'provider', 'referrer', 'type']);
+  assert.equal(document.getElementById('fd-sh-other-b').dataset.variant, 'variant-sh-other-b');
+  assert.equal(document.getElementById('fd-sh-other-b').dataset.imp, 'imp-sh-other');
+  assert.equal(document.getElementById('fd-sh-other'), null);
+  assert.ok(document.getElementById('fd-sh-extra'));
+  assert.equal(document.getElementById('fd-sh-none'), null);
+
+  const pageUrl = 'https://shop.example/sale';
+  const expected = [
+    { kind: 'mismatch', content: 'sh-other', status: 'match', localVariant: 'variant-sh-other', serverVariant: 'variant-sh-other-b', localTarget: 'target-sh-other', serverTarget: 'target-sh-other', reason: null, url: pageUrl },
+    { kind: 'mismatch', content: 'sh-target', status: 'match', localVariant: 'variant-sh-target', serverVariant: 'variant-sh-target', localTarget: 'target-sh-target', serverTarget: 'target-x', reason: null, url: pageUrl },
+    { kind: 'mismatch', content: 'sh-none', status: 'match', localVariant: 'variant-sh-none', serverVariant: null, localTarget: 'target-sh-none', serverTarget: null, reason: null, url: pageUrl },
+    { kind: 'mismatch', content: 'sh-extra', status: 'no_match', localVariant: null, serverVariant: 'variant-sh-extra', localTarget: null, serverTarget: 'target-sh-extra', reason: null, url: pageUrl },
+    { kind: 'unknown', content: 'sh-unknown', status: 'unknown', localVariant: null, serverVariant: 'variant-sh-unknown', localTarget: null, serverTarget: 'target-sh-unknown', reason: 'rules:field', url: pageUrl },
+  ];
+  assert.deepEqual(window.__gsFrontDecide, expected, 'agreements are not recorded');
+
+  // Same page again, with real POSTs again: nothing is reported twice.
+  invalidateContentCache();
+  await getContentByContext('Home');
+  await settle();
+  assert.equal(postsOf(calls).length, contents.length * 2);
+  assert.equal(window.__gsFrontDecide.length, expected.length);
+
+  // The reports leave through the events channel of gsSDK.track, without the query string.
+  const sent = mockFetch();
+  flushEvents();
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].url, EVENTS_URL);
+  const events = sent[0].body.events;
+  assert.deepEqual(events.map((event) => event.event), expected.map(() => 'gs_fd_shadow'));
+  assert.deepEqual(events.map((event) => event.props), expected);
+  assert.deepEqual(events.map((event) => event.content), expected.map((record) => `exp-${record.content}`));
+  assert.ok(events.every((event) => event.url === pageUrl), 'no query string, no hash');
+  assert.ok(!JSON.stringify(sent[0].body.events).includes('utm=1'));
+});
+
+test('mode shadow never compares against a response served from the local POST cache', async () => {
+  setUrl('https://shop.example/other');
+  // A real POST leaves the decision of the server in the local cache (the
+  // second one: the first render marks the content as seen, which empties it)...
+  let calls = frontApi({ contents: [{ key: 'sh-cached' }] });
+  for (let load = 0; load < 2; load++) {
+    clearFrontNodes();
+    await getContentByContext('Home');
+    await waitFor(() => document.getElementById('fd-sh-cached'));
+  }
+  assert.deepEqual(postsOf(calls), [postOf('sh-cached'), postOf('sh-cached')]);
+  assert.ok(localStorage.getItem(POST_CACHE_KEY).includes('variant-sh-cached'));
+
+  // ...and the next load is served from it. Locally it is a no match, which against
+  // a real response would be a mismatch: here there is nothing to compare with.
+  calls = frontApi({ fd: FD_SHADOW, contents: [fdListed('sh-cached', urlLeaf('/sale'))] });
+  clearFrontNodes();
+  await getContentByContext('Home');
+  await waitFor(() => document.getElementById('fd-sh-cached'));
+
+  assert.deepEqual(postsOf(calls), []);
+  assert.equal(window.__gsFrontDecide, undefined);
+});
+
+test('mode shadow keeps at most 50 records and survives a broken report', async () => {
+  setUrl(SALE_URL);
+  const contents = Array.from({ length: 55 }, (_, i) => fdListed(`sh-cap-${i}`, { f: 'device', o: null, x: 'mobile' }));
+  frontApi({ fd: FD_SHADOW, contents, post: () => ({}) });
+
+  await getContentByContext('Home');
+
+  assert.equal(window.__gsFrontDecide.length, 50);
+  assert.ok(window.__gsFrontDecide.every((record) => record.kind === 'unknown'));
+
+  // The report throws (the log does): the content still renders from the POST.
+  window.__gsFrontDecide = [];
+  window.gsLog = (message) => {
+    if (message === 'Front decision shadow') throw new Error('log failed');
+  };
+  frontApi({ fd: FD_SHADOW, contents: [fdListed('sh-log', { f: 'device', o: null, x: 'mobile' })] });
+  await getContentByContext('Home');
+  await waitFor(() => document.getElementById('fd-sh-log'));
+  assert.deepEqual(window.__gsFrontDecide, []);
 });
 
 // ---------------------------------------------------------------------------

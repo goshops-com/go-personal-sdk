@@ -91,6 +91,16 @@ test('track takes content, variant and pageType from options, and pageType from 
   assert.equal('content' in second, false);
 });
 
+test('track sends the url given in options instead of the one of the page', () => {
+  const calls = mockFetch();
+
+  track('internal', {}, { url: 'https://shop.example/sale' });
+  track('default');
+  flushEvents();
+
+  assert.deepEqual(calls[0].body.events.map((event) => event.url), ['https://shop.example/sale', 'https://shop.example/']);
+});
+
 test('track ignores calls without an event name', () => {
   const calls = mockFetch();
   track('');

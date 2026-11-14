@@ -37,7 +37,8 @@ function listenPageExit() {
 }
 
 /**
- * Registra un evento. options: content, variant, pageType (si no, el del contexto del SDK).
+ * Registra un evento. options: content, variant, pageType (si no, el del contexto del SDK)
+ * y url (si no, la de la página).
  *   gsSDK.track('ac_click', { column: 'marcas', value: 'LENOVO', pos: 1, query: 'compu' }, { content: '<id>' })
  */
 export const track = (event, props = {}, options = {}) => {
@@ -51,7 +52,7 @@ export const track = (event, props = {}, options = {}) => {
       content: options.content,
       variant: options.variant,
       page_type: options.pageType || window.gsConfig?.options?.context?.pageType,
-      url: window.location.href,
+      url: options.url || window.location.href,
       props,
     });
     listenPageExit();

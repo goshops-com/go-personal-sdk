@@ -315,7 +315,7 @@ test('GSSDK on Fenicio monitors the navigation and installs the provider 100ms l
   window.gsSDK = sdk;
   await flush();
   assert.equal(window.__gsFenicioNavigationMonitorInstalled, true);
-  assert.ok(find(calls, 'GET', '/public/cached-content/project-1/?pageType=product_detail'), 'initial contents');
+  assert.ok(find(calls, 'GET', '/public/cached-content/project-1/?pageType=product_detail&fd=1'), 'initial contents');
 
   const publicAddInteraction = sdk.addInteraction;
   mock.timers.tick(99);
@@ -350,7 +350,7 @@ test('GSSDK on Fenicio called again after a navigation reloads the contents and 
 
   assert.equal(again, sdk);
   assert.equal(find(calls, 'POST', '/channel/init'), undefined);
-  assert.ok(find(calls, 'GET', '/public/cached-content/project-1/?pageType=category'));
+  assert.ok(find(calls, 'GET', '/public/cached-content/project-1/?pageType=category&fd=1'));
   assert.deepEqual(window.gsConfig.options.context, { pageType: 'category' });
 });
 
@@ -828,7 +828,7 @@ test('gsSDK.getContentByContext asks for the contents of the page type', async (
 
   await sdk.getContentByContext('home', { singlePage: true });
 
-  assert.ok(find(calls, 'GET', '/public/cached-content/project-1/?pageType=home'));
+  assert.ok(find(calls, 'GET', '/public/cached-content/project-1/?pageType=home&fd=1'));
   assert.equal(window.__gsLastContentContext.context, 'home');
 });
 

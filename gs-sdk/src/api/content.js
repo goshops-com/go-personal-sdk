@@ -25,6 +25,8 @@ import {
   purgeContentCache,
 } from "../utils/contentCache";
 import { getProductUrlLookup } from "../utils/productLookup";
+import { decide, isSupportedVersion, inSample } from "../utils/frontDecide";
+import { track } from "./events";
 
 const ENABLE_CONTENT_POST_CACHE = true;
 
@@ -86,6 +88,154 @@ function filterScheduledContents(contents) {
     window.gsLog("Scheduled content skipped", content?.key, content?.publishAt, content?.publishUntil);
     return false;
   });
+}
+
+// Decision en el front (utils/frontDecide). El listado publico, pedido con
+// fd=1, trae un bloque `fd` de primer nivel ({ v, mode, sample }) y un `fd` en
+// cada contenido que se puede decidir aca. Viajan hasta getContent dentro de las
+// opciones, bajo una key Symbol: no se serializa (no entra en el body del POST
+// ni en ninguna key de cache) y no se puede armar desde afuera del SDK.
+const FRONT_DECISION = Symbol("gsFrontDecision");
+const FRONT_SHADOW_EVENT = "gs_fd_shadow";
+const FRONT_REPORT_LIMIT = 50;
+// Contenidos ya informados en esta carga de pagina: uno por contenido.
+const frontReported = new Set();
+
+// Decide el contenido en el navegador, o devuelve null si no corresponde (y
+// entonces todo sigue como siempre, por el POST). `blocked` = debug, draft,
+// variante forzada o ruta cacheada. Nunca tira.
+function frontDecisionFor(options, sessionObj, location, blocked) {
+  try {
+    const front = options[FRONT_DECISION];
+    if (!front || blocked) {
+      return null;
+    }
+    const { listing, entry } = front;
+    if (!isSupportedVersion(listing) || (listing.mode !== "shadow" && listing.mode !== "on")) {
+      return null;
+    }
+    if (!sessionObj || !sessionObj.sessionId || !sessionObj.project) {
+      return null;
+    }
+    if (!inSample(sessionObj.sessionId, listing.sample)) {
+      return null;
+    }
+    return {
+      mode: listing.mode,
+      entry,
+      local: decide(entry, location),
+      pageUrl: window.location.origin + window.location.pathname,
+    };
+  } catch (e) {
+    window.gsLog("Front decision error", e);
+    return null;
+  }
+}
+
+// Id con la forma de un ulid (10 caracteres de tiempo + 16 al azar, Crockford
+// base32), que es lo que discover genera en cada POST para impressionId.
+const ULID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+
+function frontImpressionId() {
+  let time = Date.now();
+  let id = "";
+  for (let i = 0; i < 10; i++) {
+    id = ULID_ALPHABET[time % 32] + id;
+    time = Math.floor(time / 32);
+  }
+  for (let i = 0; i < 16; i++) {
+    id += ULID_ALPHABET[Math.floor(Math.random() * 32)];
+  }
+  return id;
+}
+
+// El `data` que devolveria POST /personal/content/:key?onlyData=true para un
+// contenido decidido aca (discover, getContentDetails). `variables` se completa
+// con las de la variante cuando llega su template.
+function buildFrontData(contentId, front, sessionObj) {
+  const impressionId = frontImpressionId();
+  return {
+    session: {
+      _id: sessionObj.sessionId,
+      customer_id: sessionObj.customer_id,
+    },
+    hasRecommendationsBlockFlag: false,
+    hasListStrategyVariables: false,
+    variantId: front.local.variantId,
+    contentKey: contentId,
+    target: front.local.targetId,
+    recoImpressionId: impressionId,
+    contentName: front.entry.name,
+    contentId: front.entry.id,
+    impressionId,
+    project: sessionObj.project,
+  };
+}
+
+// Variables de un contenido decidido aca: las de la variante, tal cual. Es lo
+// que manda el POST cuando ninguna depende del visitante, y un contenido con
+// `fd` no tiene de esas. Si el template no es el de ese contenido, o la variante
+// ya no esta activa, el listado quedo viejo: tira, y decide el servidor.
+function frontVariables(variantResponse, entry) {
+  const variant = variantResponse.variant;
+  if (
+    String(variantResponse.experienceId) !== entry.id ||
+    variant.status !== 1 ||
+    !(variant.ratio > 0)
+  ) {
+    throw new Error("Front decision: stale listing");
+  }
+  return variant.templateValue.variables || [];
+}
+
+// Modo shadow: compara la decision local con la respuesta REAL del POST. Solo
+// se informan las diferencias y los "no se", una vez por contenido y carga de
+// pagina: quedan en window.__gsFrontDecide (hasta 50) y salen por gsSDK.track.
+function reportFrontShadow(contentId, front, data) {
+  try {
+    const local = front.local;
+    const serverVariant = data?.variantId != null ? String(data.variantId) : null;
+    const serverTarget = data?.target != null ? String(data.target) : null;
+    let kind = null;
+    if (local.status === "unknown") {
+      kind = "unknown";
+    } else if (local.status === "match") {
+      if (serverVariant !== local.variantId || serverTarget !== local.targetId) {
+        kind = "mismatch";
+      }
+    } else if (serverVariant !== null) {
+      kind = "mismatch";
+    }
+    if (!kind || frontReported.has(contentId)) {
+      return;
+    }
+    frontReported.add(contentId);
+
+    const record = {
+      kind,
+      content: contentId,
+      status: local.status,
+      localVariant: local.variantId || null,
+      serverVariant,
+      localTarget: local.targetId || null,
+      serverTarget,
+      reason: local.reason || null,
+      url: front.pageUrl,
+    };
+    window.gsLog("Front decision shadow", record);
+    if (!Array.isArray(window.__gsFrontDecide)) {
+      window.__gsFrontDecide = [];
+    }
+    if (window.__gsFrontDecide.length < FRONT_REPORT_LIMIT) {
+      window.__gsFrontDecide.push(record);
+    }
+    track(FRONT_SHADOW_EVENT, record, {
+      content: front.entry.id,
+      url: front.pageUrl,
+    });
+  } catch (e) {
+    window.gsLog("Front decision report error", e);
+  }
 }
 
 // Template de la variante: el mismo se pide en cada getContent del contenido.
@@ -254,6 +404,9 @@ const loadContentByContext = async (context, options = {}) => {
   }
 
   let result;
+  // Bloque `fd` del listado: solo el de la ruta publica. La pagina que sale por
+  // POST (debug, draft, variante forzada o fallback) nunca decide en el front.
+  let listingFd = null;
 
   if (gsDebug || draftAll || draftContentId || forcedVariantId) {
     const payload = buildContextPayload(options);
@@ -261,8 +414,11 @@ const loadContentByContext = async (context, options = {}) => {
     result = await obtainContentByContext(url, payload, context, cacheScope);
   } else {
     try {
-      let getURL = `/public/cached-content/${sessionObj.project}/?pageType=${context}`;
+      // fd=1: si el proyecto tiene la decision en el front prendida, el listado
+      // trae lo necesario; si no, el body es el de siempre.
+      let getURL = `/public/cached-content/${sessionObj.project}/?pageType=${context}&fd=1`;
       result = await httpPublicGet(getURL);
+      listingFd = result?.fd || null;
     } catch (e) {
       console.error("Error fetching cached content:", e);
       const payload = buildContextPayload(options);
@@ -297,7 +453,7 @@ const loadContentByContext = async (context, options = {}) => {
   try {
     const lazyLoadContent = filterScheduledContents(result.lazyLoadContent);
     window.gsLog("LazyLoadContent " + lazyLoadContent.length);
-    await loadLazyContents(lazyLoadContent, options);
+    await loadLazyContents(lazyLoadContent, options, listingFd);
   } catch (e) {
     console.error(e);
   }
@@ -321,9 +477,14 @@ const loadContentByContext = async (context, options = {}) => {
 // (empates en paralelo) de menor a mayor, esperando a que el grupo anterior
 // termine de resolverse. Asi la regla `seen_content` de la siguiente ya ve lo
 // que se sirvio en el paso anterior.
-async function loadLazyContents(lazyLoadContent, options) {
-  const load = (content) =>
-    getContent(content.key, { ...options, cache: content.cache || 0 });
+async function loadLazyContents(lazyLoadContent, options, listingFd) {
+  const load = (content) => {
+    const contentOptions = { ...options, cache: content.cache || 0 };
+    if (listingFd && content.fd) {
+      contentOptions[FRONT_DECISION] = { listing: listingFd, entry: content.fd };
+    }
+    return getContent(content.key, contentOptions);
+  };
 
   const priorityOf = (content) => {
     const value = Number(content?.priority);
@@ -483,39 +644,82 @@ export const getContent = async (contentId, options) => {
       }
 
       if (useClientSideRender) {
-        let data;
-        const cached = usePostCache
-          ? getCachedContent(contentId, cacheOptions)
-          : null;
+        const front = frontDecisionFor(
+          options,
+          sessionObj,
+          // El mismo valor que viajaria en el POST de este contenido.
+          payload.context.currentPage.location,
+          options.cache ||
+            window.gsConfig.includeDraft ||
+            includeDraftParam == "true" ||
+            draftContentId ||
+            forcedVariantId,
+        );
+        let data = null;
+        let variantResponse = null;
 
-        if (cached) {
-          data = cached;
-        } else {
-          const result = await httpPost(url, payload);
-          data = result.data;
-          // cache: false = la respuesta depende del cliente (propiedades de
-          // cliente): no se guarda, así cada carga trae el dato actual.
-          if (usePostCache && data?.variantId && data.cache !== false) {
-            setCachedContent(contentId, cacheOptions, data);
+        if (front && front.mode === "on") {
+          if (front.local.status === "no_match") {
+            // Igual que cuando el POST responde sin variantId.
+            window.gsLog("Front decision: no match", contentId);
+            return;
+          }
+          if (front.local.status === "match") {
+            try {
+              data = buildFrontData(contentId, front, sessionObj);
+              variantResponse = await fetchVariantTemplate(data.project, data.variantId);
+              data.variables = frontVariables(variantResponse, front.entry);
+              window.gsLog("Front decision: match", contentId, data.variantId);
+            } catch (e) {
+              // Cualquier problema: decide el servidor, como siempre.
+              window.gsLog("Front decision failed, asking the server", contentId, e);
+              data = null;
+              variantResponse = null;
+            }
           }
         }
 
-        if (!data?.variantId) {
-          return;
+        if (!data) {
+          let fromServer = false;
+          const cached = usePostCache
+            ? getCachedContent(contentId, cacheOptions)
+            : null;
+
+          if (cached) {
+            data = cached;
+          } else {
+            const result = await httpPost(url, payload);
+            data = result.data;
+            fromServer = true;
+            // cache: false = la respuesta depende del cliente (propiedades de
+            // cliente): no se guarda, así cada carga trae el dato actual.
+            if (usePostCache && data?.variantId && data.cache !== false) {
+              setCachedContent(contentId, cacheOptions, data);
+            }
+          }
+
+          // Shadow: solo contra una respuesta real, nunca contra el cache local.
+          if (front && front.mode === "shadow" && fromServer) {
+            reportFrontShadow(contentId, front, data);
+          }
+
+          if (!data?.variantId) {
+            return;
+          }
+
+          ensureRecommendationsString(data);
+
+          if (!isContentPublished(data)) {
+            window.gsLog("Scheduled content skipped", contentId, data.publishAt, data.publishUntil);
+            return;
+          }
+
+          // Get variant template
+          variantResponse = await fetchVariantTemplate(
+            data.project || sessionObj.project,
+            data.variantId,
+          );
         }
-
-        ensureRecommendationsString(data);
-
-        if (!isContentPublished(data)) {
-          window.gsLog("Scheduled content skipped", contentId, data.publishAt, data.publishUntil);
-          return;
-        }
-
-        // Get variant template
-        const variantResponse = await fetchVariantTemplate(
-          data.project || sessionObj.project,
-          data.variantId,
-        );
         const templateValue = variantResponse.variant.templateValue;
         const variables = templateValue.variables || [];
 
