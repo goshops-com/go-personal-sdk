@@ -245,7 +245,7 @@ test('trackGopersonalProductClickByField looks the item up by field and sends se
   installGtag();
   await trackGopersonalProductClickByField('sku', 'sku-1', 'Search', 1);
   const url = new URL(calls[0].url);
-  assert.ok(url.pathname.endsWith('/item'));
+  assert.equal(url.pathname, '/public/items/project-1');
   assert.equal(url.searchParams.get('limit'), '1');
   assert.deepEqual(JSON.parse(url.searchParams.get('where')), { sku: 'sku-1' });
   assert.deepEqual(gtagCalls, [['event', 'select_item', {

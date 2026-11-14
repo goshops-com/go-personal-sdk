@@ -510,7 +510,7 @@ const REQUESTS = [
   ['addInteraction', [{ event: 'view', item: 'p1' }], 'POST', '/interaction', { event: 'view', item: 'p1', provider: 'custom' }],
   ['addInteractionState', ['cart', { transactionId: 't1' }], 'POST', '/interaction/state/cart', { transactionId: 't1', provider: 'custom' }],
   ['addInteractionState', ['cart'], 'POST', '/interaction/state/cart', { provider: 'custom' }],
-  ['getItems', [{ limit: 5, where: { brand: 'acme' } }], 'GET', '/item?limit=5&offset=0&where=%7B%22brand%22%3A%22acme%22%7D'],
+  ['getItems', [{ limit: 5, where: { brand: 'acme' } }], 'GET', '/public/items/project-1?limit=5&offset=0&where=%7B%22brand%22%3A%22acme%22%7D'],
   ['findState', [], 'GET', '/channel/state'],
   ['findLastInteractions', [], 'GET', '/channel/last-interactions?limit=10'],
   ['findLastInteractions', [3], 'GET', '/channel/last-interactions?limit=3'],

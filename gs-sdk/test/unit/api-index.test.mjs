@@ -770,7 +770,7 @@ test('a view that comes from a recommendation click carries the impression id an
 test('a recommendation-click view identified by a field looks the product up by that field for GA4', async () => {
   setUrl('https://shop.example/p/1?gsImpressionId=imp-2');
   window.dataLayer = [];
-  const calls = mockFetch((url) => (url.includes('/item?') ? { resultData: [{ id: 'item-9', name: 'Lamp' }] } : {}));
+  const calls = mockFetch((url) => (url.includes('/public/items/') ? { resultData: [{ id: 'item-9', name: 'Lamp' }] } : {}));
 
   await api.addInteraction({
     event: 'view',
@@ -779,7 +779,7 @@ test('a recommendation-click view identified by a field looks the product up by 
   });
   await flush();
 
-  const lookups = byPath(calls, '/item?');
+  const lookups = byPath(calls, '/public/items/');
   assert.equal(lookups.length, 1);
   const query = new URL(lookups[0].url).searchParams;
   assert.equal(query.get('limit'), '1');
@@ -1050,22 +1050,53 @@ test('getItemFeedbackComments pages the comments with sane limits', async () => 
 // catalog
 // ---------------------------------------------------------------------------------------------
 
-test('getItems lists items with default paging', async () => {
+test('getItems lists items through the public cached route, without a token', async () => {
+  seedSession();
   const calls = mockFetch(() => ({ resultData: [{ id: '1' }] }));
   assert.deepEqual(await api.getItems({}), { resultData: [{ id: '1' }] });
+  assert.equal(calls.length, 1);
   assert.equal(calls[0].method, 'GET');
-  assert.equal(pathOf(calls[0]), '/item?limit=20&offset=0');
+  assert.equal(pathOf(calls[0]), '/public/items/project-1?limit=20&offset=0');
+  assert.deepEqual(calls[0].headers, {}, 'no Authorization header: the edge can cache it and there is no preflight');
 });
 
 test('getItems sends paging, filter and sort', async () => {
+  seedSession();
   const calls = mockFetch();
   await api.getItems({ limit: 5, offset: 10, where: { brand: 'A&B' }, sortBy: { price: -1 } });
   const url = new URL(calls[0].url);
-  assert.equal(url.pathname, '/item');
+  assert.equal(url.pathname, '/public/items/project-1');
   assert.equal(url.searchParams.get('limit'), '5');
   assert.equal(url.searchParams.get('offset'), '10');
   assert.deepEqual(JSON.parse(url.searchParams.get('where')), { brand: 'A&B' });
   assert.deepEqual(JSON.parse(url.searchParams.get('sortBy')), { price: -1 });
+});
+
+test('getItems falls back to the authenticated route when the public one fails', async () => {
+  seedSession();
+  const calls = mockFetch((url) => (url.includes('/public/items/') ? jsonResponse({ error: 'x' }, { status: 500 }) : { resultData: [{ id: '2' }] }));
+  assert.deepEqual(await api.getItems({ limit: 500, offset: 500, where: { active: 1 } }), { resultData: [{ id: '2' }] });
+  assert.deepEqual(calls.map((call) => new URL(call.url).pathname), ['/public/items/project-1', '/item']);
+  assert.equal(new URL(calls[1].url).search, new URL(calls[0].url).search, 'same query on both routes');
+  assert.equal(calls[1].headers.Authorization, 'Bearer token-1');
+});
+
+test('getItems keeps the authenticated route for what the public one does not cover', async () => {
+  const pathsFor = async (params) => {
+    const calls = mockFetch();
+    await api.getItems(params);
+    return calls.map((call) => new URL(call.url).pathname);
+  };
+
+  seedSession();
+  assert.deepEqual(await pathsFor({ limit: 5001 }), ['/item'], 'the public route caps the page at 5000');
+  assert.deepEqual(await pathsFor({ limit: -1 }), ['/item']);
+  assert.deepEqual(await pathsFor({ limit: 10, offset: -5 }), ['/item']);
+  assert.deepEqual(await pathsFor({ limit: 'abc' }), ['/item']);
+  assert.deepEqual(await pathsFor({ limit: 5000 }), ['/public/items/project-1']);
+
+  seedSession({ project: undefined });
+  assert.deepEqual(await pathsFor({}), ['/item'], 'no project in the session');
 });
 
 test('getItemsByIds returns nothing, without a request, when there are no usable ids', async () => {

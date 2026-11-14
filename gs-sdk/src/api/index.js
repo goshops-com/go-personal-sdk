@@ -655,6 +655,9 @@ export const logout = (clientId) => {
   return request;
 };
 
+// Tope de pagina de GET /public/items en discover.
+const PUBLIC_ITEMS_MAX_LIMIT = 5000;
+
 export const getItems = async (params) => {
   const limit = params.limit || 20;
   const offset = params.offset || 0;
@@ -668,6 +671,24 @@ export const getItems = async (params) => {
   if (params.sortBy) {
     const sortByString = JSON.stringify(params.sortBy);
     q += `&sortBy=${encodeURIComponent(sortByString)}`;
+  }
+
+  // El listado depende solo del proyecto y del query, no del visitante: se pide por la ruta
+  // publica, que lleva el proyecto en la URL y se cachea en el edge (10 min). Va sin token, asi
+  // que tampoco dispara el preflight. La ruta con token queda para lo que la publica no cubre
+  // (sin proyecto en la sesion, mas de 5000 items por pagina, valores raros) y como respaldo si
+  // la publica falla.
+  const project = getSession()?.project;
+  const pageSize = Number(limit);
+  const pageStart = Number(offset);
+  const publicCovers =
+    project && pageSize >= 0 && pageSize <= PUBLIC_ITEMS_MAX_LIMIT && pageStart >= 0;
+  if (publicCovers) {
+    try {
+      return await httpPublicGet(`/public/items/${project}${q}`);
+    } catch (e) {
+      window.gsLog?.("getItems: public route failed, using the authenticated one", e);
+    }
   }
 
   return httpGet(`/item${q}`);
