@@ -3,3 +3,9 @@
 
 /gs-sdk-*.js
   Cache-Control: public, max-age=300, stale-while-revalidate=86400, immutable
+
+/iframe
+  Cache-Control: public, max-age=300, s-maxage=300, stale-while-revalidate=86400
+
+/iframe.html
+  Cache-Control: public, max-age=300, s-maxage=300, stale-while-revalidate=86400
