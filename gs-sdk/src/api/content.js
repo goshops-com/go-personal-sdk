@@ -149,6 +149,26 @@ function frontImpressionId() {
   return id;
 }
 
+// Contenido cacheado: el render viene del edge, igual para todos, asi que el id
+// de impresion no puede venir adentro. Discover manda una marca (`impToken`) y
+// aca se cambia, en toda la respuesta, por un id nuevo en cada pedido. Sin
+// marca (discover viejo, respuesta inesperada) el contenido queda como llego.
+const IMPRESSION_TOKEN_PATTERN = /^[0-9A-Za-z]{16,64}$/;
+
+function withOwnImpressionId(content) {
+  try {
+    const token = content?.impToken;
+    if (typeof token !== "string" || !IMPRESSION_TOKEN_PATTERN.test(token)) {
+      return content;
+    }
+    const { impToken, ...rest } = content;
+    return JSON.parse(JSON.stringify(rest).split(token).join(frontImpressionId()));
+  } catch (e) {
+    window.gsLog("Cached content impression id error", e);
+    return content;
+  }
+}
+
 // El `data` que devolveria POST /personal/content/:key?onlyData=true para un
 // contenido decidido aca (discover, getContentDetails). `variables` se completa
 // con las de la variante cuando llega su template.
@@ -607,8 +627,13 @@ export const getContent = async (contentId, options) => {
   const sessionObj = getSession();
 
   if (options.cache && sessionObj.project && !gsDebug && !singleDraftContent && !forcedVariantId) {
-    content = await httpPublicGet(
-      `/public/cached-content/${sessionObj.project}/${contentId}`,
+    // imp=1: discover deja una marca donde iria el id de impresion y la informa en
+    // `impToken`. Un discover que no conoce el parametro responde como siempre.
+    content = withOwnImpressionId(
+      await httpPublicGet(
+        `/public/cached-content/${sessionObj.project}/${contentId}`,
+        { imp: "1" },
+      ),
     );
   } else {
     if (prevVarId === null) {

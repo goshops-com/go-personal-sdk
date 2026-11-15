@@ -500,7 +500,7 @@ test('singlePage removes the contents and pending triggers of the previous page'
 test('lazy contents are requested with the page options, from the cached route when they allow it', async () => {
   const calls = mockFetch((url) => {
     if (url.includes('pageType=')) return pageOf([], [{ key: 'lazy-cached', cache: 1 }, { key: 'lazy-personal' }]);
-    if (url.endsWith('/lazy-cached')) return webContent('lazy-cached');
+    if (url.endsWith('/lazy-cached?imp=1')) return webContent('lazy-cached');
     return { data: {} };
   });
 
@@ -508,7 +508,7 @@ test('lazy contents are requested with the page options, from the cached route w
   await waitFor(() => document.getElementById('html-lazy-cached'));
 
   assert.deepEqual(paths(calls).slice(1), [
-    'GET /public/cached-content/project-1/lazy-cached',
+    'GET /public/cached-content/project-1/lazy-cached?imp=1',
     'POST /personal/content/lazy-personal?project=project-1&onlyData=true&omitRecoString=true',
   ]);
   assert.equal(calls[2].body.context.currentPage.type, 'Product');
@@ -635,6 +635,49 @@ test('getContent does nothing while the element selector picker is open', async 
   assert.equal(document.getElementById('html-picker'), null);
 });
 
+test('cached content: the impression token is swapped for a fresh id on every request', async () => {
+  const TOKEN = '7ZZZZZZZZZZZZZZZZZZZZZZZZZ';
+  const calls = mockFetch(() => ({
+    type: 'web',
+    selector: '#slot',
+    experienceId: 'exp-imp',
+    impToken: TOKEN,
+    recoImpressionId: TOKEN,
+    contentValue: {
+      html: `<div id="html-imp" data-imp="${TOKEN}"><a href="/p?gsImpressionId=${TOKEN}">x</a></div>`,
+      css: '',
+      js: `window.__impSeen = (window.__impSeen || []).concat('${TOKEN}');`,
+    },
+  }));
+
+  await getContent('imp', { cache: 1 });
+  await waitFor(() => document.getElementById('html-imp'));
+  const first = document.getElementById('html-imp').getAttribute('data-imp');
+  assert.match(first, /^[0-9A-HJKMNP-TV-Z]{26}$/);
+  assert.notEqual(first, TOKEN);
+  assert.ok(!document.body.innerHTML.includes(TOKEN), 'no token left in the page');
+  assert.ok(document.getElementById('html-imp').innerHTML.includes(`gsImpressionId=${first}`), 'same id in every place of one render');
+  await waitFor(() => (window.__impSeen || []).length === 1);
+  assert.equal(Array.from(window.__impSeen).join(','), first, 'the js got the same id as the html');
+  assert.deepEqual(paths(calls), ['GET /public/cached-content/project-1/imp?imp=1']);
+});
+
+test('cached content: without a valid impToken the response is used as it came', async () => {
+  for (const impToken of [undefined, '', 'short', 42, 'con espacios y simbolos <>']) {
+    resetDom();
+    seedSession({ project: 'project-1' });
+    document.body.innerHTML = '<div id="slot"></div>';
+    mockFetch(() => ({
+      type: 'web', selector: '#slot', experienceId: 'exp-raw', impToken,
+      contentValue: { html: '<div id="html-raw" data-imp="01ARZ3NDEKTSV4RRFFQ69G5FAV">short</div>', css: '', js: '' },
+    }));
+    await getContent('raw', { cache: 1 });
+    await waitFor(() => document.getElementById('html-raw'));
+    assert.equal(document.getElementById('html-raw').getAttribute('data-imp'), '01ARZ3NDEKTSV4RRFFQ69G5FAV', String(impToken));
+    assert.equal(document.getElementById('html-raw').textContent, 'short');
+  }
+});
+
 test('getContent with cache reads the public cached content and injects it', async () => {
   const calls = mockFetch(() => {
     const { key, ...content } = webContent('cached-1');
@@ -645,7 +688,7 @@ test('getContent with cache reads the public cached content and injects it', asy
   await waitFor(() => document.getElementById('html-cached-1'));
 
   assert.equal(result, undefined, 'only API contents are returned');
-  assert.deepEqual(paths(calls), ['GET /public/cached-content/project-1/cached-1']);
+  assert.deepEqual(paths(calls), ['GET /public/cached-content/project-1/cached-1?imp=1']);
   assert.deepEqual(getSeenContents(), ['exp-cached-1']);
 });
 
@@ -965,7 +1008,7 @@ test('mode on only skips the POST of the contents it can decide; the rest of the
   await waitFor(() => ['mix-front', 'mix-server', 'mix-unknown'].every((key) => document.getElementById(`fd-${key}`)));
 
   assert.deepEqual(postsOf(calls), [postOf('mix-server'), postOf('mix-unknown')]);
-  assert.ok(paths(calls).includes('GET /public/cached-content/project-1/mix-cached'), 'cache: 1 ignores its fd');
+  assert.ok(paths(calls).includes('GET /public/cached-content/project-1/mix-cached?imp=1'), 'cache: 1 ignores its fd');
   assert.equal(document.getElementById('fd-mix-unknown').dataset.imp, 'imp-mix-unknown', 'rendered from the POST');
 });
 
