@@ -87,6 +87,21 @@ test('byContext uses the product of the page on a product detail page', async ()
   assert.deepEqual(calls[0].body.context, { currentPage: { productId: '77' } });
 });
 
+test('byContext on a product detail page keeps who asked (content, variant, experience)', async () => {
+  window.gsConfig.options.context = { pageType: 'product_detail', product_id: 77 };
+  const calls = mockFetch(() => ({}));
+  await byContext({
+    includeImpressionId: true,
+    context: { content: 'c1', variant: 'v1', experience: 't1', currentPage: { productId: 'ignored' } },
+  });
+  assert.deepEqual(calls[0].body.context, {
+    content: 'c1',
+    variant: 'v1',
+    experience: 't1',
+    currentPage: { productId: '77' },
+  });
+});
+
 test('byContext keeps the given context with forceContext, or outside a product detail page', async () => {
   const calls = mockFetch(() => ({}));
   const context = { currentPage: { productId: 'mine' } };

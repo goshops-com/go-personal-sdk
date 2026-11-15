@@ -16,7 +16,15 @@ export const byContext = async (options = {}) => {
 
   const currentPageContext = window.gsConfig.options.context || {};
   if (!options.forceContext && currentPageContext.pageType == 'product_detail' && currentPageContext.product_id){
+    // En la PDP la pagina manda el producto, pero content/variant/experience son de quien
+    // pide (la plantilla): discover los guarda en la impresion (dataresult) para saber de
+    // que personalizacion es. Sin ellos la impresion queda huerfana del content.
+    const owner = {};
+    for (const key of ['content', 'variant', 'experience']) {
+      if (context && context[key] != null) owner[key] = context[key];
+    }
     context = {
+      ...owner,
       currentPage: {
         productId: currentPageContext.product_id + "",
       },
