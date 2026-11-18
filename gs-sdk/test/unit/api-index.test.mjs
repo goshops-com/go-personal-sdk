@@ -563,7 +563,7 @@ test('clearSharedSession asks the shared-session iframe to clear the token', () 
 });
 
 test('login stores the customer in the session and posts it with the provider', async () => {
-  window.gsConfig.options.provider = 'VTEX';
+  window.gsConfig.options.provider = 'Magento';
   const calls = mockFetch(() => ({ ok: true }));
 
   assert.deepEqual(await api.login('customer-1', { email: 'ana@example.com', name: 'Ana' }), { ok: true });
@@ -572,7 +572,35 @@ test('login stores the customer in the session and posts it with the provider', 
   assert.equal(storedSession().customer_email, 'ana@example.com');
   assert.equal(calls[0].method, 'POST');
   assert.equal(pathOf(calls[0]), '/channel/login');
-  assert.deepEqual(calls[0].body, { email: 'ana@example.com', name: 'Ana', customerId: 'customer-1', provider: 'vtex' });
+  assert.deepEqual(calls[0].body, { email: 'ana@example.com', name: 'Ana', customerId: 'customer-1', provider: 'magento' });
+});
+
+test('on VTEX login identifies by email only, so the checkout and the storefront resolve the same customer', async () => {
+  window.gsConfig.options.provider = 'Vtex';
+  const calls = mockFetch(() => ({ ok: true }));
+
+  await api.login('vtex-user-1', { email: 'ana@example.com', name: 'Ana', param_updateCartFromCustomer: true });
+
+  // The local session still knows who is logged in (logout relies on it).
+  assert.equal(storedSession().customer_id, 'vtex-user-1');
+  assert.equal(storedSession().customer_email, 'ana@example.com');
+  assert.deepEqual(calls[0].body, {
+    email: 'ana@example.com',
+    name: 'Ana',
+    param_updateCartFromCustomer: true,
+    provider: 'vtex',
+  });
+});
+
+test('on VTEX login keeps the id when there is no usable email', async () => {
+  window.gsConfig.options.provider = 'VTEX';
+  const calls = mockFetch(() => ({ ok: true }));
+
+  await api.login('vtex-user-2', { email: 'not-an-email' });
+  await api.login('vtex-user-3');
+
+  assert.deepEqual(calls[0].body, { email: 'not-an-email', customerId: 'vtex-user-2', provider: 'vtex' });
+  assert.deepEqual(calls[1].body, { customerId: 'vtex-user-3', provider: 'vtex' });
 });
 
 test('login works without extra data and without a configured provider', async () => {

@@ -363,16 +363,35 @@ const withProvider = (data = {}) => {
   return { ...data, provider: String(provider).toLowerCase() };
 };
 
+// On VTEX the checkout can only identify a shopper by email, and the API only
+// looks a customer up by email when the login carries no id. Sending the
+// storefront's VTEX user id would split one shopper into two customers (one
+// keyed by email from the checkout, one by id from the storefront), so on VTEX
+// the email alone identifies the customer. Existing customers keyed by the
+// VTEX id still match, since the API finds them by their stored email.
+const VALID_LOGIN_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+const identifiesByEmail = (provider, email) =>
+  String(provider || "").toUpperCase() === "VTEX" &&
+  typeof email === "string" &&
+  VALID_LOGIN_EMAIL.test(email.trim());
+
 export const login = (id, data = {}) => {
   addDataToSession("customer_id", id);
   if (data.email) {
     addDataToSession("customer_email", data.email);
   }
-  data.customerId = id;
+  let provider;
   try {
-    data.provider = window.gsConfig.options.provider.toLowerCase();
+    provider = window.gsConfig.options.provider;
+    data.provider = provider.toLowerCase();
   } catch (error) {
     console.error("Error setting provider:", error);
+  }
+  if (identifiesByEmail(provider, data.email)) {
+    delete data.customerId;
+  } else {
+    data.customerId = id;
   }
   return httpPost(`/channel/login`, data);
 };

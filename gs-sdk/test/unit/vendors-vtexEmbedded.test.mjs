@@ -95,7 +95,6 @@ test('userData with an email logs the customer in with their profile and shares 
     name: 'Ada Lovelace',
     phone: '555 0100',
     param_updateCartFromCustomer: true,
-    customerId: 'vtex-user-1',
     provider: 'vtex',
   });
 
@@ -116,8 +115,8 @@ test('userData leaves out a profile that is missing or not text', async () => {
 
   const bodies = byPath(calls, '/channel/login').map((call) => call.body);
   assert.deepEqual(bodies, [
-    { email: 'bob@example.com', name: 'Bob', param_updateCartFromCustomer: true, customerId: 'u2', provider: 'vtex' },
-    { email: 'eve@example.com', param_updateCartFromCustomer: true, customerId: 'u3', provider: 'vtex' },
+    { email: 'bob@example.com', name: 'Bob', param_updateCartFromCustomer: true, provider: 'vtex' },
+    { email: 'eve@example.com', param_updateCartFromCustomer: true, provider: 'vtex' },
   ]);
 });
 
