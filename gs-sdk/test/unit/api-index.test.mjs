@@ -603,6 +603,40 @@ test('on VTEX login keeps the id when there is no usable email', async () => {
   assert.deepEqual(calls[1].body, { customerId: 'vtex-user-3', provider: 'vtex' });
 });
 
+test('on a VTEX page a login before init (no gsConfig yet) still identifies by email only', async () => {
+  const savedConfig = window.gsConfig;
+  try {
+    for (const setup of [
+      () => { window.__RUNTIME__ = { account: 'crocs', workspace: 'master' }; },
+      () => { window.vtexjs = { checkout: {} }; },
+    ]) {
+      delete window.gsConfig;
+      setup();
+      const calls = mockFetch(() => ({ ok: true }));
+      await api.login('vtex-uuid', { email: 'ana@example.com', param_updateCartFromCustomer: true });
+      assert.deepEqual(calls[0].body, { email: 'ana@example.com', param_updateCartFromCustomer: true, provider: 'vtex' });
+      delete window.__RUNTIME__;
+      delete window.vtexjs;
+    }
+  } finally {
+    window.gsConfig = savedConfig;
+    delete window.__RUNTIME__;
+    delete window.vtexjs;
+  }
+});
+
+test('a configured provider wins over VTEX page detection', async () => {
+  window.gsConfig.options.provider = 'Magento';
+  window.__RUNTIME__ = { account: 'acme' };
+  try {
+    const calls = mockFetch(() => ({ ok: true }));
+    await api.login('c-9', { email: 'ana@example.com' });
+    assert.deepEqual(calls[0].body, { email: 'ana@example.com', customerId: 'c-9', provider: 'magento' });
+  } finally {
+    delete window.__RUNTIME__;
+  }
+});
+
 test('login works without extra data and without a configured provider', async () => {
   const calls = mockFetch();
   await api.login('customer-2');

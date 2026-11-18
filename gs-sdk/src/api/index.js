@@ -376,6 +376,22 @@ const identifiesByEmail = (provider, email) =>
   typeof email === "string" &&
   VALID_LOGIN_EMAIL.test(email.trim());
 
+// The VTEX IO pixel app calls gsSDK.login as soon as the script loads, which can be
+// before init sets gsConfig.options. Without a provider the login went out with the
+// VTEX userId and duplicated the customer created by the checkout's email login, so
+// a VTEX page is recognized on its own (synchronous globals only, nothing awaited).
+const resolveLoginProvider = () => {
+  const configured = window.gsConfig?.options?.provider;
+  if (configured) {
+    return configured;
+  }
+  const runtime = window.__RUNTIME__;
+  if (window.vtexjs || (runtime && typeof runtime.account === "string" && runtime.account)) {
+    return "vtex";
+  }
+  return undefined;
+};
+
 export const login = (id, data = {}) => {
   addDataToSession("customer_id", id);
   if (data.email) {
@@ -383,8 +399,10 @@ export const login = (id, data = {}) => {
   }
   let provider;
   try {
-    provider = window.gsConfig.options.provider;
-    data.provider = provider.toLowerCase();
+    provider = resolveLoginProvider();
+    if (provider) {
+      data.provider = String(provider).toLowerCase();
+    }
   } catch (error) {
     console.error("Error setting provider:", error);
   }
