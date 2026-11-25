@@ -9,6 +9,15 @@ Assets estáticos en Cloudflare; backend en Discover. No requiere Next.js.
 Workers Static Assets. Configurar el dominio destino al desplegar; no hay
 credenciales de modelo/admin en este bundle.
 
+## Deploy
+
+Automático con Workers Builds: cada push a `main` que toque `shopper-widget/`
+construye (`npm ci && npm run build`) y publica (`npx wrangler deploy`) el
+Worker `gopersonal-shopper-widget`, servido en
+`https://gopersonal-shopper-widget.go-shops.workers.dev/`. Los cambios fuera de
+esta carpeta no disparan build. La configuración vive en el panel de Cloudflare
+(Worker → Settings → Builds).
+
 ## Montaje opt-in con SDK
 
 En el admin, `/shopper` → **Obtener script** genera el código con las URLs
