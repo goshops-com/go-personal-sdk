@@ -11,7 +11,15 @@ const SESSION_KEY = `gp-shopper-v1:${API}:session-1`;
 
 let mounted = [];
 
+const CONFIG_URL = `${API}/public/shopper-config/project-1`;
+const CONFIG_KEY = `gp-shopper-config-v1:${API}:project-1`;
+const CONFIG = { enabled: true, version: 1, name: 'Ana', color: '#123456' };
+
 const bootstrapResponse = (extra = {}) => ({ token: 'boot-token', expiresIn: 600, config: { color: 'rgb(1, 2, 3)' }, ...extra });
+
+// Mockea fetch: la config del shopper responde con `config` y el resto con `bootstrap`.
+const shopperFetch = (bootstrap = () => ({}), config = () => CONFIG) =>
+  mockFetch((url, init, call) => (url === CONFIG_URL ? config(url, init, call) : bootstrap(url, init, call)));
 
 const mount = (options = {}) => {
   const shopper = mountShopper({ widgetUrl: WIDGET_URL, ...options });
@@ -76,13 +84,114 @@ test('mountShopper fails when the container selector matches nothing', () => {
   assert.equal(document.querySelector('section'), null);
 });
 
+test('mounting asks for the shopper config with the session, shows the launcher with its color and caches it', async () => {
+  const calls = shopperFetch();
+  mount();
+  assert.equal(parts().launcher, null, 'without a cached config the launcher waits for it');
+  await flush();
+
+  const configCalls = calls.filter((call) => call.url === CONFIG_URL);
+  assert.equal(configCalls.length, 1);
+  assert.equal(configCalls[0].method, 'GET');
+  assert.deepEqual(configCalls[0].headers, {}, 'sin headers: sin preflight CORS y cacheable en el CDN');
+  assert.equal(parts().launcher.style.background, 'rgb(18, 52, 86)');
+  assert.deepEqual(JSON.parse(localStorage.getItem(CONFIG_KEY)), CONFIG);
+});
+
+test('a cached config paints the launcher right away and the fresh one is only stored for the next page load', async () => {
+  localStorage.setItem(CONFIG_KEY, JSON.stringify({ ...CONFIG, color: '#000001' }));
+  const calls = shopperFetch(() => ({}), () => ({ ...CONFIG, version: 2, color: '#ffffff' }));
+  mount();
+  assert.equal(parts().launcher.style.background, 'rgb(0, 0, 1)');
+  await flush();
+
+  assert.equal(calls.filter((call) => call.url === CONFIG_URL).length, 1, 'the config is refreshed on every load');
+  assert.equal(parts().launcher.style.background, 'rgb(0, 0, 1)', 'the design does not change while the page is open');
+  assert.equal(JSON.parse(localStorage.getItem(CONFIG_KEY)).color, '#ffffff');
+});
+
+test('a disabled shopper shows no launcher and an embedded one does not bootstrap', async () => {
+  const calls = shopperFetch(() => bootstrapResponse(), () => ({ enabled: false }));
+  mount();
+  document.body.insertAdjacentHTML('beforeend', '<div id="slot"></div>');
+  mount({ container: '#slot' });
+  await flush();
+
+  assert.equal(parts().launcher, null);
+  assert.equal(bootstrapCalls(calls).length, 0);
+  assert.deepEqual(JSON.parse(localStorage.getItem(CONFIG_KEY)), { enabled: false });
+});
+
+test('a cached disabled config hides the launcher on this load even if the shopper was enabled since', async () => {
+  localStorage.setItem(CONFIG_KEY, JSON.stringify({ enabled: false }));
+  shopperFetch();
+  mount();
+  await flush();
+  assert.equal(parts().launcher, null);
+  assert.deepEqual(JSON.parse(localStorage.getItem(CONFIG_KEY)), CONFIG, 'the next load shows it');
+});
+
+test('if the config request fails the cache is kept, and without cache the default launcher is shown', async () => {
+  localStorage.setItem(CONFIG_KEY, JSON.stringify({ ...CONFIG, color: '#000001' }));
+  shopperFetch(() => ({}), () => jsonResponse({}, { status: 500 }));
+  mount();
+  await flush();
+  assert.equal(parts().launcher.style.background, 'rgb(0, 0, 1)');
+  assert.equal(JSON.parse(localStorage.getItem(CONFIG_KEY)).color, '#000001');
+
+  resetDom(); seedSession();
+  shopperFetch(() => ({}), () => jsonResponse({}, { status: 500 }));
+  mount();
+  await flush();
+  assert.equal(parts().launcher.style.background, 'rgb(94, 64, 191)');
+  assert.equal(localStorage.getItem(CONFIG_KEY), null);
+});
+
+test('an unreadable cache or an invalid color are ignored', async () => {
+  localStorage.setItem(CONFIG_KEY, '{not json');
+  shopperFetch(() => ({}), () => ({ ...CONFIG, color: 'red; position: static' }));
+  mount();
+  assert.equal(parts().launcher, null, 'a broken cache counts as no cache');
+  await flush();
+  assert.equal(parts().launcher.style.background, 'rgb(94, 64, 191)');
+});
+
+test('without a project in the session the config is not requested and the default launcher is shown', async () => {
+  seedSession({ project: undefined });
+  const calls = shopperFetch();
+  mount();
+  await flush();
+  assert.equal(calls.length, 0);
+  assert.equal(parts().launcher.style.background, 'rgb(94, 64, 191)');
+  assert.equal(localStorage.length, 1, 'only the SDK session is stored');
+});
+
+test('the launcher is shown even when the config cannot be stored', async () => {
+  shopperFetch();
+  mock.method(Object.getPrototypeOf(localStorage), 'setItem', () => { throw new Error('QuotaExceededError'); });
+  mount();
+  await flush();
+  assert.equal(parts().launcher.style.background, 'rgb(18, 52, 86)');
+});
+
+test('destroying before the config arrives shows nothing', async () => {
+  let release;
+  shopperFetch(() => ({}), () => new Promise((resolve) => { release = () => resolve(CONFIG); }));
+  const shopper = mount();
+  await flush();
+  shopper.destroy();
+  release();
+  await flush();
+  assert.equal(document.querySelector('button'), null);
+});
+
 test('mounting the floating launcher does not bootstrap until it is opened', async () => {
-  const calls = mockFetch(() => bootstrapResponse());
+  const calls = shopperFetch(() => bootstrapResponse());
   mount();
   await flush();
 
   const { panel, iframe, error, launcher } = parts();
-  assert.equal(calls.length, 0);
+  assert.equal(bootstrapCalls(calls).length, 0);
   assert.equal(panel.parentNode, document.body);
   assert.equal(panel.hidden, true);
   assert.equal(panel.style.display, 'none');
@@ -95,24 +204,25 @@ test('mounting the floating launcher does not bootstrap until it is opened', asy
 });
 
 test('clicking the launcher opens the panel, bootstraps and loads the widget; clicking again hides it', async () => {
-  const calls = mockFetch(() => bootstrapResponse());
+  const calls = shopperFetch(() => bootstrapResponse());
   mount();
+  await flush();
   const { panel, iframe, launcher } = parts();
 
   launcher.click();
   await flush();
 
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0].url, `${API}/shopper/v1/bootstrap`);
-  assert.equal(calls[0].method, 'POST');
-  assert.equal(calls[0].headers.Authorization, 'Bearer token-1');
+  assert.equal(bootstrapCalls(calls).length, 1);
+  assert.equal(bootstrapCalls(calls)[0].url, `${API}/shopper/v1/bootstrap`);
+  assert.equal(bootstrapCalls(calls)[0].method, 'POST');
+  assert.equal(bootstrapCalls(calls)[0].headers.Authorization, 'Bearer token-1');
   assert.equal(panel.hidden, false);
   assert.equal(panel.style.display, 'block');
   assert.equal(panel.style.getPropertyPriority('display'), 'important');
   assert.equal(launcher.getAttribute('aria-expanded'), 'true');
   assert.equal(iframe.hidden, false);
   assert.equal(iframe.src, `${WIDGET_URL}?hostOrigin=${encodeURIComponent('https://shop.example')}`);
-  assert.equal(launcher.style.background, 'rgb(1, 2, 3)');
+  assert.equal(launcher.style.background, 'rgb(18, 52, 86)', 'the color comes from the shopper config, not from the bootstrap');
 
   launcher.click();
   assert.equal(panel.hidden, true);
@@ -124,11 +234,11 @@ test('clicking the launcher opens the panel, bootstraps and loads the widget; cl
   launcher.click();
   await flush();
   assert.equal(panel.hidden, false);
-  assert.equal(calls.length, 1);
+  assert.equal(bootstrapCalls(calls).length, 1);
 });
 
 test('the widget is initialized once it says it is ready, and only messages from its own frame count', async () => {
-  mockFetch(() => bootstrapResponse({ config: { color: 'rgb(1, 2, 3)', name: 'Ana' } }));
+  shopperFetch(() => bootstrapResponse({ config: { color: 'rgb(1, 2, 3)', name: 'Ana' } }));
   const shopper = mount({ context: { pageType: 'product_detail', productId: 42, extra: 'dropped' } });
   await shopper.open();
   const { iframe } = parts();
@@ -161,7 +271,7 @@ test('the widget is initialized once it says it is ready, and only messages from
 });
 
 test('open focuses the widget once it is ready', async () => {
-  mockFetch(() => bootstrapResponse());
+  shopperFetch(() => bootstrapResponse());
   const shopper = mount();
   await shopper.open();
   const { iframe } = parts();
@@ -175,7 +285,7 @@ test('open focuses the widget once it is ready', async () => {
 });
 
 test('setContext re-initializes the widget with the normalized context', async () => {
-  const calls = mockFetch(() => bootstrapResponse());
+  const calls = shopperFetch(() => bootstrapResponse());
   const shopper = mount();
   await shopper.open();
   const { iframe } = parts();
@@ -194,11 +304,11 @@ test('setContext re-initializes the widget with the normalized context', async (
     {},
     { pageType: 'home' },
   ]);
-  assert.equal(calls.length, 1, 'same session: no new bootstrap');
+  assert.equal(bootstrapCalls(calls).length, 1, 'same session: no new bootstrap');
 });
 
 test('setContext bootstraps again when the SDK session changed', async () => {
-  const calls = mockFetch(() => bootstrapResponse());
+  const calls = shopperFetch(() => bootstrapResponse());
   const shopper = mount();
   await shopper.open();
   const { iframe } = parts();
@@ -216,7 +326,7 @@ test('setContext bootstraps again when the SDK session changed', async () => {
 });
 
 test('the conversation id reported by the widget is stored per session and sent back on the next initialize', async () => {
-  mockFetch(() => bootstrapResponse());
+  shopperFetch(() => bootstrapResponse());
   const shopper = mount();
   await shopper.open();
   const { iframe } = parts();
@@ -237,7 +347,7 @@ test('the conversation id reported by the widget is stored per session and sent 
 
 test('a stored conversation is resumed by a new mount of the same session', async () => {
   localStorage.setItem(SESSION_KEY, 'conv-stored');
-  mockFetch(() => bootstrapResponse());
+  shopperFetch(() => bootstrapResponse());
   const shopper = mount();
   await shopper.open();
   const { iframe } = parts();
@@ -248,7 +358,7 @@ test('a stored conversation is resumed by a new mount of the same session', asyn
 
 test('without a session id there is no session key and no stored conversation', async () => {
   seedSession({ sessionId: undefined });
-  mockFetch(() => bootstrapResponse());
+  shopperFetch(() => bootstrapResponse());
   const shopper = mount();
   await shopper.open();
   const { iframe } = parts();
@@ -257,12 +367,12 @@ test('without a session id there is no session key and no stored conversation', 
   fromWidget(iframe, { type: 'gp-shopper:conversation', id: 'conv-2' });
 
   assert.equal(posts[0].message.session.sessionKey, null);
-  assert.equal(localStorage.length, 1, 'only the SDK session is stored');
+  assert.equal(localStorage.length, 2, 'only the SDK session and the shopper config are stored');
 });
 
 test('the widget can ask for a fresh token and for the panel to close', async () => {
   let n = 0;
-  const calls = mockFetch(() => bootstrapResponse({ token: `boot-${++n}` }));
+  const calls = shopperFetch(() => bootstrapResponse({ token: `boot-${++n}` }));
   const shopper = mount();
   await shopper.open();
   const { iframe, panel, launcher } = parts();
@@ -272,7 +382,7 @@ test('the widget can ask for a fresh token and for the panel to close', async ()
 
   fromWidget(iframe, { type: 'gp-shopper:refresh' });
   await flush();
-  assert.equal(calls.length, 2);
+  assert.equal(bootstrapCalls(calls).length, 2);
   assert.equal(posts.at(-1).message.session.token, 'boot-2');
 
   fromWidget(iframe, { type: 'gp-shopper:close' });
@@ -281,52 +391,52 @@ test('the widget can ask for a fresh token and for the panel to close', async ()
 });
 
 test('concurrent opens share a single bootstrap request', async () => {
-  const calls = mockFetch(() => bootstrapResponse());
+  const calls = shopperFetch(() => bootstrapResponse());
   const shopper = mount();
   await Promise.all([shopper.open(), shopper.open()]);
-  assert.equal(calls.length, 1);
+  assert.equal(bootstrapCalls(calls).length, 1);
 });
 
 test('the token is renewed a minute before it expires while the panel is open', async () => {
-  const calls = mockFetch(() => bootstrapResponse({ expiresIn: 120 }));
+  const calls = shopperFetch(() => bootstrapResponse({ expiresIn: 120 }));
   const shopper = mount();
   await shopper.open();
-  assert.equal(calls.length, 1);
+  assert.equal(bootstrapCalls(calls).length, 1);
 
   mock.timers.tick(59999);
   await flush();
-  assert.equal(calls.length, 1);
+  assert.equal(bootstrapCalls(calls).length, 1);
   mock.timers.tick(1);
   await flush();
-  assert.equal(calls.length, 2);
+  assert.equal(bootstrapCalls(calls).length, 2);
 
   // Hidden panel: the renewal is skipped...
   shopper.close();
   mock.timers.tick(60000);
   await flush();
-  assert.equal(calls.length, 2);
+  assert.equal(bootstrapCalls(calls).length, 2);
 
   // ...and the next open, with the token about to expire, bootstraps again.
   mock.timers.tick(40000);
   await shopper.open();
-  assert.equal(calls.length, 3);
+  assert.equal(bootstrapCalls(calls).length, 3);
 });
 
 test('a short-lived token is renewed no sooner than one second later', async () => {
-  const calls = mockFetch(() => bootstrapResponse({ expiresIn: 30 }));
+  const calls = shopperFetch(() => bootstrapResponse({ expiresIn: 30 }));
   const shopper = mount();
   await shopper.open();
   mock.timers.tick(999);
   await flush();
-  assert.equal(calls.length, 1);
+  assert.equal(bootstrapCalls(calls).length, 1);
   mock.timers.tick(1);
   await flush();
-  assert.equal(calls.length, 2);
+  assert.equal(bootstrapCalls(calls).length, 2);
 });
 
 test('a failed bootstrap shows an error instead of the widget, and the next open retries', async () => {
   let fail = true;
-  const calls = mockFetch(() => (fail ? jsonResponse({}, { status: 500 }) : bootstrapResponse()));
+  const calls = shopperFetch(() => (fail ? jsonResponse({}, { status: 500 }) : bootstrapResponse()));
   const shopper = mount();
   await shopper.open();
   const { panel, iframe, error } = parts();
@@ -340,7 +450,7 @@ test('a failed bootstrap shows an error instead of the widget, and the next open
 
   fail = false;
   await shopper.open();
-  assert.equal(calls.length, 2);
+  assert.equal(bootstrapCalls(calls).length, 2);
   assert.equal(error.hidden, true);
   assert.equal(iframe.hidden, false);
   assert.match(iframe.src, /^https:\/\/widget\.example\//);
@@ -348,14 +458,14 @@ test('a failed bootstrap shows an error instead of the widget, and the next open
 
 test('with a container the shopper is embedded: opens right away, has no launcher and cannot be closed by the widget', async () => {
   document.body.innerHTML = '<div id="slot"></div>';
-  const calls = mockFetch(() => bootstrapResponse());
+  const calls = shopperFetch(() => bootstrapResponse());
   mount({ container: '#slot' });
   await flush();
 
   const { panel, iframe, launcher } = parts();
   assert.equal(panel.parentNode, document.getElementById('slot'));
   assert.equal(launcher, null);
-  assert.equal(calls.length, 1);
+  assert.equal(bootstrapCalls(calls).length, 1);
   assert.equal(panel.hidden, false);
   assert.equal(panel.style.position, 'relative');
 
@@ -370,14 +480,14 @@ test('with a container the shopper is embedded: opens right away, has no launche
 test('the container can be given as an element', async () => {
   const slot = document.createElement('div');
   document.body.appendChild(slot);
-  mockFetch(() => bootstrapResponse());
+  shopperFetch(() => bootstrapResponse());
   mount({ container: slot });
   await flush();
   assert.equal(parts().panel.parentNode, slot);
 });
 
 test('destroy removes the UI and stops reacting to the widget, the launcher and the renewal timer', async () => {
-  const calls = mockFetch(() => bootstrapResponse({ expiresIn: 120 }));
+  const calls = shopperFetch(() => bootstrapResponse({ expiresIn: 120 }));
   const shopper = mount();
   await shopper.open();
   const { panel, iframe, launcher } = parts();
@@ -392,7 +502,7 @@ test('destroy removes the UI and stops reacting to the widget, the launcher and 
   mock.timers.tick(120000);
   await shopper.open();
   await flush();
-  assert.equal(calls.length, 1);
+  assert.equal(bootstrapCalls(calls).length, 1);
   assert.deepEqual(posts, []);
   assert.equal(panel.hidden, false, 'open() after destroy leaves the detached panel untouched');
   assert.equal(launcher.isConnected, false);
@@ -400,7 +510,7 @@ test('destroy removes the UI and stops reacting to the widget, the launcher and 
 
 test('destroying while the bootstrap is in flight leaves nothing behind', async () => {
   let release;
-  mockFetch(() => new Promise((resolve) => { release = () => resolve(bootstrapResponse()); }));
+  shopperFetch(() => new Promise((resolve) => { release = () => resolve(bootstrapResponse()); }));
   const shopper = mount();
   const opening = shopper.open();
   const { iframe, error } = parts();

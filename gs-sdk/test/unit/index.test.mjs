@@ -1003,6 +1003,7 @@ test('gsSDK.mountShopper mounts the Personal Shopper launcher', async () => {
   assert.throws(() => sdk.mountShopper({ widgetUrl: 'http://widget.example/app' }), /shopper widgetUrl must use HTTPS/);
 
   const shopper = sdk.mountShopper({ widgetUrl: 'https://widget.example/app' });
+  await flush();
   const panel = document.querySelector('section[aria-label="Personal Shopper"]');
   const launcher = [...document.querySelectorAll('button')].find((button) => button.textContent.includes('Personal Shopper'));
   assert.ok(panel);
