@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
-import { hostOrigin, send, validSession, type Config, type Product, type Session } from './bridge';
+import { hostOrigin, send, validConfig, validSession, type Config, type Product, type Session } from './bridge';
+import { appearanceOf, type Appearance } from './appearance';
+import { Logo } from './Logo';
+import { ProductList, ShowcaseProducts } from './ProductCards';
+import { useCustomCss } from './customCss';
 import { copy } from './copy';
 import { MarkdownMessage } from './MarkdownMessage';
 import './style.css';
@@ -17,38 +21,7 @@ async function request(session: Session, path: string, body?: unknown): Promise<
   return res.json();
 }
 
-function ProductCard({ product, session, conversationId, messageId }: { product: Product; session: Session; conversationId: string; messageId: string }) {
-  const ref = useRef<HTMLElement>(null);
-  const t = copy[session.config.language] || copy.es;
-  const event = (type: 'product_view' | 'product_click') => {
-    if (session.preview) return;
-    void fetch(`${session.apiUrl}/events`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.token}` },
-      body: JSON.stringify({ eventId: crypto.randomUUID(), conversationId, messageId, productId: product.id, type }), keepalive: true }).catch(() => {});
-    if (type === 'product_click') send('product-click', { productId: product.id });
-  };
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const observer = new IntersectionObserver(entries => {
-      if (entries.some(e => e.isIntersecting)) timer = setTimeout(() => { event('product_view'); observer.disconnect(); }, 1000);
-      else if (timer) clearTimeout(timer);
-    }, { threshold: 0.5 });
-    if (ref.current) observer.observe(ref.current);
-    return () => { observer.disconnect(); if (timer) clearTimeout(timer); };
-  }, [product.id, messageId]);
-  let price = t.unknownPrice;
-  if (product.price !== null) {
-    try { price = product.currency ? new Intl.NumberFormat(session.config.language, { style: 'currency', currency: product.currency }).format(product.price) : new Intl.NumberFormat(session.config.language).format(product.price); }
-    catch { price = String(product.price); }
-  }
-  return <article className="product" ref={ref}>
-    <div className="product-image">{product.image ? <img src={product.image} alt="" loading="lazy" /> : <span aria-hidden="true">◇</span>}</div>
-    <div className="product-details"><span className="brand">{product.brand}</span><h3>{product.name}</h3>
-      <div className="product-foot"><strong className={product.price === null ? 'price price-unknown' : 'price'}>{price}</strong>
-        <a href={product.url} target="_blank" rel="noopener noreferrer" onClick={() => event('product_click')}>{t.product} <span aria-hidden="true">↗</span></a></div></div>
-  </article>;
-}
-
-function Chat({ session, conversation, restart }: { session: Session; conversation: Conversation; restart: () => void }) {
+function Chat({ session, conversation, restart, appearance }: { session: Session; conversation: Conversation; restart: () => void; appearance: Appearance }) {
   const t = copy[session.config.language] || copy.es;
   const latest = useRef(session); latest.current = session;
   const [input, setInput] = useState(''); const [restoring, setRestoring] = useState(false);
@@ -92,16 +65,16 @@ function Chat({ session, conversation, restart }: { session: Session; conversati
     setInput(''); setSearching(false); setNotice('');
     await sendMessage({ text: text.trim() });
   };
-  return <main className="shopper" lang={session.config.language} style={{ '--shopper-brand': session.config.color } as React.CSSProperties}>
-    <header className="chat-header"><div className="shopper-mark" aria-hidden="true">{(Array.from((session.config.name || '').trim())[0] || '').toUpperCase()}</div><div className="chat-title"><h1>{session.config.name}</h1><span className="header-caption">{session.preview && <span className="preview-tag">Preview</span>}Personal Shopper</span></div>
+  return <main className="shopper gps-chat" lang={session.config.language} style={{ '--shopper-brand': session.config.color } as React.CSSProperties}>
+    <header className="chat-header gps-header"><Logo name={session.config.name} logo={appearance.logo} /><div className="chat-title"><h1>{session.config.name}</h1><span className="header-caption">{session.preview && <span className="preview-tag">Preview</span>}Personal Shopper</span></div>
       <button className="icon-button" title={t.newChat} aria-label={t.newChat} onClick={() => { stop(); restart(); }} disabled={busy}><span aria-hidden="true">↻</span></button>
       {session.canClose && <button className="icon-button" title={t.close} aria-label={t.close} onClick={() => send('close')}><span aria-hidden="true">×</span></button>}</header>
     <section className="conversation" aria-label={session.config.name}>
       {messages.length === 0 && <div className="welcome"><h2>{session.config.welcome}</h2>{session.config.suggestions.length > 0 && <div className="suggestions" role="group" aria-labelledby="start"><span className="eyebrow" id="start">{t.start}</span>{session.config.suggestions.map(s => <button key={s} onClick={() => void submit(s)}>{s}<span aria-hidden="true">→</span></button>)}</div>}</div>}
-      {messages.filter(m => m.role !== 'assistant' || m.parts.some(p => p.type === 'text' && p.text.trim() || p.type === 'data-products' && p.data.products.length)).map(message => <div key={message.id} className={`message ${message.role}`}>
+      {messages.filter(m => m.role !== 'assistant' || m.parts.some(p => p.type === 'text' && p.text.trim() || p.type === 'data-products' && p.data.products.length)).map(message => <div key={message.id} className={`message ${message.role} gps-message-${message.role}`}>
         {message.parts.map((part, index) => {
           if (part.type === 'text') return message.role === 'assistant' ? <MarkdownMessage key={index} text={part.text} /> : <p key={index} className="message-text">{part.text}</p>;
-          if (part.type === 'data-products' && part.data.products.length) return <div className="products" key={index}>{part.data.products.map(p => <ProductCard key={p.id} product={p} session={session} conversationId={conversation.id} messageId={message.id} />)}</div>;
+          if (part.type === 'data-products' && part.data.products.length) return <ProductList key={index} products={part.data.products} session={session} conversationId={conversation.id} messageId={message.id} cards={appearance.cards} />;
           return null;
         })}
         {message.metadata?.status && message.metadata.status !== 'completed' && <small className="interrupted">{message.metadata.status === 'failed' ? t.failed : t.interrupted}</small>}
@@ -110,7 +83,7 @@ function Chat({ session, conversation, restart }: { session: Session; conversati
       {(error || notice || running) && <div className={!notice && running ? 'error is-busy' : 'error'} role="alert"><p>{notice || (running ? t.busy : t.error)}</p>{error && !running && <button onClick={() => void retryLast()} disabled={restoring || busy}>{t.retry}</button>}<button onClick={() => void recover()} disabled={restoring || busy}>{t.recover}</button></div>}
       <div ref={end} />
     </section>
-    <form className="composer" onSubmit={e => { e.preventDefault(); void submit(input); }}>
+    <form className="composer gps-composer" onSubmit={e => { e.preventDefault(); void submit(input); }}>
       <div className="composer-field">
         <label className="sr-only" htmlFor="question">{t.placeholder}</label>
         <textarea id="question" rows={2} maxLength={2000} value={input} placeholder={t.placeholder} disabled={busy || running}
@@ -123,6 +96,9 @@ function Chat({ session, conversation, restart }: { session: Session; conversati
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
+  const [appearance, setAppearance] = useState<Appearance>(() => appearanceOf(undefined));
+  const [preview, setPreview] = useState<Config | null>(null);
+  useCustomCss(appearance.customCss);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [error, setError] = useState(false); const [nonce, setNonce] = useState(0);
   const activeId = useRef<string | undefined>(undefined); const loadedNonce = useRef(0);
@@ -130,8 +106,16 @@ function App() {
   useEffect(() => {
     const receive = (event: MessageEvent) => {
       if (!hostOrigin || event.origin !== hostOrigin || event.source !== window.parent) return;
+      // Vista previa de las tarjetas que pide el admin, con la config y la apariencia del borrador
+      if (event.data?.type === 'gp-shopper:showcase-products' && validConfig(event.data.config)) {
+        setPreview(event.data.config); setAppearance(appearanceOf(event.data.appearance));
+        return;
+      }
+      // Apariencia nueva sin recargar la conversación: el admin la manda en vivo mientras se edita
+      if (event.data?.type === 'gp-shopper:appearance') { setAppearance(appearanceOf(event.data.appearance)); return; }
       if (event.data?.type === 'gp-shopper:initialize' && validSession(event.data.session)) {
         const incoming = event.data.session;
+        setAppearance(appearanceOf(incoming.appearance));
         const key = incoming.sessionKey || (incoming.preview ? incoming.token : incoming.apiUrl);
         if (ownerKey.current !== key) {
           ownerKey.current = key; activeId.current = undefined; setConversation(null);
@@ -161,8 +145,9 @@ function App() {
     return () => { active = false; };
   }, [session?.token, session?.sessionKey, nonce]);
   const t = copy[session?.config.language || 'es'];
+  if (preview) return <ShowcaseProducts config={preview} appearance={appearance} />;
   if (!session || !conversation || error) return <div className={error ? 'connection is-error' : 'connection'} role={error ? 'alert' : 'status'}><div className="connection-mark" aria-hidden="true" /><p className="connection-text">{error ? t.unavailable : session ? t.connect : t.waiting}</p>{error && <button onClick={() => setNonce(n => n + 1)}>{t.recover}</button>}</div>;
-  return <Chat key={conversation.id} session={{ ...session, config: conversation.config }} conversation={conversation} restart={() => { setConversation(null); setNonce(n => n + 1); }} />;
+  return <Chat key={conversation.id} session={{ ...session, config: conversation.config }} conversation={conversation} appearance={appearance} restart={() => { setConversation(null); setNonce(n => n + 1); }} />;
 }
 
 createRoot(document.getElementById('root')!).render(<App />);

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5178",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --host 127.0.0.1 --port 5178"
+    "preview": "vite preview --host 127.0.0.1 --port 5178",
+    "test": "node test/markdown.cjs && node test/appearance.cjs && node test/bridge.cjs && node test/cards.cjs"
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.87",
