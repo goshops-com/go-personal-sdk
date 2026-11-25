@@ -1,5 +1,6 @@
 import { httpPost, getApiBaseURL } from '../utils/http';
 import { getSession } from '../utils/storage';
+import { renderLauncher } from './shopperLauncher';
 
 const CONFIG_STORAGE = 'gp-shopper-config-v1';
 
@@ -32,10 +33,9 @@ export function mountShopper({ widgetUrl, container = null, context = {} } = {})
   const error = document.createElement('p'); error.setAttribute('role', 'alert'); error.hidden = true;
   error.style.cssText = 'padding:20px;font:14px/1.6 system-ui;color:#9c3737;';
   let bootstrap = null; let expiresAt = 0; let refreshing = null; let ready = false; let destroyed = false; let renewal;
-  let conversationId = null; let ownerKey = null;
-  const launcher = document.createElement('button'); launcher.type = 'button'; launcher.textContent = '✦ Personal Shopper';
+  let conversationId = null; let ownerKey = null; let appearance = null;
+  const launcher = document.createElement('button'); launcher.type = 'button';
   launcher.setAttribute('aria-expanded', 'false');
-  launcher.style.cssText = 'position:fixed;right:24px;bottom:24px;z-index:2147483000;border:0;border-radius:24px;padding:14px 20px;background:#5e40bf;color:white;font:600 14px system-ui;cursor:pointer;';
   if (!embedded) panel.style.cssText = 'position:fixed;right:16px;bottom:80px;width:min(420px,calc(100vw - 32px));height:min(680px,calc(100dvh - 112px));z-index:2147483001;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px #0002;border:1px solid #e9e7ed;background:white;';
   else panel.style.cssText = 'position:relative;width:100%;height:100%;min-height:480px;';
   panel.style.boxSizing = 'border-box';
@@ -53,6 +53,7 @@ export function mountShopper({ widgetUrl, container = null, context = {} } = {})
       token: bootstrap.token, apiUrl: `${getApiBaseURL()}/shopper/v1`, config: bootstrap.config,
       sessionKey: ownerKey,
       canClose: !embedded,
+      ...(appearance ? { appearance } : {}),
       ...(conversationId ? { conversationId } : {}), context,
     } }, url.origin);
   }
@@ -126,8 +127,12 @@ export function mountShopper({ widgetUrl, container = null, context = {} } = {})
   // Muestra el botón, o abre el panel embebido, salvo que la config diga que está desactivado.
   function show(config) {
     if (destroyed || (config && config.enabled === false)) return;
-    if (config && /^#[0-9a-f]{6}$/i.test(config.color || '')) launcher.style.background = config.color;
-    if (embedded) void open(); else document.body.appendChild(launcher);
+    // Guarda la apariencia con la que se dibuja para pasársela al chat al abrirlo
+    if (config && config.appearance && typeof config.appearance === 'object') appearance = config.appearance;
+    if (embedded) return void open();
+    // Dibuja el botón con la apariencia publicada; sin config usa el diseño por defecto
+    renderLauncher(launcher, config);
+    document.body.appendChild(launcher);
   }
   window.addEventListener('message', receive);
   launcher.addEventListener('click', () => { if (panel.hidden) void open(); else hide(); });
