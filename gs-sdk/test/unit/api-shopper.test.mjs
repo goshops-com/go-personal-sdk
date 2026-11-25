@@ -185,6 +185,29 @@ test('destroying before the config arrives shows nothing', async () => {
   assert.equal(document.querySelector('button'), null);
 });
 
+test('the chat receives the appearance of the public config the launcher was painted with', async () => {
+  const appearance = { cards: { display: 'grid' }, customCss: '.gps-card { color: red; }' };
+  localStorage.setItem(CONFIG_KEY, JSON.stringify({ ...CONFIG, appearance }));
+  shopperFetch(() => bootstrapResponse(), () => ({ ...CONFIG, version: 2, appearance: { cards: { display: 'carousel' } } }));
+  const shopper = mount();
+  await shopper.open();
+  const { iframe } = parts();
+  const posts = spyPosts(iframe);
+  fromWidget(iframe, { type: 'gp-shopper:ready' });
+  assert.deepEqual(posts[0].message.session.appearance, appearance, 'same design as the launcher on this page');
+});
+
+test('without appearance in the config the chat initialize does not include it', async () => {
+  shopperFetch(() => bootstrapResponse(), () => ({ ...CONFIG, appearance: 'broken' }));
+  const shopper = mount();
+  await flush();
+  await shopper.open();
+  const { iframe } = parts();
+  const posts = spyPosts(iframe);
+  fromWidget(iframe, { type: 'gp-shopper:ready' });
+  assert.equal('appearance' in posts[0].message.session, false);
+});
+
 test('mounting the floating launcher does not bootstrap until it is opened', async () => {
   const calls = shopperFetch(() => bootstrapResponse());
   mount();

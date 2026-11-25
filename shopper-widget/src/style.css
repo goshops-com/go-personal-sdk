@@ -1,3 +1,5 @@
+/* Estilos base del widget en una capa: el CSS propio de la tienda va sin capa y siempre les gana, sin importar la especificidad. */
+@layer gps-base {
 :root { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #2b2e35; background: #fff; --shopper-brand: #5e40bf; --shopper-ink: #2b2e35; --shopper-muted: #666b78; --shopper-faint: #9a9eaa; --shopper-paper: #fff; --shopper-danger: #96302f; --shopper-danger-tint: #fdf3f2; font-synthesis: none; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; }
 /* Todo lo que sale del color de la tienda se declara también en .shopper: ahí se pisa --shopper-brand y hay que recalcularlo. */
 :root, .shopper { --shopper-brand-ink: var(--shopper-brand); --shopper-on-brand: #fff; --shopper-tint: #f3f1fa; --shopper-shelf: #f5f4f8; --shopper-rule: #e9e7ed; --shopper-ring: rgba(94, 64, 191, .24); }
@@ -131,3 +133,25 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 @media (pointer: coarse) { .composer textarea { font-size: 16px; } }
 @media (max-width: 350px) { .chat-header { padding-left: 12px; } .conversation { padding: 16px 12px 0; } .composer { padding-right: 8px; padding-left: 8px; } .welcome h2 { font-size: 20px; } .product { grid-template-columns: 64px minmax(0, 1fr); } }
 @media (prefers-reduced-motion: reduce) { .message.user, .product, .working-dot, .connection-mark { animation: none; } button:not(:disabled):active, .suggestions button:hover span, .product:hover a span { transform: none; } }
+
+/* Tarjetas configurables desde el admin: disposición de la lista, forma de la tarjeta, imagen, bordes y botón. */
+.products.is-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Carrusel: una fila que se desplaza de costado y asoma la tarjeta siguiente */
+.products.is-carousel { display: flex; gap: 8px; margin-right: -16px; padding: 2px 16px 6px 0; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: var(--shopper-rule) transparent; }
+.products.is-carousel .product { flex: 0 0 78%; scroll-snap-align: start; }
+.products.is-carousel .product.is-vertical { flex-basis: 46%; }
+.product.is-vertical { grid-template-columns: minmax(0, 1fr); }
+.product.fit-cover img { object-fit: cover; mix-blend-mode: normal; }
+.product.radius-none, .product.radius-none .product-image, .product.radius-none a::after { border-radius: 0; }
+.product.radius-soft, .product.radius-soft a::after { border-radius: 8px; }
+.product.radius-soft .product-image { border-radius: 4px; }
+/* Logo con imagen: la imagen llena el cuadro del logo */
+.shopper-mark.has-image { overflow: hidden; }
+.shopper-mark.has-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* Vista previa de las tarjetas en el admin: solo la lista de productos, con el mismo margen que en el chat */
+.shopper.showcase-products { height: auto; min-height: 100vh; padding: 16px; overflow-y: auto; }
+/* Botón con el color de marca en lugar del link */
+.product a.is-button { padding: 5px 12px; border-radius: 999px; background: var(--shopper-brand); color: var(--shopper-on-brand); }
+.product.radius-none a.is-button { border-radius: 0; }
+.product.radius-soft a.is-button { border-radius: 6px; }
+}
