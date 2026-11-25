@@ -1,6 +1,8 @@
 import { httpPost, getApiBaseURL } from '../utils/http';
 import { getSession } from '../utils/storage';
 
+const CONFIG_STORAGE = 'gp-shopper-config-v1';
+
 /** Explicit opt-in. Mounting a launcher does not request bootstrap or load React. */
 export function mountShopper({ widgetUrl, container = null, context = {} } = {}) {
   const url = new URL(widgetUrl);
@@ -40,7 +42,6 @@ export function mountShopper({ widgetUrl, container = null, context = {} } = {})
   visible(panel, embedded); visible(error, false); visible(iframe, false);
   panel.appendChild(error); panel.appendChild(iframe);
   (target || document.body).appendChild(panel);
-  if (!embedded) document.body.appendChild(launcher);
 
   function storageKey() {
     const session = getSession();
@@ -66,7 +67,6 @@ export function mountShopper({ widgetUrl, container = null, context = {} } = {})
         expiresAt = Date.now() + bootstrap.expiresIn * 1000;
         ownerKey = key;
         try { conversationId = key ? localStorage.getItem(key) : null; } catch (_) { conversationId = null; }
-        launcher.style.background = bootstrap.config.color;
         visible(error, false); visible(iframe, true);
         if (!iframe.src) {
           url.searchParams.set('hostOrigin', location.origin); iframe.src = url.href;
@@ -102,9 +102,40 @@ export function mountShopper({ widgetUrl, container = null, context = {} } = {})
         break;
     }
   }
+  // Arma la clave de localStorage de la config pública del proyecto de la sesión.
+  function configKey() {
+    const session = getSession();
+    return session.project ? `${CONFIG_STORAGE}:${getApiBaseURL()}:${session.project}` : null;
+  }
+  // Lee la config cacheada, o null si no está o no se puede leer.
+  function readConfig(key) {
+    try { return key ? JSON.parse(localStorage.getItem(key)) : null; } catch (_) { return null; }
+  }
+  // Pide la config pública del proyecto y la guarda para la próxima carga; null si falla el request.
+  async function refreshConfig(key) {
+    if (!key) return null;
+    let fresh;
+    try {
+      const response = await fetch(`${getApiBaseURL()}/public/shopper-config/${encodeURIComponent(getSession().project)}`);
+      if (!response.ok) return null;
+      fresh = await response.json();
+    } catch (_) { return null; }
+    try { localStorage.setItem(key, JSON.stringify(fresh)); } catch (_) { /* Sin storage disponible se sigue sin cache. */ }
+    return fresh;
+  }
+  // Muestra el botón, o abre el panel embebido, salvo que la config diga que está desactivado.
+  function show(config) {
+    if (destroyed || (config && config.enabled === false)) return;
+    if (config && /^#[0-9a-f]{6}$/i.test(config.color || '')) launcher.style.background = config.color;
+    if (embedded) void open(); else document.body.appendChild(launcher);
+  }
   window.addEventListener('message', receive);
   launcher.addEventListener('click', () => { if (panel.hidden) void open(); else hide(); });
-  if (embedded) void open();
+  // Pinta con la config cacheada al instante y siempre la refresca para la próxima carga.
+  const key = configKey();
+  const cached = readConfig(key);
+  const latestConfig = refreshConfig(key);
+  if (cached) show(cached); else void latestConfig.then(show);
   return {
     open, close: hide,
     setContext(value) { context = normalizeContext(value); if (storageKey() !== ownerKey) void connect(true); else post(); },
