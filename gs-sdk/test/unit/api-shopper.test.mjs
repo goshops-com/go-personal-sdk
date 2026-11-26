@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test, { beforeEach, afterEach, mock } from 'node:test';
-import { resetDom, mockFetch, seedSession, flush, jsonResponse } from './helpers/env.mjs';
+import { resetDom, mockFetch, seedSession, flush, jsonResponse, getDom } from './helpers/env.mjs';
 import { mountShopper } from '../../src/api/shopper.js';
 import { getApiBaseURL } from '../../src/utils/http.js';
 
@@ -545,4 +545,219 @@ test('destroying while the bootstrap is in flight leaves nothing behind', async 
 
   assert.equal(iframe.getAttribute('src'), null);
   assert.equal(error.hidden, true);
+});
+
+// Config pública con la habilidad de agregar al carrito activada o apagada.
+const withCart = (enabled = true) => () => ({ ...CONFIG, skills: { addToCart: enabled, openProduct: false, openPages: false } });
+
+// Monta el shopper, espera la config pública, abre el chat y deja el widget listo; devuelve el iframe y los mensajes del SDK.
+async function openReady(options = {}, config = withCart()) {
+  shopperFetch(() => bootstrapResponse(), config);
+  const shopper = mount(options);
+  await flush();
+  await shopper.open();
+  const { iframe } = parts();
+  const posts = spyPosts(iframe);
+  fromWidget(iframe, { type: 'gp-shopper:ready' });
+  return { shopper, iframe, posts };
+}
+// Pide una acción desde el widget y espera su resultado.
+async function askAction(iframe, actionId, action = 'add_to_cart', product = { id: 'p1' }, options = {}) {
+  fromWidget(iframe, { type: 'gp-shopper:action', actionId, action, product }, options);
+  await flush();
+}
+const results = (posts) => posts.filter((post) => post.message.type === 'gp-shopper:action-result').map((post) => post.message);
+
+test('turning a skill off in the admin stops it on the open page as soon as the fresh config arrives', async () => {
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(withCart(true)()));
+  let release;
+  shopperFetch(() => bootstrapResponse(), () => new Promise((resolve) => { release = () => resolve(withCart(false)()); }));
+  const added = [];
+  const shopper = mount({ cart: { add: async (item) => { added.push(item); } } });
+  await shopper.open();
+  const { iframe } = parts();
+  const posts = spyPosts(iframe);
+  fromWidget(iframe, { type: 'gp-shopper:ready' });
+  assert.deepEqual(posts[0].message.session.capabilities, ['add_to_cart'], 'antes de la config fresca vale la cacheada');
+  release();
+  await flush();
+  await askAction(iframe, 'late-1');
+  assert.deepEqual(added, []);
+  assert.equal(results(posts)[0].error, 'unavailable');
+  const sessions = posts.filter((post) => post.message.type === 'gp-shopper:initialize');
+  assert.equal(sessions.length, 2, 'al llegar la config fresca se le vuelve a mandar la sesión');
+  assert.equal('capabilities' in sessions[1].message.session, false, 'el chat se entera solo de que ya no puede agregar');
+});
+
+test('the chat learns it can add to cart only when the skill is on and this site knows how to do it', async () => {
+  const custom = await openReady({ cart: { add: async () => {} } });
+  assert.deepEqual(custom.posts[0].message.session.capabilities, ['add_to_cart'], 'callback propio');
+  custom.shopper.destroy();
+
+  window.gsConfig.options.provider = 'Shopify';
+  const platform = await openReady();
+  assert.deepEqual(platform.posts[0].message.session.capabilities, ['add_to_cart'], 'plataforma soportada');
+  platform.shopper.destroy();
+
+  const skillOff = await openReady({ cart: { add: async () => {} } }, withCart(false));
+  assert.equal('capabilities' in skillOff.posts[0].message.session, false, 'habilidad apagada en la config');
+  skillOff.shopper.destroy();
+
+  const noSkills = await openReady({ cart: { add: async () => {} } }, () => CONFIG);
+  assert.equal('capabilities' in noSkills.posts[0].message.session, false, 'config sin skills');
+  noSkills.shopper.destroy();
+
+  window.gsConfig.options.provider = 'Custom';
+  const noExecutor = await openReady();
+  assert.equal('capabilities' in noExecutor.posts[0].message.session, false, 'nadie sabe agregar en este sitio');
+});
+
+test('an add_to_cart action from the chat runs once, tells the page and answers the widget', async () => {
+  const added = []; const events = [];
+  window.addEventListener('gp-shopper:cart-added', (event) => events.push(event.detail));
+  const { iframe, posts } = await openReady({ cart: { add: async (item) => { added.push(item); return { ok: true, cartUrl: '/carrito' }; } } });
+  const product = { id: 'p1', variantId: 'v1', url: 'https://shop.example/products/a', quantity: 2 };
+  await askAction(iframe, 'act-1', 'add_to_cart', product);
+  await askAction(iframe, 'act-1', 'add_to_cart', product);
+
+  const item = { productId: 'p1', variantId: 'v1', url: 'https://shop.example/products/a', quantity: 2 };
+  assert.deepEqual(added, [item], 'the same actionId runs only once');
+  assert.deepEqual(events, [{ ...item, cartUrl: '/carrito' }]);
+  assert.deepEqual(results(posts), [{ type: 'gp-shopper:action-result', actionId: 'act-1', ok: true, cartUrl: '/carrito' }]);
+  assert.equal(posts.at(-1).origin, WIDGET_ORIGIN);
+});
+
+test('an action whose skill is off, unknown or malformed is answered with an error and never touches the cart', async () => {
+  const added = [];
+  const executor = { cart: { add: async (item) => { added.push(item); } } };
+  const off = await openReady(executor, withCart(false));
+  await askAction(off.iframe, 'off-1');
+  assert.deepEqual(results(off.posts).map((r) => r.error), ['unavailable'], 'habilidad apagada');
+  off.shopper.destroy();
+
+  const on = await openReady(executor);
+  await askAction(on.iframe, 'bad-1', 'add_to_cart', { id: 'p1', quantity: 50 });
+  await askAction(on.iframe, 'bad-2', 'checkout');
+  await askAction(on.iframe, 'no spaces allowed');
+  await askAction(on.iframe, undefined);
+  await askAction(on.iframe, 'evil-1', 'add_to_cart', { id: 'p1' }, { origin: 'https://evil.example' });
+  assert.deepEqual(added, []);
+  assert.deepEqual(results(on.posts).map((r) => [r.actionId, r.error]), [['bad-1', 'invalid_action'], ['bad-2', 'unavailable']],
+    'malformed ids and foreign origins get no answer');
+});
+
+test('a failed add is answered with its error and does not tell the page', async () => {
+  const events = [];
+  window.addEventListener('gp-shopper:cart-added', (event) => events.push(event.detail));
+  const { iframe, posts } = await openReady({ cart: { add: async () => ({ ok: false, error: 'variant_required' }) } });
+  await askAction(iframe, 'act-3');
+  assert.deepEqual(results(posts), [{ type: 'gp-shopper:action-result', actionId: 'act-3', ok: false, error: 'variant_required' }]);
+  assert.deepEqual(events, []);
+});
+
+test('destroying the shopper while adding to cart sends nothing back and does not tell the page', async () => {
+  let release; const events = [];
+  window.addEventListener('gp-shopper:cart-added', (event) => events.push(event.detail));
+  const { shopper, iframe, posts } = await openReady({ cart: { add: () => new Promise((resolve) => { release = resolve; }) } });
+  await askAction(iframe, 'act-4');
+  shopper.destroy();
+  release({ ok: true });
+  await flush();
+  assert.deepEqual(results(posts), []);
+  assert.deepEqual(events, []);
+});
+
+// jsdom no navega: cada location.assign a otro documento solo avisa "not implemented" en su consola, y eso se cuenta.
+const navigations = [];
+getDom().virtualConsole.on('jsdomError', (error) => {
+  if (/navigation/i.test(error.message)) navigations.push(error.message);
+});
+
+// Config pública con las habilidades de navegación dadas y el carrito apagado.
+const withLinks = ({ openProduct = true, openPages = true } = {}) => () => ({ ...CONFIG, skills: { addToCart: false, openProduct, openPages } });
+
+// Pide desde el widget abrir un producto o una página y espera su resultado.
+async function askOpen(iframe, actionId, action, url) {
+  const payload = action === 'open_product' ? { product: { id: 'p1', url } } : { page: { url } };
+  fromWidget(iframe, { type: 'gp-shopper:action', actionId, action, ...payload });
+  await flush();
+}
+
+test('the chat learns it can open products and store pages only when each skill is on', async () => {
+  const both = await openReady({}, withLinks());
+  assert.deepEqual(both.posts[0].message.session.capabilities, ['open_product', 'open_page']);
+  both.shopper.destroy();
+
+  const pagesOnly = await openReady({}, withLinks({ openProduct: false }));
+  assert.deepEqual(pagesOnly.posts[0].message.session.capabilities, ['open_page']);
+  pagesOnly.shopper.destroy();
+
+  const all = await openReady({ cart: { add: async () => {} } }, () => ({ ...CONFIG, skills: { addToCart: true, openProduct: true, openPages: true } }));
+  assert.deepEqual(all.posts[0].message.session.capabilities, ['add_to_cart', 'open_product', 'open_page']);
+});
+
+test('opening a product or a store page navigates within the store and answers the widget', async () => {
+  navigations.length = 0;
+  const { iframe, posts } = await openReady({}, withLinks());
+  await askOpen(iframe, 'nav-1', 'open_product', 'https://shop.example/products/remera');
+  await askOpen(iframe, 'nav-1', 'open_product', 'https://shop.example/products/remera');
+  await askOpen(iframe, 'nav-2', 'open_page', '/pages/envios');
+  await askOpen(iframe, 'nav-3', 'open_page', 'https://www.shop.example/pages/cambios');
+  assert.equal(navigations.length, 3, 'the same actionId navigates only once');
+  assert.deepEqual(results(posts).map((r) => [r.actionId, r.ok]), [['nav-1', true], ['nav-2', true], ['nav-3', true]]);
+});
+
+test('links outside the store, without URL or with another scheme are rejected without navigating', async () => {
+  navigations.length = 0;
+  const { iframe, posts } = await openReady({}, withLinks());
+  await askOpen(iframe, 'out-1', 'open_product', 'https://evil.example/products/remera');
+  await askOpen(iframe, 'out-2', 'open_page', 'https://shop.example.evil.example/');
+  await askOpen(iframe, 'out-3', 'open_page', 'javascript:alert(1)');
+  await askOpen(iframe, 'out-4', 'open_page', 'http://[bad');
+  await askOpen(iframe, 'out-5', 'open_page', 42);
+  fromWidget(iframe, { type: 'gp-shopper:action', actionId: 'out-6', action: 'open_product' });
+  await flush();
+  assert.deepEqual(navigations, []);
+  assert.deepEqual(results(posts).map((r) => r.error), Array(6).fill('invalid_action'));
+});
+
+test('opening a product or a page whose skill is off is answered as unavailable without navigating', async () => {
+  navigations.length = 0;
+  const { iframe, posts } = await openReady({}, withLinks({ openProduct: false, openPages: false }));
+  await askOpen(iframe, 'off-p', 'open_product', 'https://shop.example/products/remera');
+  await askOpen(iframe, 'off-g', 'open_page', '/pages/envios');
+  assert.deepEqual(navigations, []);
+  assert.deepEqual(results(posts).map((r) => r.error), ['unavailable', 'unavailable']);
+});
+
+test('if the stored conversation cannot be read the chat still opens, without a previous conversation', async () => {
+  shopperFetch(() => bootstrapResponse());
+  const shopper = mount();
+  await flush();
+  const original = Object.getPrototypeOf(localStorage).getItem;
+  Object.getPrototypeOf(localStorage).getItem = function getItem(key) {
+    if (key === SESSION_KEY) throw new Error('SecurityError');
+    return original.call(this, key);
+  };
+  try {
+    await shopper.open();
+  } finally {
+    Object.getPrototypeOf(localStorage).getItem = original;
+  }
+  const { iframe } = parts();
+  const posts = spyPosts(iframe);
+  fromWidget(iframe, { type: 'gp-shopper:ready' });
+  assert.equal(iframe.hidden, false);
+  assert.equal('conversationId' in posts[0].message.session, false);
+});
+
+test('a network error asking for the config shows the default launcher', async () => {
+  mockFetch((url) => {
+    if (url === CONFIG_URL) throw new TypeError('Failed to fetch');
+    return bootstrapResponse();
+  });
+  mount();
+  await flush();
+  assert.equal(parts().launcher.style.background, 'rgb(94, 64, 191)');
+  assert.equal(localStorage.getItem(CONFIG_KEY), null);
 });
