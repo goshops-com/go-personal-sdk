@@ -623,8 +623,8 @@ test('an add_to_cart action from the chat runs once, tells the page and answers 
 
   const item = { productId: 'p1', variantId: 'v1', url: 'https://shop.example/products/a', quantity: 2 };
   assert.deepEqual(added, [item], 'the same actionId runs only once');
-  assert.deepEqual(events, [{ ...item, cartUrl: '/carrito' }]);
-  assert.deepEqual(results(posts), [{ type: 'gp-shopper:action-result', actionId: 'act-1', ok: true, cartUrl: '/carrito' }]);
+  assert.deepEqual(events, [item]);
+  assert.deepEqual(results(posts), [{ type: 'gp-shopper:action-result', actionId: 'act-1', ok: true }]);
   assert.equal(posts.at(-1).origin, WIDGET_ORIGIN);
 });
 

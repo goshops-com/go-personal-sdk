@@ -31,7 +31,6 @@ function shopifyHandle(url) {
 
 // Adaptador de Shopify: agrega con /cart/add.js y, sin variante, la busca en /products/<handle>.js.
 const shopify = {
-  cartUrl: '/cart',
   async add({ variantId, url, quantity }) {
     let variant = variantId;
 
@@ -56,7 +55,6 @@ const shopify = {
 
 // Adaptador de VTEX: agrega con la API REST del orderForm y, sin SKU, lo busca en el catálogo de la tienda.
 const vtex = {
-  cartUrl: '/checkout/#/cart',
   async add({ productId, variantId, quantity }) {
     let sku = variantId; let seller = null;
 
@@ -84,7 +82,6 @@ const vtex = {
 
 // Adaptador de Fenicio: agrega con miCompra.agregarArticulo de la página, que necesita la variante de Fenicio.
 const fenicio = {
-  cartUrl: null,
   add({ variantId, quantity }) {
     if (!variantId) return { ok: false, error: 'variant_required' };
     const miCompra = window.miCompra;
@@ -141,7 +138,6 @@ function refreshMagentoMinicart() {
 
 // Adaptador de Magento 2: busca el id interno por GraphQL y agrega con el formulario de carrito y el form_key de la sesión.
 const magento = {
-  cartUrl: '/checkout/cart/',
   async add({ productId, variantId, url, quantity }) {
     // Busca el producto por SKU y, si no aparece, por la URL
     let product = await magentoProduct('sku', productId);
@@ -181,7 +177,7 @@ function customResult(value) {
   if (value === undefined || value === true) return { ok: true };
   if (value && typeof value === 'object') {
     const ok = value.ok !== false;
-    return { ok, ...(ok ? {} : { error: typeof value.error === 'string' ? value.error.slice(0, 100) : 'failed' }), ...(typeof value.cartUrl === 'string' ? { cartUrl: value.cartUrl } : {}) };
+    return ok ? { ok } : { ok, error: typeof value.error === 'string' ? value.error.slice(0, 100) : 'failed' };
   }
   return { ok: false, error: 'failed' };
 }
@@ -215,8 +211,7 @@ export function resolveCart({ cart, provider } = {}) {
     source: platform,
     async add(item) {
       try {
-        const result = await adapter.add(item);
-        return result.ok ? { ok: true, ...(adapter.cartUrl ? { cartUrl: storeUrl(adapter.cartUrl) } : {}) } : result;
+        return await adapter.add(item);
       } catch (_) { return { ok: false, error: 'failed' }; }
     },
   };

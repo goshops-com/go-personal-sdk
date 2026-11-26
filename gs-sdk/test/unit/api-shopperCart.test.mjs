@@ -37,7 +37,7 @@ test('el callback de la tienda le gana a la plataforma y su respuesta se normali
   assert.deepEqual(await custom(undefined).add(item()), { ok: true });
   assert.deepEqual(received[0], item(), 'recibe el producto, la variante, la URL y la cantidad');
   assert.deepEqual(await custom(true).add(item()), { ok: true });
-  assert.deepEqual(await custom({ ok: true, cartUrl: '/carrito' }).add(item()), { ok: true, cartUrl: '/carrito' });
+  assert.deepEqual(await custom({ ok: true, cartUrl: '/carrito' }).add(item()), { ok: true });
   assert.deepEqual(await custom({ ok: false, error: 'sin stock' }).add(item()), { ok: false, error: 'sin stock' });
   assert.deepEqual(await custom({ ok: false }).add(item()), { ok: false, error: 'failed' });
   assert.deepEqual(await custom(false).add(item()), { ok: false, error: 'failed' });
@@ -47,7 +47,7 @@ test('el callback de la tienda le gana a la plataforma y su respuesta se normali
 test('Shopify con variante agrega directo a /cart/add.js y devuelve la URL del carrito', async () => {
   const calls = mockFetch(() => ({ items: [] }));
   const result = await resolveCart({ provider: 'Shopify' }).add(item({ variantId: '4455', quantity: 2 }));
-  assert.deepEqual(result, { ok: true, cartUrl: `${STORE}/cart` });
+  assert.deepEqual(result, { ok: true });
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, `${STORE}/cart/add.js`);
   assert.equal(calls[0].method, 'POST');
@@ -58,7 +58,7 @@ test('Shopify con variante agrega directo a /cart/add.js y devuelve la URL del c
 test('Shopify sin variante usa la única disponible del producto, o pide elegir, o avisa sin stock', async () => {
   const product = (variants) => mockFetch((url) => (url.endsWith('/products/zapatillas-trekking.js') ? { variants } : { items: [] }));
   let calls = product([{ id: 1, available: false }, { id: 2, available: true }]);
-  assert.deepEqual(await resolveCart({ provider: 'Shopify' }).add(item()), { ok: true, cartUrl: `${STORE}/cart` });
+  assert.deepEqual(await resolveCart({ provider: 'Shopify' }).add(item()), { ok: true });
   assert.deepEqual(calls[1].body, { items: [{ id: 2, quantity: 1 }] });
   calls = product([{ id: 1, available: true }, { id: 2, available: true }]);
   assert.deepEqual(await resolveCart({ provider: 'Shopify' }).add(item()), { ok: false, error: 'variant_required' });
@@ -80,7 +80,7 @@ test('Shopify: producto inexistente, URL sin handle, sin stock al agregar, error
   mockFetch(() => { throw new Error('offline'); });
   assert.deepEqual(await shopify.add(item({ variantId: '1' })), { ok: false, error: 'failed' });
   mockFetch(() => ({ ok: true, status: 200, json: async () => { throw new SyntaxError('no json'); } }));
-  assert.deepEqual(await shopify.add(item({ variantId: 'abc' })), { ok: true, cartUrl: `${STORE}/cart` }, 'una respuesta 200 sin JSON igual cuenta como agregado');
+  assert.deepEqual(await shopify.add(item({ variantId: 'abc' })), { ok: true }, 'una respuesta 200 sin JSON igual cuenta como agregado');
 });
 
 // Mockea las APIs de VTEX: catálogo, orderForm y agregado de ítems.
@@ -96,7 +96,7 @@ const sku = (itemId, quantity, sellerId = '1') => ({ itemId, sellers: [{ sellerI
 
 test('VTEX sin SKU usa el único con stock del producto y lo agrega al orderForm del visitante', async () => {
   const calls = vtexStore({ items: [sku('10', 0), sku('11', 5, 'seller-a')] });
-  assert.deepEqual(await resolveCart({ provider: 'Vtex' }).add(item({ quantity: 3 })), { ok: true, cartUrl: `${STORE}/checkout/#/cart` });
+  assert.deepEqual(await resolveCart({ provider: 'Vtex' }).add(item({ quantity: 3 })), { ok: true });
   assert.equal(calls[0].url, `${STORE}/api/catalog_system/pub/products/search?fq=productId:p1`);
   assert.equal(calls[2].url, `${STORE}/api/checkout/pub/orderForm/of-1/items`);
   assert.deepEqual(calls[2].body, { orderItems: [{ id: '11', quantity: 3, seller: 'seller-a' }] });
@@ -104,7 +104,7 @@ test('VTEX sin SKU usa el único con stock del producto y lo agrega al orderForm
 
 test('VTEX con SKU no consulta el catálogo y usa el vendedor por defecto', async () => {
   const calls = vtexStore({});
-  assert.deepEqual(await resolveCart({ provider: 'VTEX' }).add(item({ variantId: '99' })), { ok: true, cartUrl: `${STORE}/checkout/#/cart` });
+  assert.deepEqual(await resolveCart({ provider: 'VTEX' }).add(item({ variantId: '99' })), { ok: true });
   assert.equal(calls.length, 2);
   assert.deepEqual(calls[1].body, { orderItems: [{ id: '99', quantity: 1, seller: '1' }] });
 });
@@ -198,7 +198,7 @@ test('Magento busca el id interno por SKU, agrega con el form_key de la sesión 
   window.require = (modules, callback) => callback({ reload: (sections, force) => reloads.push([modules[0], sections, force]) });
   const calls = magentoStore({ bySku: book });
   const result = await resolveCart({ provider: 'Magento_V2' }).add(item({ productId: '9791387871185', quantity: 2 }));
-  assert.deepEqual(result, { ok: true, cartUrl: `${STORE}/checkout/cart/` });
+  assert.deepEqual(result, { ok: true });
   assert.match(calls[0].body.query, /sku: \{ eq: "9791387871185" \}/);
   assert.equal(calls[1].url, `${STORE}/checkout/cart/add/product/45677/`);
   assert.equal(calls[1].init.headers['X-Requested-With'], 'XMLHttpRequest');

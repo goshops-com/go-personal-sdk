@@ -53,7 +53,7 @@ export function consumeReopen() {
   return reopen;
 }
 
-// Ejecuta una acción si está entre las disponibles y devuelve { ok, error?, cartUrl? } para responderle al chat.
+// Ejecuta una acción si está entre las disponibles y devuelve { ok, error? } para responderle al chat.
 export async function performAction(action, payload, { available, cartExecutor, isOpen }) {
   // Ejecuta la acción pedida solo si está disponible en este sitio
   if (available.includes(action)) {
@@ -66,7 +66,7 @@ export async function performAction(action, payload, { available, cartExecutor, 
 
         // Avisa a la página para que el theme pueda refrescar su carrito
         if (result.ok && isOpen()) {
-          window.dispatchEvent(new CustomEvent('gp-shopper:cart-added', { detail: { ...item, cartUrl: result.cartUrl || null } }));
+          window.dispatchEvent(new CustomEvent('gp-shopper:cart-added', { detail: item }));
         }
         return result;
       }

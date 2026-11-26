@@ -40,7 +40,7 @@ const render = (request, state) => renderToStaticMarkup(React.createElement(Stor
   assert.deepEqual(posted.at(-1), { origin: 'https://shop.test', message: { type: 'gp-shopper:action', actionId: 'action-1', action: 'add_to_cart', product: { id: 'p1', url: 'https://shop.test/p1', quantity: 2 } } });
   receiveActionResult({ actionId: 'otra', ok: true });
   receiveActionResult({ actionId: 'action-1', ok: true, cartUrl: 'https://shop.test/cart', error: 7, extra: 'x' });
-  assert.deepEqual(await pending, { ok: true, cartUrl: 'https://shop.test/cart' });
+  assert.deepEqual(await pending, { ok: true }, 'solo ok, error y mensaje: lo demás se descarta');
   receiveActionResult({ actionId: 'action-1', ok: false });
 
   // Abrir una página manda solo su URL; un error trae su código y el mensaje de la tienda
@@ -82,8 +82,7 @@ const render = (request, state) => renderToStaticMarkup(React.createElement(Stor
   // Agregar al carrito: producto con cantidad y el estado de cada paso
   assert.match(render(cart, { status: 'confirm' }), /Campera × 2<\/strong>.*¿Lo agregamos al carrito\?.*>Agregar al carrito<\/button>.*>No, gracias<\/button>/);
   assert.match(render(cart, { status: 'running' }), /role="status">Agregando…/);
-  assert.match(render(cart, { status: 'done', result: { ok: true, cartUrl: 'https://shop.test/cart' } }), /Agregado al carrito.*<a href="https:\/\/shop.test\/cart" target="_top">Ver carrito<\/a>/);
-  assert.doesNotMatch(render(cart, { status: 'done', result: { ok: true } }), /Ver carrito/);
+  assert.match(render(cart, { status: 'done', result: { ok: true } }), /role="status">Agregado al carrito <span aria-hidden="true">✓<\/span><\/p>/);
   assert.match(render(cart, { status: 'failed', result: { ok: false, error: 'variant_required' } }), /Elegí talle o color.*<a href="https:\/\/shop.test\/p1" target="_top">Ver producto<\/a>/);
   assert.doesNotMatch(render(cart, { status: 'failed', result: { ok: false, error: 'out_of_stock' } }), /Ver producto/);
   assert.match(render(cart, { status: 'cancelled' }), /No se agregó al carrito/);

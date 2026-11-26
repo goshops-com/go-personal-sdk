@@ -25,7 +25,7 @@ function CartStatus({ request, state, t, onConfirm, onCancel }: { request: Actio
     case 'running':
       return <p role="status">{t.adding}</p>;
     case 'done':
-      return <p role="status">{t.added} <span aria-hidden="true">✓</span>{state.result?.cartUrl && <> · <a href={state.result.cartUrl} target="_top">{t.viewCart}</a></>}</p>;
+      return <p role="status">{t.added} <span aria-hidden="true">✓</span></p>;
     case 'failed':
       return <p role="alert" className="store-action-error">{cartError(t, state.result)}{state.result?.error === 'variant_required' && <> <a href={request.product!.url} target="_top">{t.product}</a></>}</p>;
     case 'cancelled':

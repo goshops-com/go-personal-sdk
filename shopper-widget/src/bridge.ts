@@ -4,7 +4,7 @@ export type Session = { token: string; apiUrl: string; config: Config; sessionKe
 export type StoreActionName = 'add_to_cart' | 'open_product' | 'open_page';
 export type ActionProduct = { id: string; name: string; url: string; image?: string | null; quantity?: number };
 export type ActionRequest = { id: string; action: StoreActionName; confirm?: boolean; product?: ActionProduct; page?: { label: string; url: string } };
-export type ActionResult = { ok: boolean; error?: string; message?: string; cartUrl?: string };
+export type ActionResult = { ok: boolean; error?: string; message?: string };
 export type ProductEvent = 'product_view' | 'product_click' | 'add_to_cart' | 'open_product';
 export const hostOrigin = new URLSearchParams(location.search).get('hostOrigin');
 export function send(type: string, data: Record<string, unknown> = {}) {
@@ -72,8 +72,7 @@ export function receiveActionResult(data: Record<string, unknown>) {
   if (!done) return;
   done({ ok: data.ok === true,
     ...(typeof data.error === 'string' ? { error: data.error } : {}),
-    ...(typeof data.message === 'string' ? { message: data.message } : {}),
-    ...(typeof data.cartUrl === 'string' ? { cartUrl: data.cartUrl } : {}) });
+    ...(typeof data.message === 'string' ? { message: data.message } : {}) });
 }
 
 // Registra un evento de producto de la conversación; en la vista previa no mide nada.
