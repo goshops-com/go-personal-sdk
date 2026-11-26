@@ -81,27 +81,27 @@ const render = (request, state) => renderToStaticMarkup(React.createElement(Stor
 
   // Agregar al carrito: producto con cantidad y el estado de cada paso
   assert.match(render(cart, { status: 'confirm' }), /Campera × 2<\/strong>.*¿Lo agregamos al carrito\?.*>Agregar al carrito<\/button>.*>No, gracias<\/button>/);
-  assert.match(render(cart, { status: 'running' }), /role="status">Agregando…/);
-  assert.match(render(cart, { status: 'done', result: { ok: true } }), /role="status">Agregado al carrito <span aria-hidden="true">✓<\/span><\/p>/);
-  assert.match(render(cart, { status: 'failed', result: { ok: false, error: 'variant_required' } }), /Elegí talle o color.*<a href="https:\/\/shop.test\/p1" target="_top">Ver producto<\/a>/);
+  assert.match(render(cart, { status: 'running' }), /role="status" class="gps-action-status">Agregando…/);
+  assert.match(render(cart, { status: 'done', result: { ok: true } }), /role="status" class="gps-action-status">Agregado al carrito <span aria-hidden="true">✓<\/span><\/p>/);
+  assert.match(render(cart, { status: 'failed', result: { ok: false, error: 'variant_required' } }), /Elegí talle o color.*<a class="gps-action-link" href="https:\/\/shop.test\/p1" target="_top">Ver producto<\/a>/);
   assert.doesNotMatch(render(cart, { status: 'failed', result: { ok: false, error: 'out_of_stock' } }), /Ver producto/);
   assert.match(render(cart, { status: 'cancelled' }), /No se agregó al carrito/);
   const past = render({ ...cart, product: { ...product, image: null, quantity: 1 } });
-  assert.match(past, /class="store-action gps-action is-cart is-past"/);
-  assert.match(past, /<strong>Campera<\/strong><p><a href="https:\/\/shop.test\/p1" target="_top">Ver producto<\/a>/, 'del historial: sin imagen, cantidad ni botones');
+  assert.match(past, /class="store-action gps-action gps-action-cart is-past" data-gps-action="add_to_cart" data-gps-status="past" data-gps-product="p1"/);
+  assert.match(past, /<strong class="gps-action-name">Campera<\/strong><p class="gps-action-status"><a class="gps-action-link" href="https:\/\/shop.test\/p1" target="_top">Ver producto<\/a>/, 'del historial: sin imagen, cantidad ni botones');
   assert.doesNotMatch(past, /<img/);
 
   // Abrir un producto o una página: mientras navega avisa, si falla lo dice y del historial o cortada queda el link
   const openProduct = { id: 'action-4', action: 'open_product', product };
-  assert.match(render(openProduct, { status: 'waiting' }), /role="status">Abriendo Campera…/);
+  assert.match(render(openProduct, { status: 'waiting' }), /role="status" class="gps-action-status">Abriendo Campera…/);
   assert.match(render(page, { status: 'running' }), /Abriendo Envíos…/);
-  assert.match(render(page, { status: 'failed' }), /No pudimos abrir la página\. <a href="https:\/\/shop.test\/envios" target="_top">Envíos<\/a>/);
-  assert.match(render(page), /<a href="https:\/\/shop.test\/envios" target="_top">Envíos <span aria-hidden="true">→<\/span><\/a>/);
-  assert.match(render(openProduct, { status: 'cancelled' }), /<a href="https:\/\/shop.test\/p1" target="_top">Campera/);
+  assert.match(render(page, { status: 'failed' }), /No pudimos abrir la página\. <a class="gps-action-link" href="https:\/\/shop.test\/envios" target="_top">Envíos<\/a>/);
+  assert.match(render(page), /<a class="gps-action-link" href="https:\/\/shop.test\/envios" target="_top">Envíos <span aria-hidden="true">→<\/span><\/a>/);
+  assert.match(render(openProduct, { status: 'cancelled' }), /<a class="gps-action-link" href="https:\/\/shop.test\/p1" target="_top">Campera/);
 
   // La tarjeta muestra "Agregar al carrito" solo si el chat puede agregar
   const card = (props) => renderToStaticMarkup(React.createElement(ProductCard, { product: { ...product, brand: '', price: 1, currency: 'CLP', description: '' }, session, conversationId: 'c', messageId: 'm', cards: DEFAULT_CARDS, ...props }));
-  assert.match(card({ onAddToCart: async () => ({ ok: true }) }), /<div class="product-cart"><button type="button" class="gps-card-add">Agregar al carrito<\/button><\/div>/);
+  assert.match(card({ onAddToCart: async () => ({ ok: true }) }), /<div class="product-cart gps-card-cart is-idle" data-gps-status="idle"><button type="button" class="gps-card-add">Agregar al carrito<\/button><\/div>/);
   assert.doesNotMatch(card({}), /gps-card-add/);
 
   console.log('Actions: all assertions passed');

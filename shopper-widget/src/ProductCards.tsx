@@ -42,14 +42,14 @@ export function ProductCard({ product, session, conversationId, messageId, cards
     catch { price = String(product.price); }
   }
   const button = cards.ctaStyle === 'button';
-  return <article className={`product gps-card is-${cards.layout} fit-${cards.imageFit} radius-${cards.radius}`} ref={ref}>
+  return <article className={`product gps-card is-${cards.layout} fit-${cards.imageFit} radius-${cards.radius}`} data-gps-product={product.id} ref={ref}>
     <div className="product-image gps-card-image">{product.image ? <img src={product.image} alt="" loading="lazy" /> : <span aria-hidden="true">◇</span>}</div>
     <div className="product-details">{cards.showBrand && product.brand && <span className="brand gps-card-brand">{product.brand}</span>}<h3 className="gps-card-name">{product.name}</h3>
       <div className="product-foot">{cards.showPrice && <strong className={product.price === null ? 'price price-unknown gps-card-price' : 'price gps-card-price'}>{price}</strong>}
         <a className={button ? 'gps-card-cta is-button' : 'gps-card-cta'} href={product.url} target="_blank" rel="noopener noreferrer" onClick={e => { if (demo) { e.preventDefault(); return; } event('product_click'); }}>{cards.ctaLabel || t.product}{!button && <> <span aria-hidden="true">↗</span></>}</a></div>
-      {onAddToCart && <div className="product-cart">
+      {onAddToCart && <div className={`product-cart gps-card-cart is-${cart?.status || 'idle'}`} data-gps-status={cart?.status || 'idle'}>
         <button type="button" className="gps-card-add" onClick={() => void addToCart()} disabled={cart?.status === 'running'}>{cart?.status === 'running' ? t.adding : cart?.status === 'done' ? <>{t.added} <span aria-hidden="true">✓</span></> : t.addToCart}</button>
-        {cart?.status === 'failed' && <small role="alert" className="store-action-error">{cartError(t, cart.result)}</small>}
+        {cart?.status === 'failed' && <small role="alert" className="store-action-error gps-card-cart-error">{cartError(t, cart.result)}</small>}
       </div>}</div>
   </article>;
 }
