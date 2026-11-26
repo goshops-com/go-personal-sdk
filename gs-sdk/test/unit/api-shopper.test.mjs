@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test, { beforeEach, afterEach, mock } from 'node:test';
-import { resetDom, mockFetch, seedSession, flush, jsonResponse, getDom } from './helpers/env.mjs';
+import { resetDom, mockFetch, seedSession, flush, jsonResponse, getDom, setUrl } from './helpers/env.mjs';
 import { mountShopper } from '../../src/api/shopper.js';
+import { storeLink } from '../../src/api/shopperActions.js';
 import { getApiBaseURL } from '../../src/utils/http.js';
 
 const WIDGET_URL = 'https://widget.example/shopper/index.html';
@@ -728,6 +729,68 @@ test('opening a product or a page whose skill is off is answered as unavailable 
   await askOpen(iframe, 'off-g', 'open_page', '/pages/envios');
   assert.deepEqual(navigations, []);
   assert.deepEqual(results(posts).map((r) => r.error), ['unavailable', 'unavailable']);
+});
+
+// Simula la carga de la página de destino: vuelve a montar el shopper y espera su config.
+async function nextPage() {
+  mounted.forEach((shopper) => shopper.destroy());
+  mounted = [];
+  shopperFetch(() => bootstrapResponse(), withLinks());
+  mount();
+  await flush();
+  return parts();
+}
+
+test('a chat that navigates to another page of the store opens again by itself on the next page, only once', async () => {
+  const { iframe } = await openReady({}, withLinks());
+  await askOpen(iframe, 'go-1', 'open_page', '/pages/envios');
+  assert.ok(sessionStorage.getItem('gp-shopper-reopen'), 'deja la marca antes de navegar');
+
+  const next = await nextPage();
+  assert.equal(next.panel.hidden, false, 'el chat se abre solo');
+  assert.equal(next.launcher.getAttribute('aria-expanded'), 'true');
+  assert.equal(sessionStorage.getItem('gp-shopper-reopen'), null, 'la marca se usa una sola vez');
+
+  const after = await nextPage();
+  assert.equal(after.panel.hidden, true, 'una carga posterior no lo reabre');
+});
+
+test('an old reopen mark is ignored and removed', async () => {
+  sessionStorage.setItem('gp-shopper-reopen', String(Date.now()));
+  mock.timers.tick(31000);
+  const { panel } = await nextPage();
+  assert.equal(panel.hidden, true);
+  assert.equal(sessionStorage.getItem('gp-shopper-reopen'), null);
+});
+
+test('a link to the store on another origin carries the reopen param, which is removed from the address bar on arrival', async () => {
+  assert.equal(storeLink('/pages/envios'), 'https://shop.example/pages/envios', 'mismo origen: sin param');
+  assert.equal(storeLink('https://www.shop.example/pages/envios?a=1'), 'https://www.shop.example/pages/envios?a=1&gp_shopper=open');
+  assert.equal(storeLink('http://shop.example/pages/envios'), 'http://shop.example/pages/envios?gp_shopper=open');
+
+  setUrl('https://www.shop.example/pages/envios?a=1&gp_shopper=open#talles');
+  const { panel } = await nextPage();
+  assert.equal(panel.hidden, false, 'el chat se abre solo');
+  assert.equal(location.href, 'https://www.shop.example/pages/envios?a=1#talles');
+});
+
+test('without sessionStorage navigating still works and the next page keeps the chat closed', async () => {
+  navigations.length = 0;
+  const { iframe, posts } = await openReady({}, withLinks());
+  const proto = Object.getPrototypeOf(sessionStorage);
+  const { getItem, setItem } = proto;
+  proto.getItem = function failing(key) { if (key === 'gp-shopper-reopen') throw new Error('SecurityError'); return getItem.call(this, key); };
+  proto.setItem = function failing(key, value) { if (key === 'gp-shopper-reopen') throw new Error('SecurityError'); return setItem.call(this, key, value); };
+  try {
+    await askOpen(iframe, 'go-2', 'open_product', '/products/remera');
+    assert.equal(navigations.length, 1);
+    assert.equal(results(posts)[0].ok, true);
+    const { panel } = await nextPage();
+    assert.equal(panel.hidden, true);
+  } finally {
+    proto.getItem = getItem;
+    proto.setItem = setItem;
+  }
 });
 
 test('if the stored conversation cannot be read the chat still opens, without a previous conversation', async () => {

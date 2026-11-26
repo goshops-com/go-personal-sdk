@@ -2,7 +2,7 @@ import { httpPost, getApiBaseURL } from '../utils/http';
 import { getSession } from '../utils/storage';
 import { renderLauncher } from './shopperLauncher';
 import { resolveCart } from './shopperCart';
-import { availableActions, performAction } from './shopperActions';
+import { availableActions, performAction, consumeReopen } from './shopperActions';
 
 const CONFIG_STORAGE = 'gp-shopper-config-v1';
 
@@ -43,6 +43,8 @@ export function mountShopper({ widgetUrl, container = null, context = {}, cart =
   // Quién agrega al carrito en esta tienda (callback propio o plataforma del init) y acciones ya ejecutadas
   const cartExecutor = resolveCart({ cart, provider: window.gsConfig && window.gsConfig.options && window.gsConfig.options.provider });
   const handledActions = new Set();
+  // Si el chat estaba abierto antes de navegar a esta página desde una acción, se vuelve a abrir
+  let reopen = consumeReopen();
   const launcher = document.createElement('button'); launcher.type = 'button';
   launcher.setAttribute('aria-expanded', 'false');
   if (!embedded) panel.style.cssText = 'position:fixed;right:16px;bottom:80px;width:min(420px,calc(100vw - 32px));height:min(680px,calc(100dvh - 112px));z-index:2147483001;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px #0002;border:1px solid #e9e7ed;background:white;';
@@ -173,6 +175,12 @@ export function mountShopper({ widgetUrl, container = null, context = {}, cart =
     // Dibuja el botón con la apariencia publicada; sin config usa el diseño por defecto
     renderLauncher(launcher, config);
     document.body.appendChild(launcher);
+
+    // Reabre el chat que venía abierto de la página anterior
+    if (reopen) {
+      reopen = false;
+      void open();
+    }
   }
   window.addEventListener('message', receive);
   launcher.addEventListener('click', () => { if (panel.hidden) void open(); else hide(); });
