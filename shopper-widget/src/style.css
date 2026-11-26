@@ -89,11 +89,12 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .product-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; margin-top: auto; padding-top: 8px; }
 .price { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; white-space: nowrap; }
 .price-unknown { color: var(--shopper-muted); font-size: 13px; font-weight: 500; letter-spacing: 0; }
-.product a { display: inline-flex; align-items: center; gap: 4px; color: var(--shopper-brand-ink); font-size: 13px; font-weight: 600; line-height: 20px; text-decoration: none; white-space: nowrap; }
-.product a span { transition: transform 160ms cubic-bezier(.23, 1, .32, 1); }
-.product a::after { content: ""; position: absolute; inset: 0; border-radius: 16px; }
-.product a:focus-visible { outline: none; }
-.product a:focus-visible::after { outline: 2px solid var(--shopper-brand-ink); outline-offset: 2px; }
+/* El nombre es el link del producto y su ::after cubre toda la tarjeta. */
+.gps-card-link { color: inherit; text-decoration: none; }
+.gps-card-link::after { content: ""; position: absolute; inset: 0; border-radius: 16px; }
+.gps-card-link:focus-visible { outline: none; }
+.gps-card-link:focus-visible::after { outline: 2px solid var(--shopper-brand-ink); outline-offset: 2px; }
+.product { cursor: pointer; }
 
 .working { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--shopper-muted); font-size: 13px; line-height: 1.4; }
 .working-dot, .connection-mark { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--shopper-brand); animation: breathe 1.2s ease-in-out infinite; }
@@ -126,13 +127,12 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
   .icon-button:not(:disabled):hover { background: var(--shopper-shelf); color: var(--shopper-ink); }
   .suggestions button:hover, .product:hover { border-color: var(--shopper-ring); background: var(--shopper-tint); }
   .suggestions button:hover span { color: var(--shopper-brand-ink); transform: translateX(2px); }
-  .product:hover a span { transform: translate(1px, -1px); }
   .error button:hover, .connection button:hover, .send.stop:hover { background: var(--shopper-shelf); }
 }
 /* iOS hace zoom al enfocar un campo con letra menor a 16px. */
 @media (pointer: coarse) { .composer textarea { font-size: 16px; } }
 @media (max-width: 350px) { .chat-header { padding-left: 12px; } .conversation { padding: 16px 12px 0; } .composer { padding-right: 8px; padding-left: 8px; } .welcome h2 { font-size: 20px; } .product { grid-template-columns: 64px minmax(0, 1fr); } }
-@media (prefers-reduced-motion: reduce) { .message.user, .product, .working-dot, .connection-mark { animation: none; } button:not(:disabled):active, .suggestions button:hover span, .product:hover a span { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .message.user, .product, .working-dot, .connection-mark { animation: none; } button:not(:disabled):active, .suggestions button:hover span { transform: none; } }
 
 /* Tarjetas configurables desde el admin: disposición de la lista, forma de la tarjeta, imagen, bordes y botón. */
 .products.is-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -142,16 +142,34 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .products.is-carousel .product.is-vertical { flex-basis: 46%; }
 .product.is-vertical { grid-template-columns: minmax(0, 1fr); }
 .product.fit-cover img { object-fit: cover; mix-blend-mode: normal; }
-.product.radius-none, .product.radius-none .product-image, .product.radius-none a::after { border-radius: 0; }
-.product.radius-soft, .product.radius-soft a::after { border-radius: 8px; }
+.product.radius-none, .product.radius-none .product-image, .product.radius-none .gps-card-link::after { border-radius: 0; }
+.product.radius-soft, .product.radius-soft .gps-card-link::after { border-radius: 8px; }
 .product.radius-soft .product-image { border-radius: 4px; }
 /* Logo con imagen: la imagen llena el cuadro del logo */
 .shopper-mark.has-image { overflow: hidden; }
 .shopper-mark.has-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
 /* Vista previa de las tarjetas en el admin: solo la lista de productos, con el mismo margen que en el chat */
 .shopper.showcase-products { height: auto; min-height: 100vh; padding: 16px; overflow-y: auto; }
-/* Botón con el color de marca en lugar del link */
-.product a.is-button { padding: 5px 12px; border-radius: 999px; background: var(--shopper-brand); color: var(--shopper-on-brand); }
-.product.radius-none a.is-button { border-radius: 0; }
-.product.radius-soft a.is-button { border-radius: 6px; }
+/* Agregar al carrito en la tarjeta: por encima del link que cubre la tarjeta. */
+.product-cart { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding-top: 8px; }
+.gps-card-add { min-height: 32px; padding: 5px 12px; border: 1px solid var(--shopper-cart-bg, var(--shopper-rule)); border-radius: 999px; background: var(--shopper-cart-bg, var(--shopper-paper)); color: var(--shopper-cart-ink, var(--shopper-brand-ink)); font-size: 13px; font-weight: 600; }
+.product.radius-none .gps-card-add { border-radius: 0; }
+.product.radius-soft .gps-card-add { border-radius: 6px; }
+/* Acciones en la tienda que pidió el asistente: carrito con confirmación y navegación. */
+.store-action { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 1px solid var(--shopper-rule); border-radius: 14px; background: var(--shopper-paper); font-size: 13px; line-height: 1.4; }
+.store-action img { flex: none; width: 44px; height: 44px; border-radius: 8px; background: var(--shopper-shelf); object-fit: contain; mix-blend-mode: multiply; }
+.store-action-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.store-action-body strong { overflow: hidden; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.store-action p { margin: 0; color: var(--shopper-muted); }
+.store-action a { color: var(--shopper-brand-ink); font-weight: 600; text-decoration: none; }
+.store-action.is-done p { color: var(--shopper-ink); }
+.store-action .store-action-error, .product .store-action-error { color: var(--shopper-danger); }
+.store-action-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.store-action-buttons button { min-height: 32px; padding: 5px 12px; border-radius: 999px; background: var(--shopper-confirm-bg, var(--shopper-brand)); color: var(--shopper-confirm-ink, var(--shopper-on-brand)); font-size: 13px; font-weight: 600; }
+.store-action-buttons button.secondary { border: 1px solid var(--shopper-rule); background: var(--shopper-paper); color: var(--shopper-ink); }
+@media (hover: hover) { .gps-card-add:not(:disabled):hover { filter: brightness(.96); } .store-action-buttons button.secondary:hover { background: var(--shopper-shelf); } }
+/* Ícono del botón Agregar al carrito y vista previa de la confirmación del asistente. */
+.gps-card-add { display: inline-flex; align-items: center; gap: 6px; }
+.gps-card-add-icon { flex: none; }
+.showcase-confirm { display: grid; align-content: start; gap: 10px; padding: 12px; }
 }

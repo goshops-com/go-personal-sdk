@@ -7,13 +7,16 @@ export type Cards = {
   radius: 'none' | 'soft' | 'round';
   showBrand: boolean;
   showPrice: boolean;
-  ctaLabel: string;
-  ctaStyle: 'link' | 'button';
 };
 export type Logo = { kind: 'initial' | 'image'; image: string; background: string; color: string };
-export type Appearance = { cards: Cards; logo: Logo; customCss: string };
+// Botones de agregar al carrito: el de la tarjeta y la confirmación del asistente; vacío usa el texto y los colores del chat.
+export type CartAppearance = {
+  card: { show: boolean; icon: 'cart' | 'bag' | 'plus' | 'none'; label: string; successLabel: string; background: string; color: string };
+  confirm: { question: string; confirmLabel: string; cancelLabel: string; successLabel: string; background: string; color: string };
+};
+export type Appearance = { cards: Cards; logo: Logo; cart: CartAppearance; customCss: string };
 
-export const DEFAULT_CARDS: Cards = { display: 'carousel', layout: 'horizontal', imageFit: 'contain', radius: 'round', showBrand: true, showPrice: true, ctaLabel: '', ctaStyle: 'link' };
+export const DEFAULT_CARDS: Cards = { display: 'carousel', layout: 'horizontal', imageFit: 'contain', radius: 'round', showBrand: true, showPrice: true };
 
 // Devuelve el valor si está entre las opciones permitidas, o el default.
 function pick<T extends string>(value: unknown, options: readonly T[], fallback: T): T {
@@ -33,6 +36,32 @@ export function safeCss(value: unknown): string {
   return BLOCKED_CSS.some(pattern => pattern.test(withoutComments)) ? '' : value;
 }
 
+// Devuelve el texto recortado al largo máximo, o vacío si no es texto.
+const label = (value: unknown, max: number) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+
+// Normaliza los botones de agregar al carrito; el de la tarjeta queda apagado salvo que esté prendido.
+function cartOf(value: unknown): CartAppearance {
+  const cart = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  const card = cart.card && typeof cart.card === 'object' ? cart.card as Record<string, unknown> : {};
+  const confirm = cart.confirm && typeof cart.confirm === 'object' ? cart.confirm as Record<string, unknown> : {};
+  return {
+    card: { show: card.show === true, icon: pick(card.icon, ['cart', 'bag', 'plus', 'none'], 'cart'), label: label(card.label, 24), successLabel: label(card.successLabel, 24),
+      background: hexOrEmpty(card.background), color: hexOrEmpty(card.color) },
+    confirm: { question: label(confirm.question, 80), confirmLabel: label(confirm.confirmLabel, 24), cancelLabel: label(confirm.cancelLabel, 24), successLabel: label(confirm.successLabel, 24),
+      background: hexOrEmpty(confirm.background), color: hexOrEmpty(confirm.color) },
+  };
+}
+
+// Variables CSS con los colores propios de los botones de carrito; las que quedan automáticas no se definen.
+export function cartColors(cart: CartAppearance): Record<string, string> {
+  const vars: Record<string, string> = {};
+  if (cart.card.background) vars['--shopper-cart-bg'] = cart.card.background;
+  if (cart.card.color) vars['--shopper-cart-ink'] = cart.card.color;
+  if (cart.confirm.background) vars['--shopper-confirm-bg'] = cart.confirm.background;
+  if (cart.confirm.color) vars['--shopper-confirm-ink'] = cart.confirm.color;
+  return vars;
+}
+
 // Arma la apariencia completa: cada campo inválido o ausente toma su default, así una config vieja se ve como siempre.
 export function appearanceOf(value: unknown): Appearance {
   const source = value && typeof value === 'object' ? value as Record<string, unknown> : {};
@@ -48,9 +77,8 @@ export function appearanceOf(value: unknown): Appearance {
       radius: pick(cards.radius, ['none', 'soft', 'round'], DEFAULT_CARDS.radius),
       showBrand: typeof cards.showBrand === 'boolean' ? cards.showBrand : DEFAULT_CARDS.showBrand,
       showPrice: typeof cards.showPrice === 'boolean' ? cards.showPrice : DEFAULT_CARDS.showPrice,
-      ctaLabel: typeof cards.ctaLabel === 'string' ? cards.ctaLabel.trim().slice(0, 20) : DEFAULT_CARDS.ctaLabel,
-      ctaStyle: pick(cards.ctaStyle, ['link', 'button'], DEFAULT_CARDS.ctaStyle),
     },
+    cart: cartOf(source.cart),
     // El logo usa la imagen solo si es https; si no, la inicial del nombre
     logo: { kind: logo.kind === 'image' && logoImage ? 'image' : 'initial', image: logoImage, background: hexOrEmpty(logo.background), color: hexOrEmpty(logo.color) },
     customCss: safeCss(source.customCss),

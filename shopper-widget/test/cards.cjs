@@ -14,19 +14,19 @@ const product = { id: 'p1', name: 'Campera', brand: 'Doite', price: 89990, curre
 const render = (element) => renderToStaticMarkup(element);
 const card = (cards, extra = {}) => render(React.createElement(ProductCard, { product: { ...product, ...extra }, session, conversationId: 'c', messageId: 'm', cards: { ...DEFAULT_CARDS, ...cards } }));
 
-// Por defecto: horizontal, imagen completa, bordes redondeados, marca, precio y link "Ver producto"
+// Por defecto: horizontal, imagen completa, bordes redondeados, marca y precio; el nombre es el link que abre el producto con toda la tarjeta
 const base = card({});
-assert.match(base, /class="product gps-card is-horizontal fit-contain radius-round"/);
+assert.match(base, /class="product gps-card is-horizontal fit-contain radius-round" data-gps-product="p1"/);
 assert.match(base, /class="brand gps-card-brand">Doite</);
-assert.match(base, /class="gps-card-name">Campera</);
+assert.match(base, /<h3 class="gps-card-name"><a class="gps-card-link" href="https:\/\/shop.test\/p1" target="_blank" rel="noopener noreferrer">Campera<\/a><\/h3>/);
 assert.match(base, /class="price gps-card-price">\$?\s?89\.990/);
-assert.match(base, /class="gps-card-cta" href="https:\/\/shop.test\/p1" target="_blank" rel="noopener noreferrer">Ver producto <span aria-hidden="true">↗<\/span>/);
+assert.doesNotMatch(base, /Ver producto|gps-card-cta/, 'sin link "Ver producto" aparte');
+assert.equal((base.match(/<a /g) || []).length, 1);
 
 // Cada opción de la tarjeta cambia lo que corresponde
-const custom = card({ layout: 'vertical', imageFit: 'cover', radius: 'soft', showBrand: false, showPrice: false, ctaLabel: 'Ver más', ctaStyle: 'button' });
+const custom = card({ layout: 'vertical', imageFit: 'cover', radius: 'soft', showBrand: false, showPrice: false });
 assert.match(custom, /class="product gps-card is-vertical fit-cover radius-soft"/);
-assert.doesNotMatch(custom, /gps-card-brand|gps-card-price/);
-assert.match(custom, /class="gps-card-cta is-button"[^>]*>Ver más<\/a>/, 'el botón no lleva la flecha del link');
+assert.doesNotMatch(custom, /gps-card-brand|gps-card-price|product-foot/);
 
 // Sin precio o sin imagen, la tarjeta igual se dibuja
 assert.match(card({}, { price: null }), /class="price price-unknown gps-card-price">Consultar precio/);
@@ -47,6 +47,20 @@ assert.match(preview, /Lightweight waterproof jacket/);
 assert.match(preview, /\$39,990\.00/);
 assert.doesNotMatch(preview, /gps-header/);
 assert.equal((preview.match(/gps-card /g) || []).length, 3);
+assert.doesNotMatch(preview, /gps-card-add/, 'sin el botón de carrito prendido no se muestra');
+
+// Con el botón de carrito prendido, la vista previa lo muestra con su texto y sus colores
+const withCart = render(React.createElement(ShowcaseProducts, { config, appearance: appearanceOf({ cart: { card: { show: true, icon: 'none', label: 'Sumar', background: '#000000', color: '#ffffff' } } }) }));
+assert.equal((withCart.match(/<button type="button" class="gps-card-add">Sumar<\/button>/g) || []).length, 3, 'sin ícono, solo el texto');
+assert.match(withCart, /style="--shopper-brand:#fd5700;--shopper-cart-bg:#000000;--shopper-cart-ink:#ffffff"/);
+
+// Vista previa de la confirmación del asistente: la pregunta y el estado agregado, con sus textos y colores
+const confirmPreview = render(React.createElement(ShowcaseProducts, { config, view: 'confirm',
+  appearance: appearanceOf({ cart: { confirm: { question: '¿Lo sumamos?', confirmLabel: 'Sí', successLabel: 'Sumado', background: '#0a7d32' } } }) }));
+assert.match(confirmPreview, /class="shopper gps-chat showcase-products showcase-confirm" lang="es" style="--shopper-brand:#fd5700;--shopper-confirm-bg:#0a7d32"/);
+assert.match(confirmPreview, /data-gps-status="confirm".*¿Lo sumamos\?.*>Sí<\/button>.*>No, gracias<\/button>/);
+assert.match(confirmPreview, /data-gps-status="done".*Sumado <span aria-hidden="true">✓<\/span>/);
+assert.doesNotMatch(confirmPreview, /gps-card /, 'sin tarjetas');
 
 // Logo: la inicial del nombre por defecto, o la imagen; con los colores elegidos
 const logo = (value, name = 'doite') => render(React.createElement(Logo, { name, logo: appearanceOf({ header: { logo: value } }).logo }));
