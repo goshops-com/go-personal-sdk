@@ -613,6 +613,29 @@ test('the chat learns it can add to cart only when the skill is on and this site
   assert.equal('capabilities' in noExecutor.posts[0].message.session, false, 'nadie sabe agregar en este sitio');
 });
 
+test('the card button and the assistant are announced separately, each with its own switch', async () => {
+  const cardOnly = await openReady({ cart: { add: async () => {} } }, () => ({ ...CONFIG, skills: { addToCart: false, cardAddToCart: true } }));
+  assert.deepEqual(cardOnly.posts[0].message.session.capabilities, ['card_add_to_cart']);
+  cardOnly.shopper.destroy();
+
+  const both = await openReady({ cart: { add: async () => {} } }, () => ({ ...CONFIG, skills: { addToCart: true, cardAddToCart: true } }));
+  assert.deepEqual(both.posts[0].message.session.capabilities, ['add_to_cart', 'card_add_to_cart']);
+  both.shopper.destroy();
+
+  window.gsConfig.options.provider = 'Custom';
+  const noExecutor = await openReady({}, () => ({ ...CONFIG, skills: { cardAddToCart: true } }));
+  assert.equal('capabilities' in noExecutor.posts[0].message.session, false, 'sin quien agregue no hay botón');
+});
+
+test('the card button adds to cart even when the assistant cannot, and the assistant action stays closed', async () => {
+  const added = [];
+  const { iframe, posts } = await openReady({ cart: { add: async (item) => { added.push(item); } } }, () => ({ ...CONFIG, skills: { addToCart: false, cardAddToCart: true } }));
+  await askAction(iframe, 'card-1', 'card_add_to_cart');
+  await askAction(iframe, 'agent-1', 'add_to_cart');
+  assert.deepEqual(added.map((item) => item.productId), ['p1']);
+  assert.deepEqual(results(posts).map((r) => [r.actionId, r.ok, r.error]), [['card-1', true, undefined], ['agent-1', false, 'unavailable']]);
+});
+
 test('an add_to_cart action from the chat runs once, tells the page and answers the widget', async () => {
   const added = []; const events = [];
   window.addEventListener('gp-shopper:cart-added', (event) => events.push(event.detail));

@@ -10,7 +10,9 @@ const REOPEN_TTL_MS = 30000;
 // Devuelve las acciones que el chat puede pedir: las activadas en la config que además este sitio sabe ejecutar.
 export function availableActions(skills, { cartExecutor }) {
   const actions = [];
+  // Agregar al carrito pedido por el asistente o desde el botón de las tarjetas, cada uno con su switch
   if (skills.addToCart === true && cartExecutor) actions.push('add_to_cart');
+  if (skills.cardAddToCart === true && cartExecutor) actions.push('card_add_to_cart');
   if (skills.openProduct === true) actions.push('open_product');
   if (skills.openPages === true) actions.push('open_page');
   return actions;
@@ -58,7 +60,8 @@ export async function performAction(action, payload, { available, cartExecutor, 
   // Ejecuta la acción pedida solo si está disponible en este sitio
   if (available.includes(action)) {
     switch (action) {
-      case 'add_to_cart': {
+      case 'add_to_cart':
+      case 'card_add_to_cart': {
         const item = cartItemOf(payload.product);
         if (!item) return { ok: false, error: 'invalid_action' };
 
