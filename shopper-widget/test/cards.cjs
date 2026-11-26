@@ -50,9 +50,17 @@ assert.equal((preview.match(/gps-card /g) || []).length, 3);
 assert.doesNotMatch(preview, /gps-card-add/, 'sin el botón de carrito prendido no se muestra');
 
 // Con el botón de carrito prendido, la vista previa lo muestra con su texto y sus colores
-const withCart = render(React.createElement(ShowcaseProducts, { config, appearance: appearanceOf({ cart: { card: { show: true, label: 'Sumar', background: '#000000', color: '#ffffff' } } }) }));
-assert.equal((withCart.match(/<button type="button" class="gps-card-add">Sumar<\/button>/g) || []).length, 3);
+const withCart = render(React.createElement(ShowcaseProducts, { config, appearance: appearanceOf({ cart: { card: { show: true, icon: 'none', label: 'Sumar', background: '#000000', color: '#ffffff' } } }) }));
+assert.equal((withCart.match(/<button type="button" class="gps-card-add">Sumar<\/button>/g) || []).length, 3, 'sin ícono, solo el texto');
 assert.match(withCart, /style="--shopper-brand:#fd5700;--shopper-cart-bg:#000000;--shopper-cart-ink:#ffffff"/);
+
+// Vista previa de la confirmación del asistente: la pregunta y el estado agregado, con sus textos y colores
+const confirmPreview = render(React.createElement(ShowcaseProducts, { config, view: 'confirm',
+  appearance: appearanceOf({ cart: { confirm: { question: '¿Lo sumamos?', confirmLabel: 'Sí', successLabel: 'Sumado', background: '#0a7d32' } } }) }));
+assert.match(confirmPreview, /class="shopper gps-chat showcase-products showcase-confirm" lang="es" style="--shopper-brand:#fd5700;--shopper-confirm-bg:#0a7d32"/);
+assert.match(confirmPreview, /data-gps-status="confirm".*¿Lo sumamos\?.*>Sí<\/button>.*>No, gracias<\/button>/);
+assert.match(confirmPreview, /data-gps-status="done".*Sumado <span aria-hidden="true">✓<\/span>/);
+assert.doesNotMatch(confirmPreview, /gps-card /, 'sin tarjetas');
 
 // Logo: la inicial del nombre por defecto, o la imagen; con los colores elegidos
 const logo = (value, name = 'doite') => render(React.createElement(Logo, { name, logo: appearanceOf({ header: { logo: value } }).logo }));

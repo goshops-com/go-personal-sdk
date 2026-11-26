@@ -11,7 +11,7 @@ const { appearanceOf, safeCss, cartColors, DEFAULT_CARDS } = mod.exports;
 
 // Una config sin apariencia, o con una forma que no se reconoce, se ve como hoy
 const DEFAULT_LOGO = { kind: 'initial', image: '', background: '', color: '' };
-const DEFAULT_CART = { card: { show: false, label: '', background: '', color: '' }, confirm: { question: '', confirmLabel: '', cancelLabel: '', background: '', color: '' } };
+const DEFAULT_CART = { card: { show: false, icon: 'cart', label: '', successLabel: '', background: '', color: '' }, confirm: { question: '', confirmLabel: '', cancelLabel: '', successLabel: '', background: '', color: '' } };
 for (const value of [undefined, null, 'x', {}, { cards: 'x', header: 'x', cart: 'x' }]) assert.deepEqual(appearanceOf(value), { cards: DEFAULT_CARDS, logo: DEFAULT_LOGO, cart: DEFAULT_CART, customCss: '' });
 
 // El logo usa la imagen solo si es https y conserva solo colores hex
@@ -25,11 +25,13 @@ assert.deepEqual(cards, { display: 'carousel', layout: 'horizontal', imageFit: '
 
 // Botones de carrito: el de la tarjeta viene apagado; textos recortados y solo colores hex
 const noCart = appearanceOf(undefined).cart;
-assert.deepEqual(noCart, { card: { show: false, label: '', background: '', color: '' }, confirm: { question: '', confirmLabel: '', cancelLabel: '', background: '', color: '' } });
-const cart = appearanceOf({ cart: { card: { show: true, label: '  Sumar al carrito de compras ya  ', background: '#000000', color: 'white' },
-  confirm: { question: ' ¿Va? ', confirmLabel: 'Sí', cancelLabel: 7, background: 'red', color: '#FFFFFF' } } }).cart;
-assert.deepEqual(cart, { card: { show: true, label: 'Sumar al carrito de comp', background: '#000000', color: '' },
-  confirm: { question: '¿Va?', confirmLabel: 'Sí', cancelLabel: '', background: '', color: '#FFFFFF' } });
+assert.deepEqual(noCart, DEFAULT_CART);
+const cart = appearanceOf({ cart: { card: { show: true, icon: 'bag', label: '  Sumar al carrito de compras ya  ', successLabel: ' ¡Listo! ', background: '#000000', color: 'white' },
+  confirm: { question: ' ¿Va? ', confirmLabel: 'Sí', cancelLabel: 7, successLabel: 'Sumado', background: 'red', color: '#FFFFFF' } } }).cart;
+assert.deepEqual(cart, { card: { show: true, icon: 'bag', label: 'Sumar al carrito de comp', successLabel: '¡Listo!', background: '#000000', color: '' },
+  confirm: { question: '¿Va?', confirmLabel: 'Sí', cancelLabel: '', successLabel: 'Sumado', background: '', color: '#FFFFFF' } });
+assert.equal(appearanceOf({ cart: { card: { icon: 'heart' } } }).cart.card.icon, 'cart', 'un ícono desconocido vuelve al carrito');
+assert.equal(appearanceOf({ cart: { card: { icon: 'none' } } }).cart.card.icon, 'none');
 assert.equal(appearanceOf({ cart: { card: { show: 'true' } } }).cart.card.show, false);
 
 // Los colores propios pasan a variables CSS; los automáticos no se definen

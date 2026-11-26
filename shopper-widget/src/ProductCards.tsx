@@ -1,7 +1,8 @@
 // Tarjetas de producto del chat y su vista previa para el admin.
 import { useEffect, useRef, useState } from 'react';
 import { productEvent, send, type ActionResult, type Config, type Product, type Session } from './bridge';
-import { cartError, type ActionState } from './StoreAction';
+import { cartError, StoreAction, type ActionState } from './StoreAction';
+import { CartIcon } from './CartIcon';
 import { cartColors, type Appearance, type CartAppearance, type Cards } from './appearance';
 import { copy } from './copy';
 import { showcaseProducts } from './showcaseProducts';
@@ -47,7 +48,7 @@ export function ProductCard({ product, session, conversationId, messageId, cards
     <div className="product-details">{cards.showBrand && product.brand && <span className="brand gps-card-brand">{product.brand}</span>}<h3 className="gps-card-name"><a className="gps-card-link" href={product.url} target="_blank" rel="noopener noreferrer" onClick={e => { if (demo) { e.preventDefault(); return; } event('product_click'); }}>{product.name}</a></h3>
       {cards.showPrice && <div className="product-foot"><strong className={product.price === null ? 'price price-unknown gps-card-price' : 'price gps-card-price'}>{price}</strong></div>}
       {onAddToCart && <div className={`product-cart gps-card-cart is-${cart?.status || 'idle'}`} data-gps-status={cart?.status || 'idle'}>
-        <button type="button" className="gps-card-add" onClick={() => void addToCart()} disabled={cart?.status === 'running'}>{cart?.status === 'running' ? t.adding : cart?.status === 'done' ? <>{t.added} <span aria-hidden="true">✓</span></> : cartButton?.label || t.addToCart}</button>
+        <button type="button" className="gps-card-add" onClick={() => void addToCart()} disabled={cart?.status === 'running'}>{cart?.status === 'running' ? t.adding : cart?.status === 'done' ? <>{cartButton?.successLabel || t.added} <span aria-hidden="true">✓</span></> : <><CartIcon icon={cartButton?.icon || 'cart'} />{cartButton?.label || t.addToCart}</>}</button>
         {cart?.status === 'failed' && <small role="alert" className="store-action-error gps-card-cart-error">{cartError(t, cart.result)}</small>}
       </div>}</div>
   </article>;
@@ -63,11 +64,25 @@ export function ProductList({ products, session, conversationId, messageId, card
 // Agregar al carrito de la vista previa: no llama a la tienda, solo muestra el estado de agregado.
 const demoAdd: AddToCart = async () => ({ ok: true });
 
-// Vista previa de las tarjetas para el admin: solo las tarjetas con productos de ejemplo, sin requests; el botón de carrito se ve si está prendido.
-export function ShowcaseProducts({ config, appearance }: { config: Config; appearance: Appearance }) {
+export type ShowcaseView = 'cards' | 'confirm';
+
+// Vista previa para el admin con productos de ejemplo y sin requests: las tarjetas (con el botón de carrito si está prendido) o la confirmación del asistente.
+export function ShowcaseProducts({ config, appearance, view = 'cards' }: { config: Config; appearance: Appearance; view?: ShowcaseView }) {
   const products = showcaseProducts(config.language, config.currency);
   const session: Session = { token: '', apiUrl: '', config, preview: true };
-  return <main className="shopper gps-chat showcase-products" lang={config.language} style={{ '--shopper-brand': config.color, ...cartColors(appearance.cart) } as React.CSSProperties}>
+  const t = copy[config.language] || copy.es;
+  const style = { '--shopper-brand': config.color, ...cartColors(appearance.cart) } as React.CSSProperties;
+
+  // Confirmación del asistente: la pregunta y cómo queda una vez agregado, con el primer producto de ejemplo
+  if (view === 'confirm') {
+    const product = products[0];
+    const request = { id: 'showcase-confirm', action: 'add_to_cart' as const, confirm: true, product: { id: product.id, name: product.name, url: product.url, image: product.image } };
+    return <main className="shopper gps-chat showcase-products showcase-confirm" lang={config.language} style={style}>
+      <StoreAction request={request} state={{ status: 'confirm' }} t={t} confirm={appearance.cart.confirm} onConfirm={() => {}} onCancel={() => {}} />
+      <StoreAction request={request} state={{ status: 'done', result: { ok: true } }} t={t} confirm={appearance.cart.confirm} onConfirm={() => {}} onCancel={() => {}} />
+    </main>;
+  }
+  return <main className="shopper gps-chat showcase-products" lang={config.language} style={style}>
     <ProductList products={products} session={session} conversationId="showcase-products" messageId="showcase-products" cards={appearance.cards} demo
       cartButton={appearance.cart.card} onAddToCart={appearance.cart.card.show ? demoAdd : undefined} />
   </main>;

@@ -11,8 +11,8 @@ export type Cards = {
 export type Logo = { kind: 'initial' | 'image'; image: string; background: string; color: string };
 // Botones de agregar al carrito: el de la tarjeta y la confirmación del asistente; vacío usa el texto y los colores del chat.
 export type CartAppearance = {
-  card: { show: boolean; label: string; background: string; color: string };
-  confirm: { question: string; confirmLabel: string; cancelLabel: string; background: string; color: string };
+  card: { show: boolean; icon: 'cart' | 'bag' | 'plus' | 'none'; label: string; successLabel: string; background: string; color: string };
+  confirm: { question: string; confirmLabel: string; cancelLabel: string; successLabel: string; background: string; color: string };
 };
 export type Appearance = { cards: Cards; logo: Logo; cart: CartAppearance; customCss: string };
 
@@ -45,8 +45,9 @@ function cartOf(value: unknown): CartAppearance {
   const card = cart.card && typeof cart.card === 'object' ? cart.card as Record<string, unknown> : {};
   const confirm = cart.confirm && typeof cart.confirm === 'object' ? cart.confirm as Record<string, unknown> : {};
   return {
-    card: { show: card.show === true, label: label(card.label, 24), background: hexOrEmpty(card.background), color: hexOrEmpty(card.color) },
-    confirm: { question: label(confirm.question, 80), confirmLabel: label(confirm.confirmLabel, 24), cancelLabel: label(confirm.cancelLabel, 24),
+    card: { show: card.show === true, icon: pick(card.icon, ['cart', 'bag', 'plus', 'none'], 'cart'), label: label(card.label, 24), successLabel: label(card.successLabel, 24),
+      background: hexOrEmpty(card.background), color: hexOrEmpty(card.color) },
+    confirm: { question: label(confirm.question, 80), confirmLabel: label(confirm.confirmLabel, 24), cancelLabel: label(confirm.cancelLabel, 24), successLabel: label(confirm.successLabel, 24),
       background: hexOrEmpty(confirm.background), color: hexOrEmpty(confirm.color) },
   };
 }

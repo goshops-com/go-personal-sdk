@@ -91,6 +91,9 @@ const render = (request, state) => renderToStaticMarkup(React.createElement(Stor
   const custom = renderToStaticMarkup(React.createElement(StoreAction, { request: cart, state: { status: 'confirm' }, t, onConfirm: noop, onCancel: noop,
     confirm: { question: '¿Lo sumamos?', confirmLabel: 'Sí, sumar', cancelLabel: '', background: '', color: '' } }));
   assert.match(custom, /¿Lo sumamos\?.*>Sí, sumar<\/button>.*>No, gracias<\/button>/, 'textos propios y los del chat donde quedaron vacíos');
+  const added = renderToStaticMarkup(React.createElement(StoreAction, { request: cart, state: { status: 'done', result: { ok: true } }, t, onConfirm: noop, onCancel: noop,
+    confirm: { question: '', confirmLabel: '', cancelLabel: '', successLabel: '¡Sumado!', background: '', color: '' } }));
+  assert.match(added, /¡Sumado! <span aria-hidden="true">✓<\/span>/);
   assert.match(render(cart, { status: 'running' }), /role="status" class="gps-action-status">Agregando…/);
   assert.match(render(cart, { status: 'done', result: { ok: true } }), /role="status" class="gps-action-status">Agregado al carrito <span aria-hidden="true">✓<\/span><\/p>/);
   assert.match(render(cart, { status: 'failed', result: { ok: false, error: 'variant_required' } }), /Elegí talle o color.*<a class="gps-action-link" href="https:\/\/shop.test\/p1" target="_top">Ver producto<\/a>/);
@@ -111,8 +114,11 @@ const render = (request, state) => renderToStaticMarkup(React.createElement(Stor
 
   // La tarjeta muestra "Agregar al carrito" solo si el chat puede agregar
   const card = (props) => renderToStaticMarkup(React.createElement(ProductCard, { product: { ...product, brand: '', price: 1, currency: 'CLP', description: '' }, session, conversationId: 'c', messageId: 'm', cards: DEFAULT_CARDS, ...props }));
-  assert.match(card({ onAddToCart: async () => ({ ok: true }) }), /<div class="product-cart gps-card-cart is-idle" data-gps-status="idle"><button type="button" class="gps-card-add">Agregar al carrito<\/button><\/div>/);
-  assert.match(card({ onAddToCart: async () => ({ ok: true }), cartButton: { show: true, label: 'Sumar', background: '', color: '' } }), /class="gps-card-add">Sumar<\/button>/);
+  assert.match(card({ onAddToCart: async () => ({ ok: true }) }), /<div class="product-cart gps-card-cart is-idle" data-gps-status="idle"><button type="button" class="gps-card-add"><svg class="gps-card-add-icon is-cart"[^>]*><path d="M3 4h2[^"]*"><\/path><\/svg>Agregar al carrito<\/button><\/div>/, 'carrito por defecto');
+  const withIcon = (icon) => card({ onAddToCart: async () => ({ ok: true }), cartButton: { show: true, icon, label: 'Sumar', successLabel: '', background: '', color: '' } });
+  assert.match(withIcon('bag'), /class="gps-card-add"><svg class="gps-card-add-icon is-bag"[^>]*>.*<\/svg>Sumar<\/button>/);
+  assert.match(withIcon('plus'), /class="gps-card-add-icon is-plus"/);
+  assert.match(withIcon('none'), /class="gps-card-add">Sumar<\/button>/);
   assert.doesNotMatch(card({}), /gps-card-add/);
 
   console.log('Actions: all assertions passed');

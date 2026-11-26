@@ -6,7 +6,7 @@ import { actionRequestOf, assistantActionsOf, capabilitiesOf, hostOrigin, produc
 import { StoreAction, type ActionState } from './StoreAction';
 import { appearanceOf, cartColors, type Appearance } from './appearance';
 import { Logo } from './Logo';
-import { ProductList, ShowcaseProducts } from './ProductCards';
+import { ProductList, ShowcaseProducts, type ShowcaseView } from './ProductCards';
 import { useCustomCss } from './customCss';
 import { copy } from './copy';
 import { MarkdownMessage } from './MarkdownMessage';
@@ -166,6 +166,7 @@ function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [appearance, setAppearance] = useState<Appearance>(() => appearanceOf(undefined));
   const [preview, setPreview] = useState<Config | null>(null);
+  const [previewView, setPreviewView] = useState<ShowcaseView>('cards');
   useCustomCss(appearance.customCss);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [error, setError] = useState(false); const [nonce, setNonce] = useState(0);
@@ -177,6 +178,7 @@ function App() {
       // Vista previa de las tarjetas que pide el admin, con la config y la apariencia del borrador
       if (event.data?.type === 'gp-shopper:showcase-products' && validConfig(event.data.config)) {
         setPreview(event.data.config); setAppearance(appearanceOf(event.data.appearance));
+        setPreviewView(event.data.view === 'confirm' ? 'confirm' : 'cards');
         return;
       }
       // Resultado de una acción en la tienda que el chat le pidió al SDK
@@ -215,7 +217,7 @@ function App() {
     return () => { active = false; };
   }, [session?.token, session?.sessionKey, nonce]);
   const t = copy[session?.config.language || 'es'];
-  if (preview) return <ShowcaseProducts config={preview} appearance={appearance} />;
+  if (preview) return <ShowcaseProducts config={preview} appearance={appearance} view={previewView} />;
   if (!session || !conversation || error) return <div className={error ? 'connection is-error' : 'connection'} role={error ? 'alert' : 'status'}><div className="connection-mark" aria-hidden="true" /><p className="connection-text">{error ? t.unavailable : session ? t.connect : t.waiting}</p>{error && <button onClick={() => setNonce(n => n + 1)}>{t.recover}</button>}</div>;
   return <Chat key={conversation.id} session={{ ...session, config: conversation.config }} conversation={conversation} appearance={appearance} restart={() => { setConversation(null); setNonce(n => n + 1); }} />;
 }

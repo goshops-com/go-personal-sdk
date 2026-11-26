@@ -7,7 +7,7 @@ export type ActionState = { status: 'confirm' | 'waiting' | 'running' | 'done' |
 type Texts = (typeof copy)['es'];
 type Confirm = CartAppearance['confirm'];
 // Confirmación con los textos del chat, para cuando la tienda no configuró los propios.
-const DEFAULT_CONFIRM: Confirm = { question: '', confirmLabel: '', cancelLabel: '', background: '', color: '' };
+const DEFAULT_CONFIRM: Confirm = { question: '', confirmLabel: '', cancelLabel: '', successLabel: '', background: '', color: '' };
 
 // Devuelve el texto del error con que respondió la tienda al agregar al carrito.
 export function cartError(t: Texts, result?: ActionResult): string {
@@ -29,7 +29,7 @@ function CartStatus({ request, state, t, confirm, onConfirm, onCancel }: { reque
     case 'running':
       return <p role="status" className="gps-action-status">{t.adding}</p>;
     case 'done':
-      return <p role="status" className="gps-action-status">{t.added} <span aria-hidden="true">✓</span></p>;
+      return <p role="status" className="gps-action-status">{confirm.successLabel || t.added} <span aria-hidden="true">✓</span></p>;
     case 'failed':
       return <p role="alert" className="store-action-error gps-action-error">{cartError(t, state.result)}{state.result?.error === 'variant_required' && <> <a className="gps-action-link" href={request.product!.url} target="_top">{t.product}</a></>}</p>;
     case 'cancelled':
