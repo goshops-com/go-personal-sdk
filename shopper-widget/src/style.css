@@ -155,3 +155,19 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .product.radius-none a.is-button { border-radius: 0; }
 .product.radius-soft a.is-button { border-radius: 6px; }
 }
+/* Agregar al carrito en la tarjeta: por encima del link que cubre la tarjeta. */
+.product-cart { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding-top: 8px; }
+.gps-card-add { min-height: 32px; padding: 5px 12px; border: 1px solid var(--shopper-rule); border-radius: 999px; background: var(--shopper-paper); color: var(--shopper-brand-ink); font-size: 13px; font-weight: 600; }
+/* Acciones en la tienda que pidió el asistente: carrito con confirmación y navegación. */
+.store-action { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 1px solid var(--shopper-rule); border-radius: 14px; background: var(--shopper-paper); font-size: 13px; line-height: 1.4; }
+.store-action img { flex: none; width: 44px; height: 44px; border-radius: 8px; background: var(--shopper-shelf); object-fit: contain; mix-blend-mode: multiply; }
+.store-action-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.store-action-body strong { overflow: hidden; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.store-action p { margin: 0; color: var(--shopper-muted); }
+.store-action a { color: var(--shopper-brand-ink); font-weight: 600; text-decoration: none; }
+.store-action.is-done p { color: var(--shopper-ink); }
+.store-action-error { color: var(--shopper-danger) !important; }
+.store-action-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.store-action-buttons button { min-height: 32px; padding: 5px 12px; border-radius: 999px; background: var(--shopper-brand); color: var(--shopper-on-brand); font-size: 13px; font-weight: 600; }
+.store-action-buttons button.secondary { border: 1px solid var(--shopper-rule); background: var(--shopper-paper); color: var(--shopper-ink); }
+@media (hover: hover) { .gps-card-add:hover, .store-action-buttons button.secondary:hover { background: var(--shopper-shelf); } }

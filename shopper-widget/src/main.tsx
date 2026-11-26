@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
-import { hostOrigin, send, validConfig, validSession, type Config, type Product, type Session } from './bridge';
+import { actionRequestOf, capabilitiesOf, hostOrigin, productEvent, receiveActionResult, requestStoreAction, send, validConfig, validSession, type ActionRequest, type Config, type Product, type Session } from './bridge';
+import { StoreAction, type ActionState } from './StoreAction';
 import { appearanceOf, type Appearance } from './appearance';
 import { Logo } from './Logo';
 import { ProductList, ShowcaseProducts } from './ProductCards';
@@ -11,7 +12,7 @@ import { copy } from './copy';
 import { MarkdownMessage } from './MarkdownMessage';
 import './style.css';
 
-type Message = UIMessage<{ status?: string }, { products: { products: Product[] }; status: { label: string } }>;
+type Message = UIMessage<{ status?: string }, { products: { products: Product[] }; status: { label: string }; action: ActionRequest }>;
 type Conversation = { id: string; messages: Message[]; running?: boolean; config: Config };
 
 async function request(session: Session, path: string, body?: unknown): Promise<Conversation> {
@@ -33,13 +34,75 @@ function Chat({ session, conversation, restart, appearance }: { session: Session
     prepareSendMessagesRequest: ({ messages }) => ({ body: {
       requestId: crypto.randomUUID(), message: messages.slice().reverse().find(m => m.role === 'user'),
       ...(latest.current.context ? { context: latest.current.context } : {}),
+      ...(capabilitiesOf(latest.current).length ? { capabilities: capabilitiesOf(latest.current) } : {}),
     } }),
   }), [session.apiUrl, conversation.id]);
+  // Estado de cada acción en la tienda pedida en esta sesión del chat y la navegación que espera el fin de la respuesta
+  const [actions, setActions] = useState<Record<string, ActionState>>({});
+  const navigation = useRef<ActionRequest | null>(null);
+  const messagesRef = useRef<Message[]>(conversation.messages);
+  const track = (id: string, state: ActionState) => setActions(current => ({ ...current, [id]: state }));
+
+  // Registra un evento de producto en el mensaje que pidió la acción, si se encuentra
+  function actionEvent(request: ActionRequest, type: 'add_to_cart' | 'open_product', messageId?: string) {
+    const owner = messageId || messagesRef.current.find(m => m.parts.some(p => p.type === 'data-action' && p.data.id === request.id))?.id;
+    if (owner && request.product) productEvent(latest.current, { conversationId: conversation.id, messageId: owner, productId: request.product.id, type });
+  }
+
+  // Ejecuta en la tienda una acción del asistente, registra su evento y guarda cómo salió
+  async function runAction(request: ActionRequest, messageId?: string) {
+    track(request.id, { status: 'running' });
+
+    // Abrir un producto se registra antes de pedirlo, porque la página se va
+    if (request.action === 'open_product') actionEvent(request, 'open_product', messageId);
+    const result = await requestStoreAction(request);
+    track(request.id, { status: result.ok ? 'done' : 'failed', result });
+    if (result.ok && request.action === 'add_to_cart') actionEvent(request, 'add_to_cart', messageId);
+  }
+
+  // Recibe una acción del asistente: agrega al carrito ya o pide confirmación, y deja las navegaciones para el final
+  function receiveAction(data: unknown) {
+    const request = actionRequestOf(data);
+    if (!request) return;
+    if (request.action === 'add_to_cart') {
+      if (request.confirm) track(request.id, { status: 'confirm' });
+      else void runAction(request);
+      return;
+    }
+
+    // Solo se navega una vez por respuesta: una navegación nueva reemplaza a la anterior
+    if (navigation.current) track(navigation.current.id, { status: 'cancelled' });
+    navigation.current = request;
+    track(request.id, { status: 'waiting' });
+  }
+
+  // Al terminar la respuesta navega si quedó una pendiente; si se cortó, no
+  function finishTurn({ message, isAbort, isError, isDisconnect }: { message: Message; isAbort: boolean; isError: boolean; isDisconnect: boolean }) {
+    setSearching(false);
+    const pending = navigation.current;
+    navigation.current = null;
+    if (!pending) return;
+    if (isAbort || isError || isDisconnect) track(pending.id, { status: 'cancelled' });
+    else void runAction(pending, message.id);
+  }
+
+  // Agrega al carrito desde una tarjeta y registra el evento en su mensaje
+  const canAddToCart = capabilitiesOf(session).includes('add_to_cart') && !session.preview;
+  const addFromCard = (messageId: string) => async (product: Product) => {
+    const result = await requestStoreAction({ id: `card-${crypto.randomUUID()}`, action: 'add_to_cart', product: { id: product.id, name: product.name, url: product.url, quantity: 1 } });
+    if (result.ok) productEvent(latest.current, { conversationId: conversation.id, messageId, productId: product.id, type: 'add_to_cart' });
+    return result;
+  };
+
   const { messages, setMessages, sendMessage, regenerate, status, error, stop, clearError } = useChat<Message>({
     id: conversation.id, messages: conversation.messages, transport,
-    onData: part => { if (part.type === 'data-status') setSearching(true); },
-    onFinish: () => setSearching(false),
+    onData: part => {
+      if (part.type === 'data-status') setSearching(true);
+      if (part.type === 'data-action') receiveAction(part.data);
+    },
+    onFinish: finishTurn,
   });
+  messagesRef.current = messages;
   const busy = status === 'submitted' || status === 'streaming';
   const stopRef = useRef(stop); stopRef.current = stop;
   useEffect(() => () => { void stopRef.current(); }, []);
@@ -71,10 +134,15 @@ function Chat({ session, conversation, restart, appearance }: { session: Session
       {session.canClose && <button className="icon-button" title={t.close} aria-label={t.close} onClick={() => send('close')}><span aria-hidden="true">×</span></button>}</header>
     <section className="conversation" aria-label={session.config.name}>
       {messages.length === 0 && <div className="welcome"><h2>{session.config.welcome}</h2>{session.config.suggestions.length > 0 && <div className="suggestions" role="group" aria-labelledby="start"><span className="eyebrow" id="start">{t.start}</span>{session.config.suggestions.map(s => <button key={s} onClick={() => void submit(s)}>{s}<span aria-hidden="true">→</span></button>)}</div>}</div>}
-      {messages.filter(m => m.role !== 'assistant' || m.parts.some(p => p.type === 'text' && p.text.trim() || p.type === 'data-products' && p.data.products.length)).map(message => <div key={message.id} className={`message ${message.role} gps-message-${message.role}`}>
+      {messages.filter(m => m.role !== 'assistant' || m.parts.some(p => p.type === 'text' && p.text.trim() || p.type === 'data-products' && p.data.products.length || p.type === 'data-action')).map(message => <div key={message.id} className={`message ${message.role} gps-message-${message.role}`}>
         {message.parts.map((part, index) => {
           if (part.type === 'text') return message.role === 'assistant' ? <MarkdownMessage key={index} text={part.text} /> : <p key={index} className="message-text">{part.text}</p>;
-          if (part.type === 'data-products' && part.data.products.length) return <ProductList key={index} products={part.data.products} session={session} conversationId={conversation.id} messageId={message.id} cards={appearance.cards} />;
+          if (part.type === 'data-products' && part.data.products.length) return <ProductList key={index} products={part.data.products} session={session} conversationId={conversation.id} messageId={message.id} cards={appearance.cards} onAddToCart={canAddToCart ? addFromCard(message.id) : undefined} />;
+          if (part.type === 'data-action') {
+            const request = actionRequestOf(part.data);
+            return request && <StoreAction key={index} request={request} state={actions[request.id]} t={t}
+              onConfirm={() => void runAction(request, message.id)} onCancel={() => track(request.id, { status: 'cancelled' })} />;
+          }
           return null;
         })}
         {message.metadata?.status && message.metadata.status !== 'completed' && <small className="interrupted">{message.metadata.status === 'failed' ? t.failed : t.interrupted}</small>}
@@ -111,6 +179,8 @@ function App() {
         setPreview(event.data.config); setAppearance(appearanceOf(event.data.appearance));
         return;
       }
+      // Resultado de una acción en la tienda que el chat le pidió al SDK
+      if (event.data?.type === 'gp-shopper:action-result') { receiveActionResult(event.data); return; }
       // Apariencia nueva sin recargar la conversación: el admin la manda en vivo mientras se edita
       if (event.data?.type === 'gp-shopper:appearance') { setAppearance(appearanceOf(event.data.appearance)); return; }
       if (event.data?.type === 'gp-shopper:initialize' && validSession(event.data.session)) {
