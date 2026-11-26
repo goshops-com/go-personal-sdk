@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
-import { actionRequestOf, capabilitiesOf, hostOrigin, productEvent, receiveActionResult, requestStoreAction, send, validConfig, validSession, type ActionRequest, type Config, type Product, type Session } from './bridge';
+import { actionRequestOf, assistantActionsOf, capabilitiesOf, hostOrigin, productEvent, receiveActionResult, requestStoreAction, send, validConfig, validSession, type ActionRequest, type Config, type Product, type Session } from './bridge';
 import { StoreAction, type ActionState } from './StoreAction';
-import { appearanceOf, type Appearance } from './appearance';
+import { appearanceOf, cartColors, type Appearance } from './appearance';
 import { Logo } from './Logo';
 import { ProductList, ShowcaseProducts } from './ProductCards';
 import { useCustomCss } from './customCss';
@@ -34,7 +34,7 @@ function Chat({ session, conversation, restart, appearance }: { session: Session
     prepareSendMessagesRequest: ({ messages }) => ({ body: {
       requestId: crypto.randomUUID(), message: messages.slice().reverse().find(m => m.role === 'user'),
       ...(latest.current.context ? { context: latest.current.context } : {}),
-      ...(capabilitiesOf(latest.current).length ? { capabilities: capabilitiesOf(latest.current) } : {}),
+      ...(assistantActionsOf(latest.current).length ? { capabilities: assistantActionsOf(latest.current) } : {}),
     } }),
   }), [session.apiUrl, conversation.id]);
   // Estado de cada acción en la tienda pedida en esta sesión del chat y la navegación que espera el fin de la respuesta
@@ -86,10 +86,10 @@ function Chat({ session, conversation, restart, appearance }: { session: Session
     else void runAction(pending, message.id);
   }
 
-  // Agrega al carrito desde una tarjeta y registra el evento en su mensaje
-  const canAddToCart = capabilitiesOf(session).includes('add_to_cart') && !session.preview;
+  // Agrega al carrito desde el botón de una tarjeta, si está prendido y el sitio puede, y registra el evento en su mensaje
+  const canAddToCart = capabilitiesOf(session).includes('card_add_to_cart') && !session.preview;
   const addFromCard = (messageId: string) => async (product: Product) => {
-    const result = await requestStoreAction({ id: `card-${crypto.randomUUID()}`, action: 'add_to_cart', product: { id: product.id, name: product.name, url: product.url, quantity: 1 } });
+    const result = await requestStoreAction({ id: `card-${crypto.randomUUID()}`, action: 'card_add_to_cart', product: { id: product.id, name: product.name, url: product.url, quantity: 1 } });
     if (result.ok) productEvent(latest.current, { conversationId: conversation.id, messageId, productId: product.id, type: 'add_to_cart' });
     return result;
   };
@@ -128,7 +128,7 @@ function Chat({ session, conversation, restart, appearance }: { session: Session
     setInput(''); setSearching(false); setNotice('');
     await sendMessage({ text: text.trim() });
   };
-  return <main className="shopper gps-chat" lang={session.config.language} style={{ '--shopper-brand': session.config.color } as React.CSSProperties}>
+  return <main className="shopper gps-chat" lang={session.config.language} style={{ '--shopper-brand': session.config.color, ...cartColors(appearance.cart) } as React.CSSProperties}>
     <header className="chat-header gps-header"><Logo name={session.config.name} logo={appearance.logo} /><div className="chat-title"><h1>{session.config.name}</h1><span className="header-caption">{session.preview && <span className="preview-tag">Preview</span>}Personal Shopper</span></div>
       <button className="icon-button" title={t.newChat} aria-label={t.newChat} onClick={() => { stop(); restart(); }} disabled={busy}><span aria-hidden="true">↻</span></button>
       {session.canClose && <button className="icon-button" title={t.close} aria-label={t.close} onClick={() => send('close')}><span aria-hidden="true">×</span></button>}</header>
@@ -137,10 +137,10 @@ function Chat({ session, conversation, restart, appearance }: { session: Session
       {messages.filter(m => m.role !== 'assistant' || m.parts.some(p => p.type === 'text' && p.text.trim() || p.type === 'data-products' && p.data.products.length || p.type === 'data-action')).map(message => <div key={message.id} className={`message ${message.role} gps-message-${message.role}`}>
         {message.parts.map((part, index) => {
           if (part.type === 'text') return message.role === 'assistant' ? <MarkdownMessage key={index} text={part.text} /> : <p key={index} className="message-text">{part.text}</p>;
-          if (part.type === 'data-products' && part.data.products.length) return <ProductList key={index} products={part.data.products} session={session} conversationId={conversation.id} messageId={message.id} cards={appearance.cards} onAddToCart={canAddToCart ? addFromCard(message.id) : undefined} />;
+          if (part.type === 'data-products' && part.data.products.length) return <ProductList key={index} products={part.data.products} session={session} conversationId={conversation.id} messageId={message.id} cards={appearance.cards} cartButton={appearance.cart.card} onAddToCart={canAddToCart ? addFromCard(message.id) : undefined} />;
           if (part.type === 'data-action') {
             const request = actionRequestOf(part.data);
-            return request && <StoreAction key={index} request={request} state={actions[request.id]} t={t}
+            return request && <StoreAction key={index} request={request} state={actions[request.id]} t={t} confirm={appearance.cart.confirm}
               onConfirm={() => void runAction(request, message.id)} onCancel={() => track(request.id, { status: 'cancelled' })} />;
           }
           return null;

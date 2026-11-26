@@ -1,9 +1,13 @@
 // Acciones en la tienda dentro del chat: agregar al carrito (con confirmación opcional) y abrir productos o páginas.
 import type { ActionRequest, ActionResult } from './bridge';
+import type { CartAppearance } from './appearance';
 import type { copy } from './copy';
 
 export type ActionState = { status: 'confirm' | 'waiting' | 'running' | 'done' | 'failed' | 'cancelled'; result?: ActionResult };
 type Texts = (typeof copy)['es'];
+type Confirm = CartAppearance['confirm'];
+// Confirmación con los textos del chat, para cuando la tienda no configuró los propios.
+const DEFAULT_CONFIRM: Confirm = { question: '', confirmLabel: '', cancelLabel: '', background: '', color: '' };
 
 // Devuelve el texto del error con que respondió la tienda al agregar al carrito.
 export function cartError(t: Texts, result?: ActionResult): string {
@@ -17,11 +21,11 @@ export function cartError(t: Texts, result?: ActionResult): string {
 }
 
 // Estado de agregar al carrito: confirmación, en curso, agregado o el error.
-function CartStatus({ request, state, t, onConfirm, onCancel }: { request: ActionRequest; state?: ActionState; t: Texts; onConfirm: () => void; onCancel: () => void }) {
+function CartStatus({ request, state, t, confirm, onConfirm, onCancel }: { request: ActionRequest; state?: ActionState; t: Texts; confirm: Confirm; onConfirm: () => void; onCancel: () => void }) {
   switch (state?.status) {
     case 'confirm':
-      return <div className="store-action-confirm gps-action-question"><p className="gps-action-question-text">{t.confirmAdd}</p>
-        <div className="store-action-buttons gps-action-buttons"><button type="button" className="gps-action-confirm" onClick={onConfirm}>{t.addToCart}</button><button type="button" className="secondary gps-action-cancel" onClick={onCancel}>{t.cancel}</button></div></div>;
+      return <div className="store-action-confirm gps-action-question"><p className="gps-action-question-text">{confirm.question || t.confirmAdd}</p>
+        <div className="store-action-buttons gps-action-buttons"><button type="button" className="gps-action-confirm" onClick={onConfirm}>{confirm.confirmLabel || t.addToCart}</button><button type="button" className="secondary gps-action-cancel" onClick={onCancel}>{confirm.cancelLabel || t.cancel}</button></div></div>;
     case 'running':
       return <p role="status" className="gps-action-status">{t.adding}</p>;
     case 'done':
@@ -36,7 +40,7 @@ function CartStatus({ request, state, t, onConfirm, onCancel }: { request: Actio
 }
 
 // Acción que pidió el asistente; sin estado (una respuesta del historial) muestra solo a qué apunta.
-export function StoreAction({ request, state, t, onConfirm, onCancel }: { request: ActionRequest; state?: ActionState; t: Texts; onConfirm: () => void; onCancel: () => void }) {
+export function StoreAction({ request, state, t, confirm = DEFAULT_CONFIRM, onConfirm, onCancel }: { request: ActionRequest; state?: ActionState; t: Texts; confirm?: Confirm; onConfirm: () => void; onCancel: () => void }) {
   const status = state?.status || 'past';
   // Atributos para apuntar desde el CSS propio a una acción, un estado o un producto puntual
   const data = { 'data-gps-action': request.action, 'data-gps-status': status, ...(request.product ? { 'data-gps-product': request.product.id } : {}) };
@@ -48,7 +52,7 @@ export function StoreAction({ request, state, t, onConfirm, onCancel }: { reques
     return <div className={`store-action gps-action gps-action-cart is-${status}`} {...data}>
       {product.image && <img className="gps-action-image" src={product.image} alt="" />}
       <div className="store-action-body gps-action-body"><strong className="gps-action-name">{product.name}{quantity > 1 ? ` × ${quantity}` : ''}</strong>
-        <CartStatus request={request} state={state} t={t} onConfirm={onConfirm} onCancel={onCancel} /></div>
+        <CartStatus request={request} state={state} t={t} confirm={confirm} onConfirm={onConfirm} onCancel={onCancel} /></div>
     </div>;
   }
 

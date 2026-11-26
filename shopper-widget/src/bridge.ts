@@ -2,8 +2,10 @@ export type Product = { id: string; name: string; price: number | null; currency
 export type Config = { name: string; welcome: string; color: string; suggestions: string[]; language: 'es' | 'en' | 'pt'; currency: string };
 export type Session = { token: string; apiUrl: string; config: Config; sessionKey?: string; conversationId?: string; preview?: boolean; canClose?: boolean; appearance?: unknown; capabilities?: unknown; context?: { productId?: string; pageType?: 'home' | 'product' | 'search' | 'other' } };
 export type StoreActionName = 'add_to_cart' | 'open_product' | 'open_page';
+// Capacidades que anuncia el SDK: las acciones del asistente y el botón de carrito de las tarjetas.
+export type Capability = StoreActionName | 'card_add_to_cart';
 export type ActionProduct = { id: string; name: string; url: string; image?: string | null; quantity?: number };
-export type ActionRequest = { id: string; action: StoreActionName; confirm?: boolean; product?: ActionProduct; page?: { label: string; url: string } };
+export type ActionRequest = { id: string; action: StoreActionName | 'card_add_to_cart'; confirm?: boolean; product?: ActionProduct; page?: { label: string; url: string } };
 export type ActionResult = { ok: boolean; error?: string; message?: string };
 export type ProductEvent = 'product_view' | 'product_click' | 'add_to_cart' | 'open_product';
 export const hostOrigin = new URLSearchParams(location.search).get('hostOrigin');
@@ -29,19 +31,25 @@ export function validConfig(value: unknown): value is Config {
 }
 
 const STORE_ACTIONS: StoreActionName[] = ['add_to_cart', 'open_product', 'open_page'];
+const CAPABILITIES: Capability[] = ['add_to_cart', 'card_add_to_cart', 'open_product', 'open_page'];
 const ACTION_TIMEOUT_MS = 20000;
 const waiting = new Map<string, (result: ActionResult) => void>();
 
-// Devuelve las acciones conocidas que el SDK dice que este sitio puede ejecutar.
-export function capabilitiesOf(session: Session): StoreActionName[] {
-  return Array.isArray(session.capabilities) ? STORE_ACTIONS.filter(action => (session.capabilities as unknown[]).includes(action)) : [];
+// Devuelve las capacidades conocidas que el SDK dice que este sitio puede ejecutar.
+export function capabilitiesOf(session: Session): Capability[] {
+  return Array.isArray(session.capabilities) ? CAPABILITIES.filter(action => (session.capabilities as unknown[]).includes(action)) : [];
+}
+
+// Devuelve solo las acciones del asistente, que son las que se le informan al backend del chat.
+export function assistantActionsOf(session: Session): StoreActionName[] {
+  return capabilitiesOf(session).filter((action): action is StoreActionName => action !== 'card_add_to_cart');
 }
 
 // Valida una acción en la tienda que mandó el backend; devuelve null si no tiene la forma esperada.
 export function actionRequestOf(value: unknown): ActionRequest | null {
   if (!value || typeof value !== 'object') return null;
   const request = value as ActionRequest;
-  if (typeof request.id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(request.id) || !STORE_ACTIONS.includes(request.action)) return null;
+  if (typeof request.id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(request.id) || !STORE_ACTIONS.includes(request.action as StoreActionName)) return null;
   if (request.action === 'open_page') return request.page && typeof request.page.url === 'string' && typeof request.page.label === 'string' ? request : null;
   return request.product && typeof request.product.id === 'string' && typeof request.product.url === 'string' && typeof request.product.name === 'string' ? request : null;
 }

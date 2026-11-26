@@ -6,7 +6,7 @@ require('./load.cjs');
 const assert = require('node:assert/strict');
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
-const { capabilitiesOf, actionRequestOf, requestStoreAction, receiveActionResult, productEvent } = require('../src/bridge.ts');
+const { capabilitiesOf, assistantActionsOf, actionRequestOf, requestStoreAction, receiveActionResult, productEvent } = require('../src/bridge.ts');
 const { StoreAction, cartError } = require('../src/StoreAction.tsx');
 const { ProductCard } = require('../src/ProductCards.tsx');
 const { DEFAULT_CARDS } = require('../src/appearance.ts');
@@ -24,6 +24,13 @@ const render = (request, state) => renderToStaticMarkup(React.createElement(Stor
   assert.deepEqual(capabilitiesOf({ ...session, capabilities: ['open_page', 'checkout', 'add_to_cart'] }), ['add_to_cart', 'open_page']);
   assert.deepEqual(capabilitiesOf({ ...session, capabilities: 'add_to_cart' }), []);
   assert.deepEqual(capabilitiesOf(session), []);
+
+  // El botón de la tarjeta es una capacidad aparte, que no se le informa al backend del asistente
+  const both = { ...session, capabilities: ['card_add_to_cart', 'add_to_cart', 'open_page'] };
+  assert.deepEqual(capabilitiesOf(both), ['add_to_cart', 'card_add_to_cart', 'open_page']);
+  assert.deepEqual(assistantActionsOf(both), ['add_to_cart', 'open_page']);
+  assert.deepEqual(assistantActionsOf({ ...session, capabilities: ['card_add_to_cart'] }), []);
+  assert.equal(actionRequestOf({ id: 'a1', action: 'card_add_to_cart', product: { id: 'p1', name: 'x', url: 'https://shop.test/p1' } }), null, 'el backend no puede pedir la acción de la tarjeta');
 
   // Una acción del backend necesita id, acción conocida y el producto o la página con su URL
   const cart = { id: 'action-1', action: 'add_to_cart', confirm: false, product };
@@ -81,6 +88,9 @@ const render = (request, state) => renderToStaticMarkup(React.createElement(Stor
 
   // Agregar al carrito: producto con cantidad y el estado de cada paso
   assert.match(render(cart, { status: 'confirm' }), /Campera × 2<\/strong>.*¿Lo agregamos al carrito\?.*>Agregar al carrito<\/button>.*>No, gracias<\/button>/);
+  const custom = renderToStaticMarkup(React.createElement(StoreAction, { request: cart, state: { status: 'confirm' }, t, onConfirm: noop, onCancel: noop,
+    confirm: { question: '¿Lo sumamos?', confirmLabel: 'Sí, sumar', cancelLabel: '', background: '', color: '' } }));
+  assert.match(custom, /¿Lo sumamos\?.*>Sí, sumar<\/button>.*>No, gracias<\/button>/, 'textos propios y los del chat donde quedaron vacíos');
   assert.match(render(cart, { status: 'running' }), /role="status" class="gps-action-status">Agregando…/);
   assert.match(render(cart, { status: 'done', result: { ok: true } }), /role="status" class="gps-action-status">Agregado al carrito <span aria-hidden="true">✓<\/span><\/p>/);
   assert.match(render(cart, { status: 'failed', result: { ok: false, error: 'variant_required' } }), /Elegí talle o color.*<a class="gps-action-link" href="https:\/\/shop.test\/p1" target="_top">Ver producto<\/a>/);
@@ -102,6 +112,7 @@ const render = (request, state) => renderToStaticMarkup(React.createElement(Stor
   // La tarjeta muestra "Agregar al carrito" solo si el chat puede agregar
   const card = (props) => renderToStaticMarkup(React.createElement(ProductCard, { product: { ...product, brand: '', price: 1, currency: 'CLP', description: '' }, session, conversationId: 'c', messageId: 'm', cards: DEFAULT_CARDS, ...props }));
   assert.match(card({ onAddToCart: async () => ({ ok: true }) }), /<div class="product-cart gps-card-cart is-idle" data-gps-status="idle"><button type="button" class="gps-card-add">Agregar al carrito<\/button><\/div>/);
+  assert.match(card({ onAddToCart: async () => ({ ok: true }), cartButton: { show: true, label: 'Sumar', background: '', color: '' } }), /class="gps-card-add">Sumar<\/button>/);
   assert.doesNotMatch(card({}), /gps-card-add/);
 
   console.log('Actions: all assertions passed');

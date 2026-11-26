@@ -2,15 +2,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { productEvent, send, type ActionResult, type Config, type Product, type Session } from './bridge';
 import { cartError, type ActionState } from './StoreAction';
-import type { Appearance, Cards } from './appearance';
+import { cartColors, type Appearance, type CartAppearance, type Cards } from './appearance';
 import { copy } from './copy';
 import { showcaseProducts } from './showcaseProducts';
 
 type AddToCart = (product: Product) => Promise<ActionResult>;
-type ListProps = { products: Product[]; session: Session; conversationId: string; messageId: string; cards: Cards; demo?: boolean; onAddToCart?: AddToCart };
+type CartButton = CartAppearance['card'];
+type ListProps = { products: Product[]; session: Session; conversationId: string; messageId: string; cards: Cards; demo?: boolean; cartButton?: CartButton; onAddToCart?: AddToCart };
 
-// Tarjeta de un producto recomendado; en la vista previa (`demo`) no navega ni mide eventos.
-export function ProductCard({ product, session, conversationId, messageId, cards, demo = false, onAddToCart }: { product: Product; session: Session; conversationId: string; messageId: string; cards: Cards; demo?: boolean; onAddToCart?: AddToCart }) {
+// Tarjeta de un producto recomendado: toda la tarjeta abre el producto; en la vista previa (`demo`) no navega ni mide eventos.
+export function ProductCard({ product, session, conversationId, messageId, cards, demo = false, cartButton, onAddToCart }: { product: Product; session: Session; conversationId: string; messageId: string; cards: Cards; demo?: boolean; cartButton?: CartButton; onAddToCart?: AddToCart }) {
   const ref = useRef<HTMLElement>(null);
   const t = copy[session.config.language] || copy.es;
   const [cart, setCart] = useState<ActionState | undefined>(undefined);
@@ -41,31 +42,33 @@ export function ProductCard({ product, session, conversationId, messageId, cards
     try { price = product.currency ? new Intl.NumberFormat(session.config.language, { style: 'currency', currency: product.currency }).format(product.price) : new Intl.NumberFormat(session.config.language).format(product.price); }
     catch { price = String(product.price); }
   }
-  const button = cards.ctaStyle === 'button';
   return <article className={`product gps-card is-${cards.layout} fit-${cards.imageFit} radius-${cards.radius}`} data-gps-product={product.id} ref={ref}>
     <div className="product-image gps-card-image">{product.image ? <img src={product.image} alt="" loading="lazy" /> : <span aria-hidden="true">◇</span>}</div>
-    <div className="product-details">{cards.showBrand && product.brand && <span className="brand gps-card-brand">{product.brand}</span>}<h3 className="gps-card-name">{product.name}</h3>
-      <div className="product-foot">{cards.showPrice && <strong className={product.price === null ? 'price price-unknown gps-card-price' : 'price gps-card-price'}>{price}</strong>}
-        <a className={button ? 'gps-card-cta is-button' : 'gps-card-cta'} href={product.url} target="_blank" rel="noopener noreferrer" onClick={e => { if (demo) { e.preventDefault(); return; } event('product_click'); }}>{cards.ctaLabel || t.product}{!button && <> <span aria-hidden="true">↗</span></>}</a></div>
+    <div className="product-details">{cards.showBrand && product.brand && <span className="brand gps-card-brand">{product.brand}</span>}<h3 className="gps-card-name"><a className="gps-card-link" href={product.url} target="_blank" rel="noopener noreferrer" onClick={e => { if (demo) { e.preventDefault(); return; } event('product_click'); }}>{product.name}</a></h3>
+      {cards.showPrice && <div className="product-foot"><strong className={product.price === null ? 'price price-unknown gps-card-price' : 'price gps-card-price'}>{price}</strong></div>}
       {onAddToCart && <div className={`product-cart gps-card-cart is-${cart?.status || 'idle'}`} data-gps-status={cart?.status || 'idle'}>
-        <button type="button" className="gps-card-add" onClick={() => void addToCart()} disabled={cart?.status === 'running'}>{cart?.status === 'running' ? t.adding : cart?.status === 'done' ? <>{t.added} <span aria-hidden="true">✓</span></> : t.addToCart}</button>
+        <button type="button" className="gps-card-add" onClick={() => void addToCart()} disabled={cart?.status === 'running'}>{cart?.status === 'running' ? t.adding : cart?.status === 'done' ? <>{t.added} <span aria-hidden="true">✓</span></> : cartButton?.label || t.addToCart}</button>
         {cart?.status === 'failed' && <small role="alert" className="store-action-error gps-card-cart-error">{cartError(t, cart.result)}</small>}
       </div>}</div>
   </article>;
 }
 
 // Productos de una respuesta, en lista, grilla o carrusel según la config.
-export function ProductList({ products, session, conversationId, messageId, cards, demo = false, onAddToCart }: ListProps) {
+export function ProductList({ products, session, conversationId, messageId, cards, demo = false, cartButton, onAddToCart }: ListProps) {
   return <div className={`products gps-products is-${cards.display}`}>
-    {products.map(p => <ProductCard key={p.id} product={p} session={session} conversationId={conversationId} messageId={messageId} cards={cards} demo={demo} onAddToCart={onAddToCart} />)}
+    {products.map(p => <ProductCard key={p.id} product={p} session={session} conversationId={conversationId} messageId={messageId} cards={cards} demo={demo} cartButton={cartButton} onAddToCart={onAddToCart} />)}
   </div>;
 }
 
-// Vista previa de las tarjetas para el admin: solo las tarjetas con productos de ejemplo, sin requests.
+// Agregar al carrito de la vista previa: no llama a la tienda, solo muestra el estado de agregado.
+const demoAdd: AddToCart = async () => ({ ok: true });
+
+// Vista previa de las tarjetas para el admin: solo las tarjetas con productos de ejemplo, sin requests; el botón de carrito se ve si está prendido.
 export function ShowcaseProducts({ config, appearance }: { config: Config; appearance: Appearance }) {
   const products = showcaseProducts(config.language, config.currency);
   const session: Session = { token: '', apiUrl: '', config, preview: true };
-  return <main className="shopper gps-chat showcase-products" lang={config.language} style={{ '--shopper-brand': config.color } as React.CSSProperties}>
-    <ProductList products={products} session={session} conversationId="showcase-products" messageId="showcase-products" cards={appearance.cards} demo />
+  return <main className="shopper gps-chat showcase-products" lang={config.language} style={{ '--shopper-brand': config.color, ...cartColors(appearance.cart) } as React.CSSProperties}>
+    <ProductList products={products} session={session} conversationId="showcase-products" messageId="showcase-products" cards={appearance.cards} demo
+      cartButton={appearance.cart.card} onAddToCart={appearance.cart.card.show ? demoAdd : undefined} />
   </main>;
 }
