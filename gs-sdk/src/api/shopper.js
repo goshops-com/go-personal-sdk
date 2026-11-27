@@ -32,6 +32,8 @@ export function mountShopper({ widgetUrl, container = null, context = {}, cart =
   }
   const iframe = document.createElement('iframe');
   iframe.title = 'Personal Shopper'; iframe.style.cssText = 'display:block;width:100%;height:100%;border:0;background:white;';
+  // Permite que el chat use el micrófono para las preguntas por voz
+  iframe.allow = 'microphone';
   const error = document.createElement('p'); error.setAttribute('role', 'alert'); error.hidden = true;
   error.style.cssText = 'padding:20px;font:14px/1.6 system-ui;color:#9c3737;';
   let bootstrap = null; let expiresAt = 0; let refreshing = null; let ready = false; let destroyed = false; let renewal;
@@ -52,6 +54,13 @@ export function mountShopper({ widgetUrl, container = null, context = {}, cart =
   launcher.setAttribute('aria-expanded', 'false');
   if (!embedded) panel.style.cssText = 'position:fixed;right:16px;bottom:80px;width:min(420px,calc(100vw - 32px));height:min(680px,calc(100dvh - 112px));z-index:2147483001;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px #0002;border:1px solid #e9e7ed;background:white;';
   else panel.style.cssText = 'position:relative;width:100%;height:100%;min-height:480px;';
+  // Tamaño del panel flotante: normal o agrandado, siempre dentro de la pantalla
+  const PANEL_SIZES = {
+    normal: { width: 'min(420px,calc(100vw - 32px))', height: 'min(680px,calc(100dvh - 112px))' },
+    expanded: { width: 'min(760px,calc(100vw - 32px))', height: 'min(880px,calc(100dvh - 112px))' },
+  };
+  // Pantallas desde las que tiene sentido agrandar el chat
+  const EXPAND_MIN_WIDTH = 900;
   panel.style.boxSizing = 'border-box';
   visible(panel, embedded); visible(error, false); visible(iframe, false);
   panel.appendChild(error); panel.appendChild(iframe);
@@ -77,6 +86,7 @@ export function mountShopper({ widgetUrl, container = null, context = {}, cart =
       token: bootstrap.token, apiUrl: `${getApiBaseURL()}/shopper/v1`, config: bootstrap.config,
       sessionKey: ownerKey,
       canClose: !embedded,
+      canExpand: !embedded && window.innerWidth >= EXPAND_MIN_WIDTH,
       ...(style ? { appearance: style } : {}),
       ...(actions.length ? { capabilities: actions } : {}),
       ...(provider ? { provider } : {}),
@@ -114,6 +124,13 @@ export function mountShopper({ widgetUrl, container = null, context = {}, cart =
     await connect();
     if (ready) iframe.focus();
   }
+  // Agranda o vuelve al tamaño normal el panel flotante; el embebido mide lo que define la tienda
+  function resize(expanded) {
+    if (embedded) return;
+    const size = expanded ? PANEL_SIZES.expanded : PANEL_SIZES.normal;
+    panel.style.width = size.width;
+    panel.style.height = size.height;
+  }
   function hide() { visible(panel, false); launcher.setAttribute('aria-expanded', 'false'); launcher.focus(); }
   function receive(event) {
     if (event.origin !== url.origin || event.source !== iframe.contentWindow || !event.data || destroyed) return;
@@ -121,6 +138,7 @@ export function mountShopper({ widgetUrl, container = null, context = {}, cart =
       case 'gp-shopper:ready': ready = true; post(); break;
       case 'gp-shopper:refresh': void connect(true); break;
       case 'gp-shopper:close': if (!embedded) hide(); break;
+      case 'gp-shopper:resize': resize(event.data.expanded === true); break;
       case 'gp-shopper:conversation':
         if (/^[a-zA-Z0-9_-]{1,100}$/.test(event.data.id || '')) {
           conversationId = event.data.id;

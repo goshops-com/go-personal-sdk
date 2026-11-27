@@ -7,12 +7,16 @@ const filename = path.join(__dirname, '../src/appearance.ts');
 const compiled = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 const mod = { exports: {} };
 new Function('module', 'exports', compiled)(mod, mod.exports);
-const { appearanceOf, safeCss, cartColors, DEFAULT_CARDS } = mod.exports;
+const { appearanceOf, safeCss, cartColors, composerColors, DEFAULT_CARDS } = mod.exports;
 
 // Una config sin apariencia, o con una forma que no se reconoce, se ve como hoy
 const DEFAULT_LOGO = { kind: 'initial', image: '', background: '', color: '' };
 const DEFAULT_CART = { card: { show: false, icon: 'cart', label: '', successLabel: '', background: '', color: '' }, confirm: { question: '', confirmLabel: '', cancelLabel: '', successLabel: '', background: '', color: '' } };
-for (const value of [undefined, null, 'x', {}, { cards: 'x', header: 'x', cart: 'x' }]) assert.deepEqual(appearanceOf(value), { cards: DEFAULT_CARDS, logo: DEFAULT_LOGO, cart: DEFAULT_CART, customCss: '' });
+const DEFAULT_HEADER = { subtitle: '', showSubtitle: true };
+const DEFAULT_COMPOSER = { shape: 'rounded', send: 'both', sendIcon: 'arrow', sendBackground: '', sendColor: '', placeholder: '', voice: false };
+for (const value of [undefined, null, 'x', {}, { cards: 'x', header: 'x', cart: 'x', composer: 'x' }]) {
+  assert.deepEqual(appearanceOf(value), { cards: DEFAULT_CARDS, logo: DEFAULT_LOGO, header: DEFAULT_HEADER, cart: DEFAULT_CART, composer: DEFAULT_COMPOSER, customCss: '' });
+}
 
 // El logo usa la imagen solo si es https y conserva solo colores hex
 assert.deepEqual(appearanceOf({ header: { logo: { kind: 'image', image: 'https://a.test/logo.png', background: '#ffffff', color: 'red' } } }).logo,
@@ -38,6 +42,20 @@ assert.equal(appearanceOf({ cart: { card: { show: 'true' } } }).cart.card.show, 
 assert.deepEqual(cartColors(noCart), {});
 assert.deepEqual(cartColors(cart), { '--shopper-cart-bg': '#000000', '--shopper-confirm-ink': '#FFFFFF' });
 assert.deepEqual(cartColors(appearanceOf({ cart: { card: { color: '#111111' }, confirm: { background: '#222222' } } }).cart), { '--shopper-cart-ink': '#111111', '--shopper-confirm-bg': '#222222' });
+
+// Subtítulo, caja de texto y panel: valores válidos campo por campo y textos recortados
+const chat = appearanceOf({
+  header: { subtitle: '  Tu asesor de compras en la montaña y la ciudad  ', showSubtitle: false },
+  composer: { shape: 'pill', send: 'arrow', sendIcon: 'plane', sendBackground: '#111111', sendColor: 'white', placeholder: ' ¿Qué buscás? ', voice: true },
+});
+assert.deepEqual(chat.header, { subtitle: 'Tu asesor de compras en la montaña y la', showSubtitle: false }, 'recortado a 40');
+assert.deepEqual(chat.composer, { shape: 'pill', send: 'both', sendIcon: 'plane', sendBackground: '#111111', sendColor: '', placeholder: '¿Qué buscás?', voice: true });
+assert.equal(appearanceOf({ composer: { sendIcon: 'rocket' } }).composer.sendIcon, 'arrow');
+assert.equal(appearanceOf({ composer: { voice: 'true' } }).composer.voice, false);
+
+// El botón de enviar pasa sus colores propios a variables CSS
+assert.deepEqual(composerColors(DEFAULT_COMPOSER), {});
+assert.deepEqual(composerColors({ ...DEFAULT_COMPOSER, sendBackground: '#111111', sendColor: '#ffffff' }), { '--shopper-send-bg': '#111111', '--shopper-send-ink': '#ffffff' });
 
 // El CSS propio se aplica salvo que cargue recursos externos o escape del texto, igual que en admin-apis
 assert.equal(safeCss('.gps-card { color: red; }'), '.gps-card { color: red; }');
