@@ -41,7 +41,10 @@ export function mountShopper({ widgetUrl, container = null, context = {}, cart =
   // Acciones activadas según la config más nueva: apagar una en el admin corta apenas llega la config fresca
   let skills = {};
   // Quién agrega al carrito en esta tienda (callback propio o plataforma del init) y acciones ya ejecutadas
-  const cartExecutor = resolveCart({ cart, provider: window.gsConfig && window.gsConfig.options && window.gsConfig.options.provider });
+  // Plataforma de la tienda según el init: la usa el carrito y el chat la recibe para leer las variantes
+  const options = (window.gsConfig && window.gsConfig.options) || {};
+  const provider = typeof options.provider === 'string' ? options.provider.trim().slice(0, 40) : '';
+  const cartExecutor = resolveCart({ cart, provider });
   const handledActions = new Set();
   // Si el chat estaba abierto antes de navegar a esta página desde una acción, se vuelve a abrir
   let reopen = consumeReopen();
@@ -76,6 +79,7 @@ export function mountShopper({ widgetUrl, container = null, context = {}, cart =
       canClose: !embedded,
       ...(style ? { appearance: style } : {}),
       ...(actions.length ? { capabilities: actions } : {}),
+      ...(provider ? { provider } : {}),
       ...(conversationId ? { conversationId } : {}), context,
     } }, url.origin);
   }
