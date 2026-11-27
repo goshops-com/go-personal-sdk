@@ -111,7 +111,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .composer textarea:focus-visible { outline: none; }
 .composer textarea::placeholder { color: var(--shopper-muted); opacity: 1; }
 .composer textarea:disabled { opacity: .6; }
-.send { display: inline-flex; align-items: center; justify-content: center; flex: none; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 10px; background: var(--shopper-brand); color: var(--shopper-on-brand); font-size: 13px; font-weight: 600; }
+.send { display: inline-flex; align-items: center; justify-content: center; flex: none; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 10px; background: var(--shopper-send-bg, var(--shopper-brand)); color: var(--shopper-send-ink, var(--shopper-on-brand)); font-size: 13px; font-weight: 600; }
 .send:disabled { background: var(--shopper-rule); color: var(--shopper-muted); opacity: 1; }
 .send.stop { background: var(--shopper-paper); color: var(--shopper-ink); box-shadow: inset 0 0 0 1px var(--shopper-rule); }
 .send.stop::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: currentColor; }
@@ -183,4 +183,15 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .gps-variant-submit { justify-self: start; min-height: 32px; padding: 5px 12px; border-radius: 999px; background: var(--shopper-confirm-bg, var(--shopper-brand)); color: var(--shopper-confirm-ink, var(--shopper-on-brand)); font-size: 13px; font-weight: 600; }
 .gps-action-variant { color: var(--shopper-muted); font-size: 12px; }
 .gps-card-add.is-soldout { color: var(--shopper-faint); }
+/* Caja de texto: forma configurable, botón de enviar con ícono o texto y micrófono para preguntar por voz. */
+.composer-field.is-square { border-radius: 6px; }
+.composer-field.is-square .send, .composer-field.is-square .gps-voice { border-radius: 4px; }
+.composer-field.is-pill { border-radius: 999px; padding-left: 10px; }
+.composer-field.is-pill .send, .composer-field.is-pill .gps-voice { border-radius: 999px; }
+.send.is-icon { width: 40px; padding: 0; }
+.gps-voice { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 10px; background: transparent; color: var(--shopper-muted); }
+.gps-voice.is-listening { background: var(--shopper-tint); color: var(--shopper-brand-ink); animation: breathe 1.2s ease-in-out infinite; }
+.composer-field.is-listening { border-color: var(--shopper-brand-ink); }
+@media (hover: hover) { .gps-voice:not(:disabled):hover { background: var(--shopper-shelf); color: var(--shopper-ink); } }
+@media (prefers-reduced-motion: reduce) { .gps-voice.is-listening { animation: none; } }
 }

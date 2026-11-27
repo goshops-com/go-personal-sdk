@@ -284,6 +284,7 @@ test('the widget is initialized once it says it is ready, and only messages from
         config: { color: 'rgb(1, 2, 3)', name: 'Ana' },
         sessionKey: SESSION_KEY,
         canClose: true,
+        canExpand: true,
         context: { productId: '42', pageType: 'product' },
       },
     },
@@ -588,6 +589,56 @@ test('turning a skill off in the admin stops it on the open page as soon as the 
   const sessions = posts.filter((post) => post.message.type === 'gp-shopper:initialize');
   assert.equal(sessions.length, 2, 'al llegar la config fresca se le vuelve a mandar la sesión');
   assert.equal('capabilities' in sessions[1].message.session, false, 'el chat se entera solo de que ya no puede agregar');
+});
+
+test('the widget iframe may use the microphone for voice questions', async () => {
+  shopperFetch(() => bootstrapResponse());
+  const shopper = mount();
+  await flush();
+  await shopper.open();
+  assert.equal(parts().iframe.allow, 'microphone');
+});
+
+test('the floating chat can be enlarged and restored by the widget on large screens; an embedded one cannot', async () => {
+  window.innerWidth = 1280;
+  shopperFetch(() => bootstrapResponse());
+  const shopper = mount();
+  await flush();
+  await shopper.open();
+  const { panel, iframe } = parts();
+  const posts = spyPosts(iframe);
+  fromWidget(iframe, { type: 'gp-shopper:ready' });
+  assert.equal(posts[0].message.session.canExpand, true);
+
+  fromWidget(iframe, { type: 'gp-shopper:resize', expanded: true });
+  assert.match(panel.style.width, /760px/);
+  assert.match(panel.style.height, /880px/);
+  fromWidget(iframe, { type: 'gp-shopper:resize', expanded: 'yes' });
+  assert.match(panel.style.width, /420px/, 'solo true agranda');
+  assert.match(panel.style.height, /680px/);
+  shopper.destroy();
+
+  window.innerWidth = 600;
+  shopperFetch(() => bootstrapResponse());
+  const small = mount();
+  await flush();
+  await small.open();
+  const smallPosts = spyPosts(parts().iframe);
+  fromWidget(parts().iframe, { type: 'gp-shopper:ready' });
+  assert.equal(smallPosts[0].message.session.canExpand, false, 'en pantallas chicas no se agranda');
+  small.destroy();
+
+  window.innerWidth = 1280;
+  document.body.innerHTML = '<div id="box"></div>';
+  shopperFetch(() => bootstrapResponse());
+  mount({ container: '#box' });
+  await flush();
+  const embedded = parts();
+  const embeddedPosts = spyPosts(embedded.iframe);
+  fromWidget(embedded.iframe, { type: 'gp-shopper:ready' });
+  assert.equal(embeddedPosts[0].message.session.canExpand, false);
+  fromWidget(embedded.iframe, { type: 'gp-shopper:resize', expanded: true });
+  assert.equal(embedded.panel.style.width, '100%', 'el embebido no cambia de tamaño');
 });
 
 test('the chat receives the store platform from the init, so it can read product variants', async () => {

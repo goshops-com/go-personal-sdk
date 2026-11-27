@@ -4,7 +4,9 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
 import { actionRequestOf, assistantActionsOf, capabilitiesOf, providerOf, hostOrigin, productEvent, receiveActionResult, requestStoreAction, send, validConfig, validSession, type ActionRequest, type Config, type Product, type Session, type Variant } from './bridge';
 import { StoreAction, type ActionState } from './StoreAction';
-import { appearanceOf, cartColors, type Appearance } from './appearance';
+import { appearanceOf, cartColors, composerColors, type Appearance } from './appearance';
+import { listen, recognitionLang, speechRecognition } from './voice';
+import { SendIcon } from './SendIcon';
 import { Logo } from './Logo';
 import { ProductList, ShowcaseProducts, type ShowcaseView } from './ProductCards';
 import { useCustomCss } from './customCss';
@@ -136,8 +138,61 @@ function Chat({ session, conversation, restart, appearance }: { session: Session
     setInput(''); setSearching(false); setNotice('');
     await sendMessage({ text: text.trim() });
   };
-  return <main className="shopper gps-chat" lang={session.config.language} style={{ '--shopper-brand': session.config.color, ...cartColors(appearance.cart) } as React.CSSProperties}>
-    <header className="chat-header gps-header"><Logo name={session.config.name} logo={appearance.logo} /><div className="chat-title"><h1>{session.config.name}</h1><span className="header-caption">{session.preview && <span className="preview-tag">Preview</span>}Personal Shopper</span></div>
+
+  // Chat agrandado en la tienda: el SDK cambia el tamaño del panel
+  const [expanded, setExpanded] = useState(false);
+  const canExpand = !!session.canExpand;
+  function toggleSize() {
+    send('resize', { expanded: !expanded });
+    setExpanded(!expanded);
+  }
+
+  // Pregunta por voz: el navegador escucha, corta al terminar la frase y el texto se manda como mensaje
+  const [listening, setListening] = useState(false);
+  const recognition = useRef<{ cancel: () => void } | null>(null);
+  const canSpeak = appearance.composer.voice && !!speechRecognition();
+
+  // Avisa por qué terminó sin texto: permiso negado, nada escuchado u otro error; cancelar no avisa
+  function onVoiceEnd(error?: string) {
+    recognition.current = null;
+    setListening(false);
+    if (!error || error === 'aborted') return;
+    if (error === 'not-allowed' || error === 'service-not-allowed') setNotice(t.voiceDenied);
+    else if (error === 'no-speech') setNotice(t.voiceEmpty);
+    else setNotice(t.voiceFailed);
+  }
+
+  // Empieza a escuchar, o cancela si ya estaba escuchando
+  function toggleVoice() {
+    if (recognition.current) { recognition.current.cancel(); return; }
+    setNotice('');
+    const lang = recognitionLang(session.config.language);
+    recognition.current = listen({ lang, onText: text => void submit(text), onEnd: onVoiceEnd });
+    setListening(true);
+  }
+
+  // Contenido del botón de enviar: texto, ícono o los dos, según la config
+  const sendStyle = appearance.composer.send;
+  const sendLabel = <>
+    {sendStyle !== 'icon' && t.send}
+    {sendStyle !== 'text' && <SendIcon icon={appearance.composer.sendIcon} />}
+  </>;
+  const subtitle = appearance.header.showSubtitle ? appearance.header.subtitle || 'Personal Shopper' : '';
+
+  // Texto de ayuda de la caja: mientras escucha lo avisa
+  const placeholder = listening ? t.listening : appearance.composer.placeholder || t.placeholder;
+  const fieldClass = ['composer-field gps-composer-field', `is-${appearance.composer.shape}`, listening && 'is-listening'].filter(Boolean).join(' ');
+  const style = { '--shopper-brand': session.config.color, ...cartColors(appearance.cart), ...composerColors(appearance.composer) } as React.CSSProperties;
+  return <main className="shopper gps-chat" lang={session.config.language} style={style}>
+    <header className="chat-header gps-header"><Logo name={session.config.name} logo={appearance.logo} />
+      <div className="chat-title"><h1>{session.config.name}</h1>
+        {(session.preview || subtitle) && <span className="header-caption gps-header-subtitle">{session.preview && <span className="preview-tag">Preview</span>}{subtitle}</span>}
+      </div>
+      {canExpand && <button type="button" className="icon-button gps-expand" title={expanded ? t.shrink : t.expand} aria-label={expanded ? t.shrink : t.expand} aria-pressed={expanded} onClick={toggleSize}>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d={expanded ? 'M4 14h6v6M20 10h-6V4' : 'M14 4h6v6M10 20H4v-6'} />
+        </svg>
+      </button>}
       <button className="icon-button" title={t.newChat} aria-label={t.newChat} onClick={() => { stop(); restart(); }} disabled={busy}><span aria-hidden="true">↻</span></button>
       {session.canClose && <button className="icon-button" title={t.close} aria-label={t.close} onClick={() => send('close')}><span aria-hidden="true">×</span></button>}</header>
     <section className="conversation" aria-label={session.config.name}>
@@ -161,11 +216,20 @@ function Chat({ session, conversation, restart, appearance }: { session: Session
       <div ref={end} />
     </section>
     <form className="composer gps-composer" onSubmit={e => { e.preventDefault(); void submit(input); }}>
-      <div className="composer-field">
-        <label className="sr-only" htmlFor="question">{t.placeholder}</label>
-        <textarea id="question" rows={2} maxLength={2000} value={input} placeholder={t.placeholder} disabled={busy || running}
+      <div className={fieldClass}>
+        <label className="sr-only" htmlFor="question">{placeholder}</label>
+        <textarea id="question" rows={2} maxLength={2000} value={input} placeholder={placeholder} disabled={busy || running || listening}
           onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void submit(input); } }} />
-        {busy ? <button type="button" className="send stop" onClick={stop}>{t.stop}</button> : <button className="send" disabled={!input.trim() || running}>{t.send}<span aria-hidden="true">↑</span></button>}
+        {canSpeak && !busy && <button type="button" className={listening ? 'gps-voice is-listening' : 'gps-voice'}
+          title={listening ? t.voiceStop : t.voiceStart} aria-label={listening ? t.voiceStop : t.voiceStart}
+          aria-pressed={listening} disabled={running} onClick={toggleVoice}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+          </svg>
+        </button>}
+        {busy
+          ? <button type="button" className="send stop" onClick={stop}>{t.stop}</button>
+          : <button className={`send gps-send is-${sendStyle}`} aria-label={t.send} disabled={!input.trim() || running || listening}>{sendLabel}</button>}
       </div>
     </form>
   </main>;

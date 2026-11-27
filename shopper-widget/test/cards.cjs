@@ -83,4 +83,10 @@ assert.equal(head.children.length, 1); assert.equal(head.children[0].textContent
 applyCustomCss('', doc);
 assert.equal(head.children.length, 0);
 
+// Ícono del botón de enviar: flecha, avión o lupa
+const { SendIcon } = require('../src/SendIcon.tsx');
+for (const icon of ['arrow', 'plane', 'search']) {
+  assert.match(render(React.createElement(SendIcon, { icon })), new RegExp(`<svg class="gps-send-icon is-${icon}"[^>]*aria-hidden="true"><path d="M`));
+}
+
 console.log('Product cards: all assertions passed');

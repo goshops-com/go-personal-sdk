@@ -14,7 +14,7 @@ export type Product = {
   variants?: Variant[];
 };
 export type Config = { name: string; welcome: string; color: string; suggestions: string[]; language: 'es' | 'en' | 'pt'; currency: string };
-export type Session = { token: string; apiUrl: string; config: Config; sessionKey?: string; conversationId?: string; preview?: boolean; canClose?: boolean; appearance?: unknown; capabilities?: unknown; provider?: unknown; context?: { productId?: string; pageType?: 'home' | 'product' | 'search' | 'other' } };
+export type Session = { token: string; apiUrl: string; config: Config; sessionKey?: string; conversationId?: string; preview?: boolean; canClose?: boolean; canExpand?: boolean; appearance?: unknown; capabilities?: unknown; provider?: unknown; context?: { productId?: string; pageType?: 'home' | 'product' | 'search' | 'other' } };
 export type StoreActionName = 'add_to_cart' | 'open_product' | 'open_page';
 // Capacidades que anuncia el SDK: las acciones del asistente y el botón de carrito de las tarjetas.
 export type Capability = StoreActionName | 'card_add_to_cart';

@@ -14,7 +14,18 @@ export type CartAppearance = {
   card: { show: boolean; icon: 'cart' | 'bag' | 'plus' | 'none'; label: string; successLabel: string; background: string; color: string };
   confirm: { question: string; confirmLabel: string; cancelLabel: string; successLabel: string; background: string; color: string };
 };
-export type Appearance = { cards: Cards; logo: Logo; cart: CartAppearance; customCss: string };
+// Subtítulo del encabezado, caja de texto y panel del chat.
+export type ChatHeader = { subtitle: string; showSubtitle: boolean };
+export type Composer = {
+  shape: 'square' | 'rounded' | 'pill';
+  send: 'both' | 'icon' | 'text';
+  sendIcon: 'arrow' | 'plane' | 'search';
+  sendBackground: string;
+  sendColor: string;
+  placeholder: string;
+  voice: boolean;
+};
+export type Appearance = { cards: Cards; logo: Logo; header: ChatHeader; cart: CartAppearance; composer: Composer; customCss: string };
 
 export const DEFAULT_CARDS: Cards = { display: 'carousel', layout: 'horizontal', imageFit: 'contain', radius: 'round', showBrand: true, showPrice: true };
 
@@ -37,7 +48,7 @@ export function safeCss(value: unknown): string {
 }
 
 // Devuelve el texto recortado al largo máximo, o vacío si no es texto.
-const label = (value: unknown, max: number) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+const label = (value: unknown, max: number) => typeof value === 'string' ? value.trim().slice(0, max).trim() : '';
 
 // Normaliza los botones de agregar al carrito; el de la tarjeta queda apagado salvo que esté prendido.
 function cartOf(value: unknown): CartAppearance {
@@ -62,6 +73,28 @@ export function cartColors(cart: CartAppearance): Record<string, string> {
   return vars;
 }
 
+// Normaliza la caja de texto: forma, botón de enviar, colores, texto de ayuda y micrófono.
+function composerOf(value: unknown): Composer {
+  const composer = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  return {
+    shape: pick(composer.shape, ['square', 'rounded', 'pill'], 'rounded'),
+    send: pick(composer.send, ['both', 'icon', 'text'], 'both'),
+    sendIcon: pick(composer.sendIcon, ['arrow', 'plane', 'search'], 'arrow'),
+    sendBackground: hexOrEmpty(composer.sendBackground),
+    sendColor: hexOrEmpty(composer.sendColor),
+    placeholder: label(composer.placeholder, 80),
+    voice: composer.voice === true,
+  };
+}
+
+// Variables CSS con los colores propios del botón de enviar; los automáticos no se definen.
+export function composerColors(composer: Composer): Record<string, string> {
+  const vars: Record<string, string> = {};
+  if (composer.sendBackground) vars['--shopper-send-bg'] = composer.sendBackground;
+  if (composer.sendColor) vars['--shopper-send-ink'] = composer.sendColor;
+  return vars;
+}
+
 // Arma la apariencia completa: cada campo inválido o ausente toma su default, así una config vieja se ve como siempre.
 export function appearanceOf(value: unknown): Appearance {
   const source = value && typeof value === 'object' ? value as Record<string, unknown> : {};
@@ -79,6 +112,8 @@ export function appearanceOf(value: unknown): Appearance {
       showPrice: typeof cards.showPrice === 'boolean' ? cards.showPrice : DEFAULT_CARDS.showPrice,
     },
     cart: cartOf(source.cart),
+    header: { subtitle: label(header.subtitle, 40), showSubtitle: header.showSubtitle !== false },
+    composer: composerOf(source.composer),
     // El logo usa la imagen solo si es https; si no, la inicial del nombre
     logo: { kind: logo.kind === 'image' && logoImage ? 'image' : 'initial', image: logoImage, background: hexOrEmpty(logo.background), color: hexOrEmpty(logo.color) },
     customCss: safeCss(source.customCss),
