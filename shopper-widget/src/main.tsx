@@ -152,22 +152,23 @@ function Chat({ session, conversation, restart, appearance }: { session: Session
   const recognition = useRef<{ cancel: () => void } | null>(null);
   const canSpeak = appearance.composer.voice && !!speechRecognition();
 
-  // Termina de escuchar sin mostrar nada: con o sin texto, el micrófono vuelve a su estado normal
-  function onVoiceEnd() {
+  // Avisa por qué terminó sin texto: permiso negado, nada escuchado u otro error; cancelar no avisa
+  function onVoiceEnd(error?: string) {
     recognition.current = null;
     setListening(false);
+    if (!error || error === 'aborted') return;
+    if (error === 'not-allowed' || error === 'service-not-allowed') setNotice(t.voiceDenied);
+    else if (error === 'no-speech') setNotice(t.voiceEmpty);
+    else setNotice(t.voiceFailed);
   }
 
-  // Empieza a escuchar, o cancela si ya estaba escuchando; si el navegador no puede, no pasa nada
+  // Empieza a escuchar, o cancela si ya estaba escuchando
   function toggleVoice() {
     if (recognition.current) { recognition.current.cancel(); return; }
-    try {
-      const lang = recognitionLang(session.config.language);
-      recognition.current = listen({ lang, onText: text => void submit(text), onEnd: onVoiceEnd });
-      setListening(true);
-    } catch {
-      onVoiceEnd();
-    }
+    setNotice('');
+    const lang = recognitionLang(session.config.language);
+    recognition.current = listen({ lang, onText: text => void submit(text), onEnd: onVoiceEnd });
+    setListening(true);
   }
 
   // Contenido del botón de enviar: texto, ícono o los dos, según la config
