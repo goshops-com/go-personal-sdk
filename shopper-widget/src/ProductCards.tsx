@@ -1,13 +1,15 @@
 // Tarjetas de producto del chat y su vista previa para el admin.
 import { useEffect, useRef, useState } from 'react';
-import { productEvent, send, type ActionResult, type Config, type Product, type Session } from './bridge';
+import { optionsOf, productEvent, send, variantsOf } from './bridge';
+import type { ActionResult, Config, Product, Session, Variant } from './bridge';
+import { VariantPicker } from './VariantPicker';
 import { cartError, StoreAction, type ActionState } from './StoreAction';
 import { CartIcon } from './CartIcon';
 import { cartColors, type Appearance, type CartAppearance, type Cards } from './appearance';
 import { copy } from './copy';
 import { showcaseProducts } from './showcaseProducts';
 
-type AddToCart = (product: Product) => Promise<ActionResult>;
+type AddToCart = (product: Product, variant?: Variant) => Promise<ActionResult>;
 type CartButton = CartAppearance['card'];
 type ListProps = { products: Product[]; session: Session; conversationId: string; messageId: string; cards: Cards; demo?: boolean; cartButton?: CartButton; onAddToCart?: AddToCart };
 
@@ -16,18 +18,40 @@ export function ProductCard({ product, session, conversationId, messageId, cards
   const ref = useRef<HTMLElement>(null);
   const t = copy[session.config.language] || copy.es;
   const [cart, setCart] = useState<ActionState | undefined>(undefined);
+  // Variantes del producto: con varias con stock se elige en la tarjeta, y la elegida muestra su imagen
+  const variants = variantsOf(product.variants);
+  const available = variants.filter(v => v.available);
+  const soldOut = variants.length > 0 && !available.length;
+  const [picking, setPicking] = useState(false);
+  const [preview, setPreview] = useState<Variant | null>(null);
+  const image = (preview && preview.image) || product.image;
   const event = (type: 'product_view' | 'product_click') => {
     if (session.preview) return;
     productEvent(session, { conversationId, messageId, productId: product.id, type });
     if (type === 'product_click') send('product-click', { productId: product.id });
   };
 
-  // Agrega el producto al carrito de la tienda desde la tarjeta y muestra cómo salió
-  async function addToCart() {
+  // Agrega el producto (o la variante elegida) al carrito de la tienda desde la tarjeta y muestra cómo salió
+  async function addToCart(variant?: Variant) {
     if (!onAddToCart || cart?.status === 'running') return;
+    setPicking(false);
     setCart({ status: 'running' });
-    const result = await onAddToCart(product);
+    const result = await onAddToCart(product, variant);
     setCart({ status: result.ok ? 'done' : 'failed', result });
+  }
+
+  // Con varias variantes con stock abre el selector; con una sola la agrega directo
+  function pressAdd() {
+    if (available.length > 1) setPicking(open => !open);
+    else void addToCart(available[0]);
+  }
+
+  // Texto del botón según el estado: sin stock, agregando, agregado o el texto configurado con su ícono
+  function addLabel() {
+    if (soldOut) return t.soldOut;
+    if (cart?.status === 'running') return t.adding;
+    if (cart?.status === 'done') return <>{cartButton?.successLabel || t.added} <span aria-hidden="true">✓</span></>;
+    return <><CartIcon icon={cartButton?.icon || 'cart'} />{cartButton?.label || t.addToCart}</>;
   }
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -44,11 +68,24 @@ export function ProductCard({ product, session, conversationId, messageId, cards
     catch { price = String(product.price); }
   }
   return <article className={`product gps-card is-${cards.layout} fit-${cards.imageFit} radius-${cards.radius}`} data-gps-product={product.id} ref={ref}>
-    <div className="product-image gps-card-image">{product.image ? <img src={product.image} alt="" loading="lazy" /> : <span aria-hidden="true">◇</span>}</div>
+    <div className="product-image gps-card-image">
+      {image ? <img src={image} alt="" loading="lazy" /> : <span aria-hidden="true">◇</span>}
+    </div>
     <div className="product-details">{cards.showBrand && product.brand && <span className="brand gps-card-brand">{product.brand}</span>}<h3 className="gps-card-name"><a className="gps-card-link" href={product.url} target="_blank" rel="noopener noreferrer" onClick={e => { if (demo) { e.preventDefault(); return; } event('product_click'); }}>{product.name}</a></h3>
       {cards.showPrice && <div className="product-foot"><strong className={product.price === null ? 'price price-unknown gps-card-price' : 'price gps-card-price'}>{price}</strong></div>}
       {onAddToCart && <div className={`product-cart gps-card-cart is-${cart?.status || 'idle'}`} data-gps-status={cart?.status || 'idle'}>
-        <button type="button" className="gps-card-add" onClick={() => void addToCart()} disabled={cart?.status === 'running'}>{cart?.status === 'running' ? t.adding : cart?.status === 'done' ? <>{cartButton?.successLabel || t.added} <span aria-hidden="true">✓</span></> : <><CartIcon icon={cartButton?.icon || 'cart'} />{cartButton?.label || t.addToCart}</>}</button>
+        {!picking && <button type="button" className={soldOut ? 'gps-card-add is-soldout' : 'gps-card-add'}
+          aria-expanded={available.length > 1 ? 'false' : undefined}
+          disabled={cart?.status === 'running' || soldOut}
+          onClick={pressAdd}>
+          {addLabel()}
+        </button>}
+        {picking && <VariantPicker
+          options={optionsOf(product.options, variants)}
+          variants={variants}
+          submitLabel={cartButton?.label || t.addToCart}
+          onChange={setPreview}
+          onPick={variant => void addToCart(variant)} />}
         {cart?.status === 'failed' && <small role="alert" className="store-action-error gps-card-cart-error">{cartError(t, cart.result)}</small>}
       </div>}</div>
   </article>;

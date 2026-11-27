@@ -1,9 +1,12 @@
 // Acciones en la tienda dentro del chat: agregar al carrito (con confirmación opcional) y abrir productos o páginas.
-import type { ActionRequest, ActionResult } from './bridge';
+import { useState } from 'react';
+import { optionsOf, variantsOf, type ActionRequest, type ActionResult, type Variant } from './bridge';
+import { VariantPicker } from './VariantPicker';
 import type { CartAppearance } from './appearance';
 import type { copy } from './copy';
 
-export type ActionState = { status: 'confirm' | 'waiting' | 'running' | 'done' | 'failed' | 'cancelled'; result?: ActionResult };
+export type ActionStatus = 'choose' | 'confirm' | 'waiting' | 'running' | 'done' | 'failed' | 'cancelled';
+export type ActionState = { status: ActionStatus; result?: ActionResult; variant?: Variant };
 type Texts = (typeof copy)['es'];
 type Confirm = CartAppearance['confirm'];
 // Confirmación con los textos del chat, para cuando la tienda no configuró los propios.
@@ -21,8 +24,32 @@ export function cartError(t: Texts, result?: ActionResult): string {
 }
 
 // Estado de agregar al carrito: confirmación, en curso, agregado o el error.
-function CartStatus({ request, state, t, confirm, onConfirm, onCancel }: { request: ActionRequest; state?: ActionState; t: Texts; confirm: Confirm; onConfirm: () => void; onCancel: () => void }) {
+type ActionProps = {
+  request: ActionRequest;
+  state?: ActionState;
+  t: Texts;
+  confirm?: Confirm;
+  onConfirm: () => void;
+  onCancel: () => void;
+  onChoose?: (variant: Variant) => void;
+};
+type StatusProps = Required<Omit<ActionProps, 'state'>> & { state?: ActionState; onPreview: (variant: Variant | null) => void };
+
+function CartStatus({ request, state, t, confirm, onConfirm, onCancel, onChoose, onPreview }: StatusProps) {
   switch (state?.status) {
+    case 'choose': {
+      // El cliente elige la variante en el chat; elegirla ya cuenta como confirmación
+      const variants = variantsOf(request.product!.variants);
+      return <div className="gps-action-question">
+        <p className="gps-action-question-text">{t.chooseVariant}</p>
+        <VariantPicker
+          options={optionsOf(request.product!.options, variants)}
+          variants={variants}
+          submitLabel={confirm.confirmLabel || t.addToCart}
+          onChange={onPreview}
+          onPick={onChoose} />
+      </div>;
+    }
     case 'confirm':
       return <div className="store-action-confirm gps-action-question"><p className="gps-action-question-text">{confirm.question || t.confirmAdd}</p>
         <div className="store-action-buttons gps-action-buttons"><button type="button" className="gps-action-confirm" onClick={onConfirm}>{confirm.confirmLabel || t.addToCart}</button><button type="button" className="secondary gps-action-cancel" onClick={onCancel}>{confirm.cancelLabel || t.cancel}</button></div></div>;
@@ -40,8 +67,10 @@ function CartStatus({ request, state, t, confirm, onConfirm, onCancel }: { reque
 }
 
 // Acción que pidió el asistente; sin estado (una respuesta del historial) muestra solo a qué apunta.
-export function StoreAction({ request, state, t, confirm = DEFAULT_CONFIRM, onConfirm, onCancel }: { request: ActionRequest; state?: ActionState; t: Texts; confirm?: Confirm; onConfirm: () => void; onCancel: () => void }) {
+export function StoreAction({ request, state, t, confirm = DEFAULT_CONFIRM, onConfirm, onCancel, onChoose = () => {} }: ActionProps) {
   const status = state?.status || 'past';
+  // Variante que se está mirando en el selector, para mostrar su imagen antes de agregarla
+  const [preview, setPreview] = useState<Variant | null>(null);
   // Atributos para apuntar desde el CSS propio a una acción, un estado o un producto puntual
   const data = { 'data-gps-action': request.action, 'data-gps-status': status, ...(request.product ? { 'data-gps-product': request.product.id } : {}) };
 
@@ -49,10 +78,15 @@ export function StoreAction({ request, state, t, confirm = DEFAULT_CONFIRM, onCo
   if (request.action === 'add_to_cart') {
     const product = request.product!;
     const quantity = product.quantity || 1;
+    const variantTitle = (state?.variant && state.variant.title) || product.variantTitle;
+    const image = (preview && preview.image) || (state?.variant && state.variant.image) || product.image;
     return <div className={`store-action gps-action gps-action-cart is-${status}`} {...data}>
-      {product.image && <img className="gps-action-image" src={product.image} alt="" />}
+      {image && <img className="gps-action-image" src={image} alt="" />}
       <div className="store-action-body gps-action-body"><strong className="gps-action-name">{product.name}{quantity > 1 ? ` × ${quantity}` : ''}</strong>
-        <CartStatus request={request} state={state} t={t} confirm={confirm} onConfirm={onConfirm} onCancel={onCancel} /></div>
+        {variantTitle && <span className="gps-action-variant">{variantTitle}</span>}
+        <CartStatus request={request} state={state} t={t} confirm={confirm}
+          onConfirm={onConfirm} onCancel={onCancel} onChoose={onChoose} onPreview={setPreview} />
+      </div>
     </div>;
   }
 

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
-import { actionRequestOf, assistantActionsOf, capabilitiesOf, hostOrigin, productEvent, receiveActionResult, requestStoreAction, send, validConfig, validSession, type ActionRequest, type Config, type Product, type Session } from './bridge';
+import { actionRequestOf, assistantActionsOf, capabilitiesOf, providerOf, hostOrigin, productEvent, receiveActionResult, requestStoreAction, send, validConfig, validSession, type ActionRequest, type Config, type Product, type Session, type Variant } from './bridge';
 import { StoreAction, type ActionState } from './StoreAction';
 import { appearanceOf, cartColors, type Appearance } from './appearance';
 import { Logo } from './Logo';
@@ -35,6 +35,7 @@ function Chat({ session, conversation, restart, appearance }: { session: Session
       requestId: crypto.randomUUID(), message: messages.slice().reverse().find(m => m.role === 'user'),
       ...(latest.current.context ? { context: latest.current.context } : {}),
       ...(assistantActionsOf(latest.current).length ? { capabilities: assistantActionsOf(latest.current) } : {}),
+      ...(providerOf(latest.current) ? { provider: providerOf(latest.current) } : {}),
     } }),
   }), [session.apiUrl, conversation.id]);
   // Estado de cada acción en la tienda pedida en esta sesión del chat y la navegación que espera el fin de la respuesta
@@ -49,14 +50,19 @@ function Chat({ session, conversation, restart, appearance }: { session: Session
     if (owner && request.product) productEvent(latest.current, { conversationId: conversation.id, messageId: owner, productId: request.product.id, type });
   }
 
-  // Ejecuta en la tienda una acción del asistente, registra su evento y guarda cómo salió
-  async function runAction(request: ActionRequest, messageId?: string) {
-    track(request.id, { status: 'running' });
+  // Ejecuta en la tienda una acción del asistente, con la variante que eligió el cliente si hay, y guarda cómo salió
+  async function runAction(request: ActionRequest, messageId?: string, variant?: Variant) {
+    let toRun = request;
+    if (variant) {
+      const product = { ...request.product!, variantId: variant.id, variantTitle: variant.title };
+      toRun = { ...request, product };
+    }
+    track(request.id, { status: 'running', variant });
 
     // Abrir un producto se registra antes de pedirlo, porque la página se va
     if (request.action === 'open_product') actionEvent(request, 'open_product', messageId);
-    const result = await requestStoreAction(request);
-    track(request.id, { status: result.ok ? 'done' : 'failed', result });
+    const result = await requestStoreAction(toRun);
+    track(request.id, { status: result.ok ? 'done' : 'failed', result, variant });
     if (result.ok && request.action === 'add_to_cart') actionEvent(request, 'add_to_cart', messageId);
   }
 
@@ -65,7 +71,8 @@ function Chat({ session, conversation, restart, appearance }: { session: Session
     const request = actionRequestOf(data);
     if (!request) return;
     if (request.action === 'add_to_cart') {
-      if (request.confirm) track(request.id, { status: 'confirm' });
+      if (request.chooseVariant) track(request.id, { status: 'choose' });
+      else if (request.confirm) track(request.id, { status: 'confirm' });
       else void runAction(request);
       return;
     }
@@ -88,8 +95,9 @@ function Chat({ session, conversation, restart, appearance }: { session: Session
 
   // Agrega al carrito desde el botón de una tarjeta, si está prendido y el sitio puede, y registra el evento en su mensaje
   const canAddToCart = capabilitiesOf(session).includes('card_add_to_cart') && !session.preview;
-  const addFromCard = (messageId: string) => async (product: Product) => {
-    const result = await requestStoreAction({ id: `card-${crypto.randomUUID()}`, action: 'card_add_to_cart', product: { id: product.id, name: product.name, url: product.url, quantity: 1 } });
+  const addFromCard = (messageId: string) => async (product: Product, variant?: Variant) => {
+    const item = { id: product.id, name: product.name, url: product.url, quantity: 1, variantId: variant?.id };
+    const result = await requestStoreAction({ id: `card-${crypto.randomUUID()}`, action: 'card_add_to_cart', product: item });
     if (result.ok) productEvent(latest.current, { conversationId: conversation.id, messageId, productId: product.id, type: 'add_to_cart' });
     return result;
   };
@@ -141,7 +149,8 @@ function Chat({ session, conversation, restart, appearance }: { session: Session
           if (part.type === 'data-action') {
             const request = actionRequestOf(part.data);
             return request && <StoreAction key={index} request={request} state={actions[request.id]} t={t} confirm={appearance.cart.confirm}
-              onConfirm={() => void runAction(request, message.id)} onCancel={() => track(request.id, { status: 'cancelled' })} />;
+              onConfirm={() => void runAction(request, message.id)} onCancel={() => track(request.id, { status: 'cancelled' })}
+              onChoose={variant => void runAction(request, message.id, variant)} />;
           }
           return null;
         })}

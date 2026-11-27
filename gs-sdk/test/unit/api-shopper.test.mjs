@@ -590,6 +590,21 @@ test('turning a skill off in the admin stops it on the open page as soon as the 
   assert.equal('capabilities' in sessions[1].message.session, false, 'el chat se entera solo de que ya no puede agregar');
 });
 
+test('the chat receives the store platform from the init, so it can read product variants', async () => {
+  const none = await openReady({}, withCart(false));
+  assert.equal('provider' in none.posts[0].message.session, false, 'sin provider en el init no se manda');
+  none.shopper.destroy();
+
+  window.gsConfig.options.provider = '  Shopify  ';
+  const shopify = await openReady({}, withCart(false));
+  assert.equal(shopify.posts[0].message.session.provider, 'Shopify');
+  shopify.shopper.destroy();
+
+  window.gsConfig.options.provider = { name: 'shopify' };
+  const broken = await openReady({}, withCart(false));
+  assert.equal('provider' in broken.posts[0].message.session, false, 'un provider que no es texto se ignora');
+});
+
 test('the chat learns it can add to cart only when the skill is on and this site knows how to do it', async () => {
   const custom = await openReady({ cart: { add: async () => {} } });
   assert.deepEqual(custom.posts[0].message.session.capabilities, ['add_to_cart'], 'callback propio');

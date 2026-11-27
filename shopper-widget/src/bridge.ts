@@ -1,11 +1,35 @@
-export type Product = { id: string; name: string; price: number | null; currency: string; image: string | null; url: string; brand: string; description: string };
+// Formato común de variantes que arma el backend para cualquier provider.
+export type VariantOption = { name: string; values: string[] };
+export type Variant = { id: string; title: string; available: boolean; options: Record<string, string>; image: string | null };
+export type Product = {
+  id: string;
+  name: string;
+  price: number | null;
+  currency: string;
+  image: string | null;
+  url: string;
+  brand: string;
+  description: string;
+  options?: VariantOption[];
+  variants?: Variant[];
+};
 export type Config = { name: string; welcome: string; color: string; suggestions: string[]; language: 'es' | 'en' | 'pt'; currency: string };
-export type Session = { token: string; apiUrl: string; config: Config; sessionKey?: string; conversationId?: string; preview?: boolean; canClose?: boolean; appearance?: unknown; capabilities?: unknown; context?: { productId?: string; pageType?: 'home' | 'product' | 'search' | 'other' } };
+export type Session = { token: string; apiUrl: string; config: Config; sessionKey?: string; conversationId?: string; preview?: boolean; canClose?: boolean; appearance?: unknown; capabilities?: unknown; provider?: unknown; context?: { productId?: string; pageType?: 'home' | 'product' | 'search' | 'other' } };
 export type StoreActionName = 'add_to_cart' | 'open_product' | 'open_page';
 // Capacidades que anuncia el SDK: las acciones del asistente y el botón de carrito de las tarjetas.
 export type Capability = StoreActionName | 'card_add_to_cart';
-export type ActionProduct = { id: string; name: string; url: string; image?: string | null; quantity?: number };
-export type ActionRequest = { id: string; action: StoreActionName | 'card_add_to_cart'; confirm?: boolean; product?: ActionProduct; page?: { label: string; url: string } };
+export type ActionProduct = {
+  id: string;
+  name: string;
+  url: string;
+  image?: string | null;
+  quantity?: number;
+  variantId?: string;
+  variantTitle?: string;
+  options?: VariantOption[];
+  variants?: Variant[];
+};
+export type ActionRequest = { id: string; action: StoreActionName | 'card_add_to_cart'; confirm?: boolean; chooseVariant?: boolean; product?: ActionProduct; page?: { label: string; url: string } };
 export type ActionResult = { ok: boolean; error?: string; message?: string };
 export type ProductEvent = 'product_view' | 'product_click' | 'add_to_cart' | 'open_product';
 export const hostOrigin = new URLSearchParams(location.search).get('hostOrigin');
@@ -67,10 +91,15 @@ export function requestStoreAction({ id, action, product, page }: ActionRequest)
       resolve(result);
     });
 
-    // Al SDK solo le llega lo que necesita para ejecutar: id, URL y cantidad del producto, o la URL de la página
-    send('action', { actionId: id, action,
-      ...(product ? { product: { id: product.id, url: product.url, quantity: product.quantity || 1 } } : {}),
-      ...(page ? { page: { url: page.url } } : {}) });
+    // Al SDK solo le llega lo que necesita: id, URL, cantidad y variante del producto, o la URL de la página
+    const message: Record<string, unknown> = { actionId: id, action };
+    if (product) {
+      const item: Record<string, unknown> = { id: product.id, url: product.url, quantity: product.quantity || 1 };
+      if (product.variantId) item.variantId = product.variantId;
+      message.product = item;
+    }
+    if (page) message.page = { url: page.url };
+    send('action', message);
   });
 }
 
@@ -88,4 +117,44 @@ export function productEvent(session: Session, { conversationId, messageId, prod
   if (session.preview) return;
   void fetch(`${session.apiUrl}/events`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.token}` },
     body: JSON.stringify({ eventId: crypto.randomUUID(), conversationId, messageId, productId, type }), keepalive: true }).catch(() => {});
+}
+
+// Devuelve la plataforma de la tienda que informó el SDK, o vacío.
+export function providerOf(session: Session): string {
+  if (typeof session.provider !== 'string') return '';
+  return session.provider.trim().slice(0, 40);
+}
+
+// Dice si un valor tiene la forma de una variante del formato común.
+function isVariant(value: any): value is Variant {
+  if (!value || typeof value !== 'object') return false;
+  if (typeof value.id !== 'string') return false;
+  if (typeof value.title !== 'string') return false;
+  if (typeof value.available !== 'boolean') return false;
+  return !!value.options && typeof value.options === 'object';
+}
+
+// Devuelve las variantes válidas; una imagen que no es texto queda en null.
+export function variantsOf(value: unknown): Variant[] {
+  if (!Array.isArray(value)) return [];
+
+  const variants = value.filter(isVariant);
+  return variants.map(variant => {
+    const image = typeof variant.image === 'string' ? variant.image : null;
+    return { ...variant, image };
+  });
+}
+
+// Devuelve las opciones de las variantes; si el backend no las manda, las arma con los valores de cada variante.
+export function optionsOf(value: unknown, variants: Variant[]): VariantOption[] {
+  const given = Array.isArray(value) ? value : [];
+  const valid = given.filter(option => option && typeof option.name === 'string' && Array.isArray(option.values));
+  if (valid.length) return valid.map(option => ({ name: option.name, values: option.values.map(String) }));
+
+  // Sin opciones: una por cada nombre que aparece en las variantes, con sus valores distintos en orden
+  const names = new Set(variants.flatMap(variant => Object.keys(variant.options)));
+  return [...names].map(name => {
+    const values = variants.map(variant => variant.options[name]).filter(item => typeof item === 'string');
+    return { name, values: [...new Set(values)] };
+  });
 }
