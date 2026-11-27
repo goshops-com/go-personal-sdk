@@ -36,8 +36,14 @@ const OPTIONS = [{ name: 'Color', values: ['Blanco', 'Negro'] }, { name: 'Talla'
   assert.deepEqual(optionsOf(undefined, VARIANTS), [{ name: 'Color', values: ['Blanco', 'Negro'] }, { name: 'Talla', values: ['15', '16', '17'] }]);
   assert.deepEqual(optionsOf([{ name: 'Talla', values: [15, 16] }, { name: 3 }], VARIANTS), [{ name: 'Talla', values: ['15', '16'] }]);
 
-  // Solo se eligen las opciones con más de un valor
-  assert.deepEqual(choosableOptions(OPTIONS).map((o) => o.name), ['Color', 'Talla']);
+  // Solo se eligen las opciones con más de un valor con stock, y solo con esos valores
+  assert.deepEqual(choosableOptions(OPTIONS, VARIANTS), [{ name: 'Color', values: ['Blanco', 'Negro'] }, { name: 'Talla', values: ['16', '17'] }], 'el 15 no tiene stock');
+
+  // Producto separado por color: la ficha trae todos los colores pero sus variantes son de uno solo
+  const BEIGE = [variant('b1', 'Beige', 'S'), variant('b2', 'Beige', 'M'), variant('b3', 'Beige', 'XXL', false)];
+  const ALL_COLORS = [{ name: 'Color', values: ['Rosado', 'Lila', 'Beige', 'Negro'] }, { name: 'Talla', values: ['XS', 'S', 'M', 'XXL'] }];
+  assert.deepEqual(choosableOptions(ALL_COLORS, BEIGE), [{ name: 'Talla', values: ['S', 'M'] }], 'el color no se elige y solo quedan los talles con stock');
+  assert.equal(selectedVariant(ALL_COLORS, BEIGE, { Talla: 'M' }).id, 'b2', 'con el talle alcanza');
 
   // Cada valor se habilita si hay stock con lo ya elegido en las otras opciones
   assert.equal(isValueAvailable(VARIANTS, {}, 'Talla', '15'), false, '15 no tiene stock en ningún color');
@@ -59,8 +65,12 @@ const OPTIONS = [{ name: 'Color', values: ['Blanco', 'Negro'] }, { name: 'Talla'
   const picker = render(React.createElement(VariantPicker, { options: OPTIONS, variants: VARIANTS, submitLabel: 'Agregar', onPick: () => {} }));
   assert.equal((picker.match(/class="gps-variant-option"/g) || []).length, 2, 'Material tiene un solo valor y no se muestra');
   assert.match(picker, /<span class="gps-variant-name">Talla<\/span>/);
-  assert.match(picker, /<button type="button" role="radio" class="gps-variant-value is-unavailable" aria-checked="false" disabled="">15<\/button>/);
+  assert.doesNotMatch(picker, />15<\/button>/, 'los valores sin stock no se muestran');
+  assert.doesNotMatch(picker, /is-unavailable|disabled="">1/, 'nada tachado ni deshabilitado');
   assert.match(picker, /<button type="button" role="radio" class="gps-variant-value" aria-checked="false">17<\/button>/);
+  const beigePicker = render(React.createElement(VariantPicker, { options: ALL_COLORS, variants: BEIGE, submitLabel: 'Agregar', onPick: () => {} }));
+  assert.equal((beigePicker.match(/class="gps-variant-option"/g) || []).length, 1);
+  assert.doesNotMatch(beigePicker, /Rosado|Lila|Beige|XS|XXL/);
   assert.match(picker, /<button type="button" class="gps-variant-submit" disabled="">Agregar<\/button>/);
 
   // Al SDK le llega el id de la variante elegida

@@ -12,9 +12,11 @@ type PickerProps = {
   onPick: (variant: Variant) => void;
 };
 
-// Devuelve las opciones que hay que elegir: las que tienen más de un valor.
-export function choosableOptions(options: VariantOption[]): VariantOption[] {
-  return options.filter(option => option.values.length > 1);
+// Devuelve las opciones que hay que elegir, solo con sus valores con stock; una opción con un solo valor no se elige.
+export function choosableOptions(options: VariantOption[], variants: Variant[]): VariantOption[] {
+  const hasStock = (name: string, value: string) => variants.some(variant => variant.available && variant.options[name] === value);
+  const inStock = options.map(option => ({ name: option.name, values: option.values.filter(value => hasStock(option.name, value)) }));
+  return inStock.filter(option => option.values.length > 1);
 }
 
 // Dice si la variante coincide con todos los valores elegidos.
@@ -37,7 +39,7 @@ export function isValueAvailable(variants: Variant[], selection: Selection, name
 
 // Devuelve la variante con stock que define la selección completa, o null si falta elegir o no hay.
 export function selectedVariant(options: VariantOption[], variants: Variant[], selection: Selection): Variant | null {
-  const missing = choosableOptions(options).some(option => !selection[option.name]);
+  const missing = choosableOptions(options, variants).some(option => !selection[option.name]);
   if (missing) return null;
   return variants.find(variant => variant.available && matches(variant, selection)) || null;
 }
@@ -60,16 +62,15 @@ export function VariantPicker({ options, variants, submitLabel, onChange, onPick
   const choose = (name: string, value: string) => setSelection(current => toggleValue(current, name, value));
 
   return <div className="gps-variant-picker">
-    {choosableOptions(options).map(option => <div key={option.name} className="gps-variant-option" role="radiogroup" aria-label={option.name}>
+    {choosableOptions(options, variants).map(option => <div key={option.name} className="gps-variant-option" role="radiogroup" aria-label={option.name}>
       <span className="gps-variant-name">{option.name}</span>
       <div className="gps-variant-values">
         {option.values.map(value => {
+          // Solo se muestran los valores con stock para lo ya elegido, y el que está elegido
           const selected = selection[option.name] === value;
-          const available = isValueAvailable(variants, selection, option.name, value);
-          const className = ['gps-variant-value', selected && 'is-selected', !available && 'is-unavailable'].filter(Boolean).join(' ');
-          return <button key={value} type="button" role="radio" className={className}
+          if (!selected && !isValueAvailable(variants, selection, option.name, value)) return null;
+          return <button key={value} type="button" role="radio" className={selected ? 'gps-variant-value is-selected' : 'gps-variant-value'}
             aria-checked={selected ? 'true' : 'false'}
-            disabled={!available && !selected}
             onClick={() => choose(option.name, value)}>
             {value}
           </button>;
